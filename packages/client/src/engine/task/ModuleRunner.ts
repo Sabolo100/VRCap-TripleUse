@@ -1,0 +1,528 @@
+import * as THREE from 'three';
+import { Rng, randomSeed, SCORING_VERSION, variantOf } from '@vrcap/shared';
+import type { DomainCode, RunMode, RunPayload, RunHeader, VariantId } from '@vrcap/shared';
+import type { Engine } from '../core/Engine.js';
+import { Panel } from '../ui/Panel.js';
+import type { PanelManager, PanelClickEvent } from '../ui/PanelManager.js';
+import { Recorder } from '../data/Recorder.js';
+import { SignalSystem } from '../world/SignalSystem.js';
+import { MotionSystem } from '../world/MotionSystem.js';
+import { audio } from '../audio/AudioSystem.js';
+import { themeForDomain } from '../ui/UITheme.js';
+import { withAlpha } from '../ui/UITheme.js';
+import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from './Module.js';
+import { deviceSync } from '../core/Device.js';
+
+/**
+ * STANDARD ASSESSMENT FLOW.
+ *
+ *   INTRO -> INSTRUCTIONS -> CALIBRATION -> PRACTICE -> READY
+ *         -> ASSESSMENT -> (next block) -> PROCESSING -> RESULT -> SAVE
+ *
+ * Implemented once, here, so every module has the same shape and the same
+ * separation between practice (feedback allowed, never scored) and assessment
+ * (no help, this is the measurement).
+ */
+
+export type RunnerState =
+  | 'intro'
+  | 'instructions'
+  | 'calibration'
+  | 'practice'
+  | 'ready'
+  | 'assessment'
+  | 'processing'
+  | 'result';
+
+export interface RunnerOptions {
+  engine: Engine;
+  panels: PanelManager;
+  module: AssessmentModule;
+  domain: DomainCode;
+  mode: RunMode;
+  seed?: number;
+  motionHz?: number;
+  /** Called with the finished payload. Returns whether it was persisted. */
+  onSave: (payload: RunPayload) => Promise<{ saved: boolean; message: string }>;
+  onExit: () => void;
+  /** Identity for the header; null for an anonymous try-out. */
+  subjectId: string | null;
+  sessionId: string;
+  configVersion?: string;
+  /** Set for modules that have more than one runnable form. */
+  variant?: VariantId;
+}
+
+export class ModuleRunner {
+  state: RunnerState = 'intro';
+  private opts: RunnerOptions;
+  private engine: Engine;
+  private ctx: ModuleContext;
+  private root = new THREE.Group();
+  private infoPanel: Panel;
+  private hudPanel: Panel;
+  private blockIndex = 0;
+  private practicePhase = true;
+  private result: ModuleResult | null = null;
+  private saveMessage = '';
+  private saving = false;
+  private startedAt = new Date().toISOString();
+  private offClick: () => void;
+  private offFrame: () => void;
+  private disposed = false;
+  private aborted = false;
+  private blockRunning = false;
+
+  constructor(opts: RunnerOptions) {
+    this.opts = opts;
+    this.engine = opts.engine;
+    const theme = themeForDomain(opts.domain);
+    const recorder = new Recorder(this.engine.clock, this.engine.input, {
+      motionHz: opts.motionHz ?? 15,
+    });
+
+    this.ctx = {
+      engine: this.engine,
+      scene: this.engine.scene,
+      root: this.root,
+      panels: opts.panels,
+      recorder,
+      signals: new SignalSystem(),
+      motion: new MotionSystem(),
+      audio,
+      rng: new Rng(opts.seed ?? randomSeed()),
+      theme,
+      domain: opts.domain,
+      mode: opts.mode,
+      manifest: opts.module.manifest,
+      platform: this.engine.inXR ? 'vr' : (deviceSync()?.platform === 'mobile' ? 'mobile' : 'desktop'),
+      configVersion: opts.configVersion ?? `${opts.module.manifest.code}_STANDARD_A`,
+    };
+
+    this.engine.scene.add(this.root);
+
+    // Panel distances differ by platform. In VR, 1.9 m is a comfortable reading
+    // distance that keeps the panel outside arm's reach. On a flat screen the
+    // same panel would occupy a third of the viewport, so it is brought
+    // forward - the angular size the participant sees ends up similar.
+    const flat = this.ctx.platform !== 'vr';
+
+    // The main information surface: intro, instructions, results.
+    this.infoPanel = new Panel({ width: 1.5, height: 0.94, pxPerMeter: 820, theme, name: 'info' });
+    this.infoPanel.group.position.set(0, 1.58, flat ? -1.35 : -1.9);
+    this.root.add(this.infoPanel.group);
+    opts.panels.add(this.infoPanel);
+
+    // A slim always-on HUD: block progress and abort.
+    this.hudPanel = new Panel({ width: 1.15, height: 0.14, pxPerMeter: 900, theme, frame: false, name: 'hud' });
+    this.hudPanel.group.position.set(0, flat ? 0.92 : 0.72, flat ? -1.2 : -1.55);
+    this.hudPanel.group.rotation.x = -0.42;
+    this.root.add(this.hudPanel.group);
+    opts.panels.add(this.hudPanel);
+
+    this.hudPanel.setDraw((ui) => this.drawHud(ui));
+    this.infoPanel.setDraw((ui) => this.drawInfo(ui));
+
+    this.offClick = opts.panels.onClick((e) => this.onClick(e));
+    this.offFrame = this.engine.onFrame((dt, clock) => this.frame(dt, clock.frameTime));
+  }
+
+  get seed(): number {
+    return this.opts.seed ?? 0;
+  }
+
+  /** Live snapshot for the console debug handle and smoke tests. */
+  get debug() {
+    return {
+      state: this.state,
+      block: this.currentBlock()?.id ?? null,
+      blockIndex: this.blockIndex,
+      practice: this.practicePhase,
+      counts: this.ctx.recorder.counts,
+      opsScore: this.result?.opsScore ?? null,
+      platform: this.ctx.platform,
+      frameIntervalMs: Math.round(this.engine.clock.frameInterval * 100) / 100,
+    };
+  }
+
+  /** Test hook: advance the flow exactly as pressing the panel button would. */
+  advanceForTest(): void {
+    void this.advance();
+  }
+
+  async begin(): Promise<void> {
+    this.engine.clock.reset();
+    this.ctx.recorder.reset();
+    this.ctx.recorder.event('run_start', {
+      module: this.ctx.manifest.code,
+      version: this.ctx.manifest.version,
+      mode: this.ctx.mode,
+      platform: this.ctx.platform,
+      seed: this.opts.seed ?? null,
+    });
+    await this.opts.module.init(this.ctx);
+    this.setState('intro');
+  }
+
+  /* --------------------------------------------------------- lifecycle */
+
+  private setState(s: RunnerState): void {
+    this.state = s;
+    this.ctx.recorder.event('flow_state', { state: s, block: this.currentBlock()?.id ?? null });
+    this.infoPanel.invalidate();
+    this.hudPanel.invalidate();
+    // The info panel is in the way during a running block - and during
+    // calibration too: this state is only ever entered when the module
+    // implements calibrate(), and such a module draws its own content there.
+    const hide = s === 'practice' || s === 'assessment' || s === 'calibration';
+    this.infoPanel.group.visible = !hide;
+  }
+
+  private currentBlock(): BlockDescriptor | undefined {
+    return this.opts.module.blocks[this.blockIndex];
+  }
+
+  private frame(dt: number, now: number): void {
+    if (this.disposed) return;
+    this.ctx.signals.update(now);
+    this.ctx.motion.update(dt);
+    this.ctx.recorder.sampleMotion();
+    audio.syncListener(this.engine.camera);
+    if (this.state === 'practice' || this.state === 'assessment') {
+      this.opts.module.update(dt, this.ctx);
+      this.hudPanel.invalidate();
+    }
+  }
+
+  private async advance(): Promise<void> {
+    switch (this.state) {
+      case 'intro':
+        if (this.opts.module.calibrate) {
+          this.setState('calibration');
+          await this.opts.module.calibrate(this.ctx);
+        }
+        this.setState('instructions');
+        break;
+
+      case 'calibration':
+        this.setState('instructions');
+        break;
+
+      case 'instructions': {
+        const block = this.currentBlock();
+        if (!block) return this.finish();
+        if (block.practiceTrials > 0) {
+          this.practicePhase = true;
+          this.setState('practice');
+          await this.runBlock(block, true);
+          this.setState('ready');
+        } else {
+          this.practicePhase = false;
+          this.setState('assessment');
+          await this.runBlock(block, false);
+          this.nextBlock();
+        }
+        break;
+      }
+
+      case 'ready': {
+        const block = this.currentBlock();
+        if (!block) return this.finish();
+        this.practicePhase = false;
+        this.setState('assessment');
+        await this.runBlock(block, false);
+        this.nextBlock();
+        break;
+      }
+
+      case 'result':
+        this.opts.onExit();
+        break;
+    }
+  }
+
+  private nextBlock(): void {
+    this.blockIndex++;
+    if (this.blockIndex >= this.opts.module.blocks.length) {
+      void this.finish();
+    } else {
+      this.setState('instructions');
+    }
+  }
+
+  private async runBlock(block: BlockDescriptor, practice: boolean): Promise<void> {
+    if (this.aborted) return;
+    this.blockRunning = true;
+    this.ctx.recorder.event('block_start', { block: block.id, practice });
+    try {
+      await this.opts.module.runBlock(this.ctx, block, practice);
+    } catch (err) {
+      console.error('[runner] block failed', err);
+      this.ctx.recorder.event('block_error', { block: block.id, message: String(err) });
+    }
+    this.ctx.recorder.event('block_end', { block: block.id, practice });
+    this.blockRunning = false;
+  }
+
+  private async finish(): Promise<void> {
+    this.setState('processing');
+    // One frame of breathing room so the panel actually paints "processing".
+    await new Promise((r) => setTimeout(r, 260));
+    this.result = this.opts.module.finish(this.ctx);
+    this.ctx.recorder.score('OPS', this.result.opsScore, SCORING_VERSION);
+    this.ctx.recorder.event('run_finish', { opsScore: this.result.opsScore });
+    this.setState('result');
+    void this.save();
+  }
+
+  private async save(): Promise<void> {
+    if (!this.result) return;
+    this.saving = true;
+    this.infoPanel.invalidate();
+    const device = deviceSync()!;
+    const header: RunHeader = {
+      id: crypto.randomUUID(),
+      sessionId: this.opts.sessionId,
+      subjectId: this.opts.subjectId,
+      domain: this.opts.domain,
+      moduleCode: this.ctx.manifest.code,
+      moduleVersion: this.ctx.manifest.version,
+      configVersion: this.ctx.configVersion,
+      variant: this.opts.variant,
+      mode: this.opts.mode,
+      seed: this.opts.seed ?? 0,
+      device,
+      startedAt: this.startedAt,
+    };
+    const d = this.ctx.recorder.data;
+    const payload: RunPayload = {
+      header,
+      finishedAt: new Date().toISOString(),
+      status: this.aborted ? 'aborted' : 'completed',
+      trials: d.trials,
+      events: d.events,
+      motion: d.motion,
+      metrics: d.metrics,
+      scores: d.scores,
+      opsScore: this.result.opsScore,
+      summary: this.result.summary,
+    };
+    try {
+      const res = await this.opts.onSave(payload);
+      this.saveMessage = res.message;
+    } catch (err) {
+      this.saveMessage = 'Mentés sikertelen, helyben eltárolva.';
+      console.error('[runner] save failed', err);
+    }
+    this.saving = false;
+    this.infoPanel.invalidate();
+  }
+
+  abort(): void {
+    this.aborted = true;
+    this.opts.module.abort?.(this.ctx);
+    this.ctx.recorder.event('run_aborted', {});
+    this.opts.onExit();
+  }
+
+  /* --------------------------------------------------------------- UI */
+
+  private onClick(e: PanelClickEvent): void {
+    if (e.panel === this.hudPanel) {
+      if (e.widget.id === 'hud:abort') this.abort();
+      return;
+    }
+    if (e.panel !== this.infoPanel) return;
+    if (e.widget.id === 'info:next') void this.advance();
+    if (e.widget.id === 'info:exit') this.opts.onExit();
+    if (e.widget.id === 'info:retry') this.opts.onExit();
+  }
+
+  private drawHud(ui: import('../ui/Panel.js').UI): void {
+    const t = ui.t;
+    ui.roundRect(0, 0, ui.w, ui.h, 16, withAlpha('#000000', 0.55), withAlpha(t.accent, 0.35), 2);
+    const m = this.ctx.manifest;
+    ui.label(`${m.ordinal} ${m.code}`, 22, ui.h / 2, t.accent, 18);
+
+    // Progress reads as pips plus the name of the block actually running.
+    // Printing every block title side by side collides as soon as a module has
+    // more than three blocks, and the participant only needs to know where
+    // they are, not the whole itinerary.
+    const blocks = this.opts.module.blocks;
+    const bx = 190;
+    const bw = ui.w - bx - 210;
+    const seg = bw / Math.max(1, blocks.length);
+    blocks.forEach((b, i) => {
+      const done = i < this.blockIndex;
+      const active = i === this.blockIndex;
+      const color = done ? t.ok : active ? t.accent : withAlpha(t.textMuted, 0.3);
+      ui.roundRect(bx + i * seg + 3, 26, seg - 8, 9, 5, color);
+      void b;
+    });
+
+    const current = blocks[this.blockIndex];
+    if (current) {
+      ui.text(`${this.blockIndex + 1}/${blocks.length}  ${current.title}`, bx, ui.h - 24, {
+        size: 17, color: t.text, weight: '600', font: t.fontDisplay,
+      });
+    }
+
+    if (this.state === 'practice') {
+      ui.roundRect(ui.w - 350, 20, 110, 24, 12, withAlpha(t.warn, 0.9));
+      ui.text('GYAKORLÁS', ui.w - 295, 32, { size: 13, color: '#0a0d12', align: 'center', weight: '700' });
+    }
+
+    ui.button('hud:abort', ui.w - 170, ui.h / 2 - 26, 150, 52, { label: 'KILÉPÉS', variant: 'quiet', fontSize: 20 });
+  }
+
+  private drawInfo(ui: import('../ui/Panel.js').UI): void {
+    const t = ui.t;
+    ui.background(t.surface, 24);
+    ui.roundRect(0, 0, ui.w, ui.h, 24, undefined, withAlpha(t.accent, 0.45), 2);
+    const m = this.ctx.manifest;
+    const pad = 54;
+
+    switch (this.state) {
+      case 'intro': {
+        // With two variants the intro must say which one is about to run, and
+        // describe THAT one - otherwise the participant reads the A blurb
+        // while the B task loads.
+        const v = m.variants?.length ? variantOf(m, this.opts.variant) : undefined;
+        ui.label(`MODUL ${m.ordinal}`, pad, 52, t.accent);
+        if (v) {
+          const badge = `${v.id} VÁLTOZAT · ${v.label.toUpperCase()}`;
+          ui.label(badge, ui.w - pad, 52, v.spatial ? t.accent2 : t.textMuted, 17, 'right');
+        }
+        ui.title(m.title, pad, 104, 62);
+        ui.text(v?.subtitle ?? m.subtitle, pad, 158, { size: 26, color: t.textMuted });
+        let y = ui.paragraph(v?.summary ?? m.summary, pad, 200, ui.w - pad * 2, { size: 23, lineHeight: 34 });
+        y += 18;
+        ui.divider(y);
+        y += 30;
+        ui.label('MENET', pad, y, t.textMuted);
+        y += 30;
+        this.opts.module.blocks.forEach((b, i) => {
+          ui.text(`${i + 1}.`, pad, y + 14, { size: 20, color: t.accent, weight: '700', font: t.fontMono });
+          ui.text(b.title, pad + 42, y + 14, { size: 21, color: t.text, weight: '600' });
+          ui.text(`${b.trials} ${b.unitLabel ?? 'próba'}`, ui.w - pad, y + 14,
+            { size: 19, color: t.textMuted, align: 'right' });
+          y += 34;
+        });
+        const label = this.ctx.mode === 'assessment' ? 'MÉRÉS INDÍTÁSA' : 'INDÍTÁS';
+        ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, { label, variant: 'primary' });
+        ui.button('info:exit', pad, ui.h - 104, 200, 66, { label: 'VISSZA', variant: 'quiet' });
+        break;
+      }
+
+      case 'instructions': {
+        const b = this.currentBlock();
+        if (!b) break;
+        ui.label(`BLOKK ${this.blockIndex + 1} / ${this.opts.module.blocks.length}`, pad, 52, t.accent);
+        ui.title(b.title, pad, 108, 52);
+        let y = ui.paragraph(b.instruction, pad, 164, ui.w - pad * 2, { size: 25, lineHeight: 37, color: t.text });
+        y += 22;
+        ui.roundRect(pad, y, ui.w - pad * 2, 92, 12, withAlpha(t.accent, 0.1), withAlpha(t.accent, 0.4), 2);
+        ui.label('IRÁNYÍTÁS', pad + 22, y + 26, t.accent, 15);
+        ui.paragraph(b.controlHint, pad + 22, y + 42, ui.w - pad * 2 - 44, { size: 21, color: t.text, maxLines: 2 });
+        y += 118;
+        const practiceNote = b.practiceTrials > 0
+          ? `${b.practiceTrials} gyakorló próba következik visszajelzéssel, utána ${b.trials} mért próba.`
+          : `${b.trials} mért próba, visszajelzés nélkül.`;
+        ui.paragraph(practiceNote, pad, y, ui.w - pad * 2, { size: 20 });
+        ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, {
+          label: b.practiceTrials > 0 ? 'GYAKORLÁS' : 'INDÍTÁS',
+          variant: 'primary',
+        });
+        break;
+      }
+
+      case 'ready': {
+        const b = this.currentBlock();
+        ui.label('GYAKORLÁS KÉSZ', pad, 56, t.ok);
+        ui.title('MOST JÖN A MÉRÉS', pad, 118, 52);
+        ui.paragraph(
+          'Innentől nincs visszajelzés és nincs segítség. Csak ez a rész számít bele az eredménybe. ' +
+            (b ? `${b.trials} próba következik.` : ''),
+          pad, 178, ui.w - pad * 2, { size: 24, lineHeight: 36 }
+        );
+        ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, { label: 'KEZDHETJÜK', variant: 'primary' });
+        break;
+      }
+
+      case 'processing': {
+        ui.title('FELDOLGOZÁS…', pad, ui.h / 2 - 20, 48);
+        const p = (Math.sin(performance.now() / 220) * 0.5 + 0.5);
+        ui.bar(pad, ui.h / 2 + 30, ui.w - pad * 2, 12, p);
+        break;
+      }
+
+      case 'result':
+        this.drawResult(ui);
+        break;
+    }
+  }
+
+  private drawResult(ui: import('../ui/Panel.js').UI): void {
+    const t = ui.t;
+    const pad = 54;
+    const r = this.result;
+    if (!r) return;
+    const scoreName = SCORE_NAME[this.opts.domain];
+
+    ui.label(`${this.ctx.manifest.code} KÉSZ`, pad, 50, t.ok);
+    ui.title(String(r.opsScore), pad, 118, 84, t.accent);
+    ui.text(`/ 1000  ${scoreName}`, pad + measure(ui, String(r.opsScore), 84) + 22, 132, {
+      size: 24, color: t.textMuted, weight: '600',
+    });
+
+    const cols = 2;
+    const cw = (ui.w - pad * 2) / cols;
+    r.headline.slice(0, 6).forEach((h, i) => {
+      const x = pad + (i % cols) * cw;
+      const y = 196 + Math.floor(i / cols) * 76;
+      ui.label(h.label, x, y, t.textMuted, 15);
+      ui.text(h.value, x, y + 32, { size: 30, color: t.text, weight: '700', font: t.fontDisplay });
+      if (h.hint) ui.text(h.hint, x + 200, y + 34, { size: 17, color: t.textMuted });
+    });
+
+    const noteY = ui.h - 176;
+    ui.divider(noteY - 14);
+    const msg = this.saving ? 'Mentés folyamatban…' : this.saveMessage || '';
+    ui.text(msg, pad, noteY + 14, { size: 19, color: this.saving ? t.textMuted : t.ok });
+    ui.paragraph(DISCLAIMER[this.opts.domain], pad, noteY + 40, ui.w - pad * 2 - 380, {
+      size: 16, color: withAlpha(t.textMuted, 0.85), maxLines: 2,
+    });
+
+    ui.button('info:exit', ui.w - pad - 340, ui.h - 104, 340, 66, { label: 'VISSZA A KÖZPONTBA', variant: 'primary' });
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.offClick();
+    this.offFrame();
+    this.opts.module.dispose(this.ctx);
+    this.opts.panels.remove(this.infoPanel);
+    this.opts.panels.remove(this.hudPanel);
+    this.infoPanel.dispose();
+    this.hudPanel.dispose();
+    this.root.removeFromParent();
+    this.ctx.signals.clear();
+    this.ctx.motion.clear();
+  }
+}
+
+function measure(ui: import('../ui/Panel.js').UI, s: string, size: number): number {
+  ui.ctx.save();
+  ui.ctx.font = `700 ${size}px ${ui.t.fontDisplay}`;
+  const w = ui.ctx.measureText(s).width;
+  ui.ctx.restore();
+  return w;
+}
+
+const SCORE_NAME: Record<DomainCode, string> = { A: 'OPS SCORE', B: 'READINESS SCORE', C: 'PERFORMANCE INDEX' };
+const DISCLAIMER: Record<DomainCode, string> = {
+  A: 'Teljesítménymutató, nem pszichológiai diagnózis.',
+  B: 'Teljesítménymutató, nem munkaköri alkalmassági szakvélemény.',
+  C: 'Teljesítménymutató, nem tehetségdiagnózis.',
+};

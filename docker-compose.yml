@@ -1,0 +1,40 @@
+# Local / self-hosted stack. On Coolify you normally point the application at
+# this repository and attach a managed PostgreSQL, in which case only the
+# `app` service is relevant and DATABASE_URL comes from Coolify's own
+# service discovery.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      NODE_ENV: production
+      DATABASE_URL: postgres://vrcap:${POSTGRES_PASSWORD:-vrcap}@postgres:5432/vrcap
+      PGSSLMODE: disable
+      AUTO_MIGRATE: "true"
+      CORS_ORIGIN: "*"
+      STORE_ANONYMOUS_RUNS: "true"
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vrcap
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vrcap}
+      POSTGRES_DB: vrcap
+    volumes:
+      - vrcap-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vrcap -d vrcap"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  vrcap-db:

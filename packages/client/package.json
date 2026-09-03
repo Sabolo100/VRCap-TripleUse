@@ -1,0 +1,24 @@
+{
+  "name": "@vrcap/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "dev:https": "vite --host 0.0.0.0 --https",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vrcap/shared": "*",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/three": "^0.170.0",
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}
