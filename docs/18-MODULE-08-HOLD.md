@@ -218,7 +218,7 @@ diszkriminatív jegyet, mert a szín és a pulzálás minden nézetből látszik
 között ingadozik. Ez elég gyors ahhoz, hogy azonnal felismerhető legyen,
 és elég lassú ahhoz, hogy egyetlen frame-en ne legyen összetéveszthető.
 
-**Indulási hely.** Azimut ±70° (VR) / ±24° (asztali), elevatio ±18° / ±12°,
+**Indulási hely.** Azimut ±38° (VR) / ±24° (asztali), elevatio ±18° / ±12°,
 távolság 9–14 m. Az irányok között a felhasználó **fejmozgással** követi a
 testet — ez természetes, és a VR-ben a feladat része.
 
@@ -241,7 +241,7 @@ Gyakorláskor helyes válaszra 880 Hz, hibás gátlásra 180→120 Hz.
 
 | Paraméter | VR | Asztali | Mobil |
 |---|---|---|---|
-| Indulási azimut | ±70° | ±24° | ±20° |
+| Indulási azimut | ±38° | ±24° | ±20° |
 | Indulási elevatio | ±18° | ±12° | ±11° |
 | Indulási távolság | 9–14 m | 9–14 m | 9–14 m |
 | Menetidő | 1,6–3,6 s | azonos | azonos |
@@ -426,6 +426,22 @@ Ha az `ssd_convergence` 0,15 fölött van, a második sor mellé figyelmeztetés
 kerül: *„az SSRT becslése bizonytalan — a lépcső nem konvergált”*.
 
 ---
+
+## 10/B. LÁTÓTÉR-KORLÁT
+
+A repülések indulási azimutja **±38°**, nem több. A Quest 3 vízszintes
+látótere nagyjából ±55°, tehát egy ennél szélesebb kúpból induló test az
+**inger megjelenésekor fizikailag nem látszik** — csak akkor válik láthatóvá,
+amikor már beljebb ért.
+
+Ez nem kényelmi kérdés: a modul gátlást mér (go/no-go és stop-jel SSRT), és
+egy meg nem jelenő inger minden reakcióidőbe becsempész egy ismeretlen
+hosszúságú keresési szakaszt. Az SSRT épp ezt a reakcióidőt vonja ki, tehát a
+becslés torzul.
+
+A ±38° a teljes repülést az első képkockától a kijelzőn tartja, miközben a
+modul valódi térbeli eszközét — a közeledést és a pályaítéletet — érintetlenül
+hagyja. A körülnézés a WATCH konstruktuma, nem ezé.
 
 ## 11. VALIDÁCIÓ ÉS KORLÁTOK
 

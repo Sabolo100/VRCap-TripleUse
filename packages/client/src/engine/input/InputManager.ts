@@ -404,12 +404,45 @@ export class InputManager {
     return this.pointers.filter((p) => p.active);
   }
 
+  /**
+   * Objects the pointer ray should stop on and show a cursor for.
+   *
+   * Panels were the only thing that ever terminated the ray, so pointing at a
+   * stimulus in the scene left a twelve-metre line shooting straight through
+   * it with no cursor - you could see the direction you were aiming, but not
+   * what you were about to select. Modules register their selectable objects
+   * here and get the same feedback panels have.
+   */
+  private pointerTargets: THREE.Object3D[] = [];
+
+  setPointerTargets(objects: THREE.Object3D[]): void {
+    this.pointerTargets = objects;
+  }
+
+  clearPointerTargets(): void {
+    this.pointerTargets = [];
+  }
+
+  /** Nearest registered scene object under this pointer, if any. */
+  pickPointerTarget(pointer: PointerSource): THREE.Intersection | null {
+    if (this.pointerTargets.length === 0) return null;
+    this.raycaster.set(pointer.ray.origin, pointer.ray.direction);
+    this.raycaster.far = RAY_LEN;
+    const visible = this.pointerTargets.filter((o) => o.visible);
+    if (visible.length === 0) return null;
+    return this.raycaster.intersectObjects(visible, true)[0] ?? null;
+  }
+
   /** Place the 3D cursor disc for a controller at a hit point. */
   setCursor(pointer: PointerSource, point: THREE.Vector3 | null, normal?: THREE.Vector3): void {
     const c = this.controllers.find((x) => x.controller === pointer.object3D);
     if (!c) return;
     if (!point) {
       c.cursor.visible = false;
+      // Reset the length too. Without this the ray keeps whatever length the
+      // last hit gave it and stays visually stuck to a surface it is no longer
+      // pointing at.
+      c.ray.scale.z = 1;
       return;
     }
     c.cursor.visible = true;

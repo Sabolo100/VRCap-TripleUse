@@ -33,12 +33,28 @@ export interface PanelOptions {
   /** Physical size in metres. */
   width: number;
   height: number;
-  /** Canvas resolution. ~900 px per metre is legible at arm's length on Quest 3. */
+  /**
+   * LOGICAL canvas resolution: the coordinate space every draw callback is
+   * written against.
+   *
+   * The angular size of a glyph is `fontPx / (pxPerMeter * distance)` - the
+   * panel's physical width cancels out entirely. So to make text bigger in the
+   * headset without rewriting every layout, LOWER this and raise `width` by
+   * the same factor: the logical canvas stays identical, the panel just covers
+   * more of the field of view.
+   */
   pxPerMeter?: number;
   theme: UITheme;
   /** Rounded backing plate behind the canvas. */
   frame?: boolean;
   name?: string;
+  /**
+   * Supersampling factor for the backing canvas. The draw callback still works
+   * in logical pixels; the canvas is this many times larger and the context is
+   * scaled to match, so glyph edges land on real texels instead of being
+   * reconstructed by the sampler. 2 is the useful default on Quest 3.
+   */
+  superSample?: number;
 }
 
 export class Panel {
@@ -62,26 +78,36 @@ export class Panel {
   private dirty = true;
   private disposed = false;
 
+  /** Supersampling factor between logical pixels and real canvas pixels. */
+  private readonly ss: number;
+
   constructor(opts: PanelOptions) {
     this.width = opts.width;
     this.height = opts.height;
     this.theme = opts.theme;
     const ppm = opts.pxPerMeter ?? 900;
+    // Logical size: what draw callbacks and hit tests use.
     this.pxW = Math.round(opts.width * ppm);
     this.pxH = Math.round(opts.height * ppm);
+    this.ss = Math.max(1, opts.superSample ?? 2);
 
     this.canvas = document.createElement('canvas');
-    this.canvas.width = this.pxW;
-    this.canvas.height = this.pxH;
+    this.canvas.width = Math.round(this.pxW * this.ss);
+    this.canvas.height = Math.round(this.pxH * this.ss);
     const ctx = this.canvas.getContext('2d', { alpha: true });
     if (!ctx) throw new Error('2D context unavailable');
     this.ctx = ctx;
 
     this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.colorSpace = THREE.SRGBColorSpace;
-    this.texture.anisotropy = 8;
-    this.texture.minFilter = THREE.LinearMipmapLinearFilter;
-    this.texture.generateMipmaps = true;
+    this.texture.anisotropy = 16;
+    // No mipmaps. A panel is read head-on at a roughly fixed distance, where
+    // the texture is deliberately oversampled - and that is exactly the case
+    // where mipmapping picks a smaller level and softens the text it was meant
+    // to protect. Linear filtering on the full-resolution canvas is sharper.
+    this.texture.minFilter = THREE.LinearFilter;
+    this.texture.magFilter = THREE.LinearFilter;
+    this.texture.generateMipmaps = false;
 
     const mat = new THREE.MeshBasicMaterial({
       map: this.texture,
@@ -122,8 +148,12 @@ export class Panel {
     if (!this.drawFn || this.disposed) return;
     this.widgets = [];
     const ui = new UI(this);
+    // Everything below draws in logical pixels; the transform maps them onto
+    // the larger real canvas.
+    this.ctx.setTransform(this.ss, 0, 0, this.ss, 0, 0);
     this.ctx.clearRect(0, 0, this.pxW, this.pxH);
     this.drawFn(ui, this);
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.texture.needsUpdate = true;
     this.dirty = false;
   }

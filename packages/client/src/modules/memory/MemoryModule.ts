@@ -97,7 +97,7 @@ export class MemoryModule implements AssessmentModule {
       id: 'nback',
       title: 'FOLYAMATOS',
       instruction:
-        'Egy gömb ugrál a helyek között. Reagálj, valahányszor ugyanoda kerül, ahol KÉT lépéssel ' +
+        'Egy gömb ugrál a helyek között. NYOMD MEG A RAVASZT, valahányszor ugyanoda kerül, ahol KÉT lépéssel ' +
         'korábban volt. Nem az előzőre — a kettővel korábbira. Ez folyamatos frissítést kíván.',
       controlHint: '',
       trials: 40,
@@ -260,6 +260,8 @@ export class MemoryModule implements AssessmentModule {
       }
     }
     this.relaxCells();
+    // The cells are what the participant points at all through the module.
+    this.picker.setHoverTargets(this.cells.map((c) => c.mesh));
   }
 
   private relaxCells(): void {

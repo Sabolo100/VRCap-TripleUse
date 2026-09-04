@@ -51,8 +51,30 @@ type EventType = 'skip' | 'double' | 'hue' | 'drift' | 'audio';
 const BASE_COLOR = 0x3c7fb1;
 /** Trough of the pulse: dark enough that the ramp is unmistakable. */
 const IDLE_COLOR = 0x16222e;
+/**
+ * Detection window for an event in the frontal field.
+ *
+ * An event you are already looking at is a detection-latency measurement, and
+ * 2.4 s is generous for that.
+ */
 const RESPONSE_WINDOW_MS = 2400;
+/**
+ * Extra time granted in proportion to how far the event is from where the
+ * participant was looking when it started.
+ *
+ * With a flat window an event behind the participant was undetectable unless
+ * they happened to already be turning - which measured luck, not vigilance.
+ * A 180 degree turn plus recognition takes well over two seconds, so the
+ * window has to cover the search the surround layout demands. Directly behind
+ * therefore gets 2.4 + 3.6 = 6.0 s.
+ */
+const REAR_SEARCH_ALLOWANCE_MS = 3600;
 const MIN_GAP_MS = 4000;
+
+/** Response window for an event that started `eccDeg` off the gaze axis. */
+function windowForEccentricity(eccDeg: number): number {
+  return RESPONSE_WINDOW_MS + (clamp(eccDeg, 0, 180) / 180) * REAR_SEARCH_ALLOWANCE_MS;
+}
 const PULSE_HZ = 1.15;
 
 interface Emitter {
@@ -78,6 +100,8 @@ interface WatchEvent {
   rtMs: number | null;
   block: BlockId;
   radius: number;
+  /** How long this event stays available, scaled by its onset eccentricity. */
+  windowMs: number;
 }
 
 export class WatchModule implements AssessmentModule {
@@ -88,7 +112,7 @@ export class WatchModule implements AssessmentModule {
       id: 'calibration',
       title: 'KALIBRÁCIÓ',
       instruction:
-        'Körülötted fények pulzálnak, mind egyszerre. Reagálj, valahányszor BÁRMELYIK kilép a közös ütemből: ' +
+        'Körülötted fények pulzálnak, mind egyszerre. NYOMD MEG A RAVASZT, valahányszor BÁRMELYIK kilép a közös ütemből: ' +
         'kihagy egy pulzust, duplán villan, színt vált, vagy elmozdul. Ebben a rövid blokkban sűrűn lesznek események — ' +
         'ez méri, mit veszel észre pihenten.',
       controlHint: '',
@@ -100,7 +124,8 @@ export class WatchModule implements AssessmentModule {
       title: 'SZOLGÁLAT A',
       instruction:
         'Négy perc figyelés. Az események most jóval ritkábbak, és bárhol történhetnek — akár mögötted is. ' +
-        'Nyugodtan fordulj körbe: amit nem nézel, azt nem látod. Nem kapsz visszajelzést; ez szándékos.',
+        'Fordulj körbe folyamatosan: amit nem nézel, azt nem látod. A hátad mögött induló eltérés hosszabb ' +
+        'ideig marad, hogy legyen időd megfordulni és megtalálni. Nem kapsz visszajelzést; ez szándékos.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -318,7 +343,7 @@ export class WatchModule implements AssessmentModule {
     return pool;
   }
 
-  private startEvent(now: number): void {
+  private startEvent(now: number): WatchEvent {
     const ctx = this.ctx;
     const type = ctx.rng.pick(this.eventPool());
     const em = ctx.rng.pick(this.emitters);
@@ -341,6 +366,7 @@ export class WatchModule implements AssessmentModule {
       rtMs: null,
       block: this.currentBlock,
       radius: em.slot.radius,
+      windowMs: windowForEccentricity(rel.eccentricityDeg),
     };
     this.activeEvent = ev;
     if (!this.practice) this.events.push(ev);
@@ -354,8 +380,10 @@ export class WatchModule implements AssessmentModule {
       azDeg: +em.slot.azDeg.toFixed(1), elDeg: +em.slot.elDeg.toFixed(1),
       radius: +em.slot.radius.toFixed(2),
       eccentricityDeg: +rel.eccentricityDeg.toFixed(1), behind: rel.behind, third,
+      windowMs: Math.round(ev.windowMs),
       quantisationMs: +ctx.engine.clock.frameInterval.toFixed(1),
     }, now);
+    return ev;
   }
 
   private clearEvent(): void {
@@ -396,7 +424,7 @@ export class WatchModule implements AssessmentModule {
       outcome: ev.detected ? 'hit' : 'miss',
       reactionTimeMs: ev.rtMs === null ? null : +ev.rtMs.toFixed(1),
       startedAt: +ev.onsetT.toFixed(1),
-      endedAt: +(ev.onsetT + RESPONSE_WINDOW_MS).toFixed(1),
+      endedAt: +(ev.onsetT + ev.windowMs).toFixed(1),
     };
     this.ctx.recorder.trial(rec);
     this.trials.push(rec);
@@ -408,7 +436,7 @@ export class WatchModule implements AssessmentModule {
     if (!e.down || e.action !== 'PRIMARY' || !this.running) return;
     const ev = this.activeEvent;
 
-    if (ev && !ev.detected && e.t - ev.onsetT <= RESPONSE_WINDOW_MS) {
+    if (ev && !ev.detected && e.t - ev.onsetT <= ev.windowMs) {
       ev.detected = true;
       ev.rtMs = e.t - ev.onsetT;
       this.ctx.audio.click();
@@ -478,17 +506,20 @@ export class WatchModule implements AssessmentModule {
     }
 
     // Close an event once its window has elapsed.
-    if (this.activeEvent && now - this.activeEvent.onsetT > RESPONSE_WINDOW_MS) {
+    if (this.activeEvent && now - this.activeEvent.onsetT > this.activeEvent.windowMs) {
       this.closeEvent(now);
     }
 
     // Schedule the next event.
     if (!this.activeEvent && now >= this.nextEventAt && now - this.lastEventEndT >= MIN_GAP_MS) {
       const remaining = this.blockDurationMs - (now - this.blockStartT);
-      if (remaining > RESPONSE_WINDOW_MS + 1500) {
-        this.startEvent(now);
+      // Room for the longest window an event might claim, so a late rear
+      // event is never cut short by the end of the block.
+      if (remaining > RESPONSE_WINDOW_MS + REAR_SEARCH_ALLOWANCE_MS + 1500) {
+        const started = this.startEvent(now);
+        const w = started.windowMs;
         // Exponential spacing keeps the participant from learning a rhythm.
-        this.nextEventAt = now + RESPONSE_WINDOW_MS + ctx.rng.isi(MIN_GAP_MS, this.eventRateMs * 1.9);
+        this.nextEventAt = now + w + ctx.rng.isi(MIN_GAP_MS, this.eventRateMs * 1.9);
       }
     }
 

@@ -96,7 +96,7 @@ export class AnticipateSpatialModule implements AssessmentModule {
       title: 'IRÁNY',
       instruction:
         'Az utolsó blokk: a gömbök most különböző irányokból érkeznek, nem szemből. ' +
-        'Néha oldalról vagy felülről. Ugyanaz a feladat: akkor reagálj, amikor elérne.',
+        'Néha oldalról vagy felülről. Ugyanaz a feladat: nyomd meg a ravaszt akkor, amikor elérné a fejedet.',
       controlHint: '',
       trials: 20,
       practiceTrials: 4,

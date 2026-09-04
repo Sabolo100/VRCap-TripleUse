@@ -81,8 +81,8 @@ export class HoldModule implements AssessmentModule {
       id: 'gonogo',
       title: 'GO / NO-GO',
       instruction:
-        'Testek repülnek feléd. Reagálj arra, amelyik PIROS ÉS PULZÁL. ' +
-        'A piros, de nem pulzáló testre, és minden kék testre NE reagálj. ' +
+        'Testek repülnek feléd. HÚZD MEG A RAVASZT arra, amelyik PIROS ÉS PULZÁL — még mielőtt ideérne. ' +
+        'A piros, de nem pulzáló testre, és minden kék testre NE nyomj semmit: hagyd elrepülni. ' +
         'A legtöbb test go lesz — ettől lesz nehéz visszatartani a választ, amikor kell.',
       controlHint: '',
       trials: 60,
@@ -103,7 +103,7 @@ export class HoldModule implements AssessmentModule {
       id: 'trajectory',
       title: 'PÁLYA',
       instruction:
-        'A szín most nem számít — minden test szürke. Csak arra reagálj, amelyik ELTALÁLNA. ' +
+        'A szín most nem számít — minden test szürke. Csak arra húzd meg a ravaszt, amelyik ELTALÁLNA. ' +
         'Amelyik elmegy melletted, arra ne. Ehhez meg kell ítélned, merre tart a test a térben.',
       controlHint: '',
       trials: 36,
@@ -113,7 +113,7 @@ export class HoldModule implements AssessmentModule {
       id: 'reversal',
       title: 'SZABÁLYVÁLTÁS',
       instruction:
-        'Ugyanaz a szabály, mint az első blokkban: piros + pulzáló → reagálj. ' +
+        'Ugyanaz a szabály, mint az első blokkban: piros + pulzáló → ravasz. ' +
         'De a blokk közepén a szabály MEG FOG FORDULNI. Figyelj a jelzésre, mert onnantól ' +
         'pont az ellenkezője lesz igaz.',
       controlHint: '',
@@ -211,7 +211,7 @@ export class HoldModule implements AssessmentModule {
     switch (block) {
       case 'gonogo':
       case 'reversal':
-        return `${press}, ha a test PIROS ÉS PULZÁL. Minden másra ne reagálj.`;
+        return `${press}, ha a test PIROS ÉS PULZÁL. Minden másra ne nyomj semmit — hagyd elrepülni.`;
       case 'stop':
         return `${press} minden testre — kivéve, ha közben FEHÉRRE VÁLT és megszólal a hang.`;
       case 'trajectory':
@@ -221,9 +221,25 @@ export class HoldModule implements AssessmentModule {
 
   /* -------------------------------------------------- flight generation */
 
+  /**
+   * Where a flight may start.
+   *
+   * The azimuth used to be +/- 70 degrees, which is outside the Quest 3's
+   * roughly +/- 55 degree half-field: the object was literally off-display at
+   * onset and only became visible once it had travelled some way in. This
+   * module measures inhibition - go/no-go accuracy and stop-signal reaction
+   * time - and a stimulus you cannot see at onset puts an unknown search
+   * period inside every reaction time, which is precisely the quantity SSRT
+   * is subtracting.
+   *
+   * 38 degrees keeps the whole flight on-display from the first frame while
+   * still using the affordance this module actually claims: approach along a
+   * trajectory, judged from expansion and depth. Finding things around you is
+   * WATCH's construct, not this one.
+   */
   private geometry() {
     switch (this.ctx.platform) {
-      case 'vr': return { az: 70, el: 18, missNear: 0.9, missFar: 1.8 };
+      case 'vr': return { az: 38, el: 18, missNear: 0.9, missFar: 1.8 };
       case 'mobile': return { az: 20, el: 11, missNear: 2.6, missFar: 3.8 };
       default: return { az: 24, el: 12, missNear: 2.4, missFar: 3.6 };
     }

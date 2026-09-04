@@ -63,7 +63,7 @@ export class AnticipateModule implements AssessmentModule {
       id: 'visible',
       title: 'LÁTHATÓ PÁLYA',
       instruction:
-        'Egy gömb indul el a sínen a fehér cél felé. Reagálj PONTOSAN akkor, amikor a gömb elérné a célt. ' +
+        'Egy gömb indul el a sínen a fehér cél felé. NYOMD MEG A RAVASZT pontosan akkor, amikor a gömb elérné a célt. ' +
         'Ez nem reakcióteszt: nem gyorsnak kell lenned, hanem pontosnak. Nyugodtan válaszolhatsz korábban is.',
       controlHint: '',
       trials: 16,

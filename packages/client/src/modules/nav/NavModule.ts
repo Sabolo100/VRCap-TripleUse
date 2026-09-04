@@ -42,7 +42,17 @@ type BlockId = 'tour' | 'retrace' | 'jrd' | 'triangle' | 'map';
 
 const EYE = 1.6;
 const GLIDE_MS = 1600;
-const DWELL_MS = 2000;
+/**
+ * How long the tour pauses at each node.
+ *
+ * This is the study period for the whole module: everything later - retracing,
+ * pointing, the map - is recall of what was learned here. Two seconds, of
+ * which the landmark name got 1.2, was not enough to learn anything, so the
+ * later blocks were measuring the tour's pacing rather than spatial memory.
+ */
+const DWELL_MS = 4200;
+/** How long a landmark's name stays up when the tour reaches it. */
+const LANDMARK_NAME_MS = 2600;
 const FOG_NORMAL = 0.05;
 const FOG_BLIND = 0.28;
 
@@ -67,8 +77,10 @@ export class NavModule implements AssessmentModule {
       id: 'tour',
       title: 'BEJÁRÁS',
       instruction:
-        'A rendszer végigvisz egy útvonalon. Nem kell irányítanod semmit — a dolgod annyi, ' +
-        'hogy jól nézz körül, és jegyezd meg, mi merre van. Ezt az útvonalat kell majd egyedül megtenned.',
+        'A rendszer végigvisz egy útvonalon, megállókkal. Nem kell irányítanod semmit, és nem kell ' +
+        'gombot nyomnod: a dolgod annyi, hogy MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE, és jegyezd meg, melyik ' +
+        'tereptárgy merre van. A nevüket ki is írom. Ezt az útvonalat kell majd egyedül megtenned, ' +
+        'utána pedig irányokat megbecsülnöd — szóval most a körülnézés a feladat.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -143,7 +155,15 @@ export class NavModule implements AssessmentModule {
   private offInput: (() => void) | null = null;
   private offPanel: (() => void) | null = null;
 
-  private teleportMode = false;
+  /**
+   * Snap movement, on by default.
+   *
+   * The route used to be travelled with a smooth automatic glide, which is
+   * passive vection - the single most reliable way to make someone ill in a
+   * headset, and something this platform's own module rules forbid. Gliding is
+   * still available for participants who prefer it, but it is now the opt-in.
+   */
+  private teleportMode = true;
   private discomfortReported = false;
 
   private gliding: {
@@ -516,10 +536,10 @@ export class NavModule implements AssessmentModule {
         this.promptPanel.group.visible = true;
         this.promptPanel.invalidate();
         this.ctx.recorder.event('tour_landmark_shown', { landmark: lm.name, node: to });
-        await this.wait(1200);
+        await this.wait(LANDMARK_NAME_MS);
         this.promptPanel.group.visible = false;
       }
-      await this.wait(DWELL_MS - (lm ? 1200 : 0));
+      await this.wait(Math.max(800, DWELL_MS - (lm ? LANDMARK_NAME_MS : 0)));
     }
 
     const endT = this.ctx.engine.clock.frameTime;
@@ -1099,9 +1119,13 @@ export class NavModule implements AssessmentModule {
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
     fwd.y = 0;
     fwd.normalize();
-    const dist = this.ctx.platform === 'vr' ? 1.9 : 1.5;
+    // A panel you only read can sit further away; a panel you have to press
+    // has to be close enough that aiming at a button is not a marksmanship
+    // task. 'comfort' is the read-only landmark caption.
+    const interactive = this.promptMode !== 'comfort';
+    const dist = this.ctx.platform === 'vr' ? (interactive ? 1.15 : 1.7) : 1.5;
     this.promptPanel.group.position.copy(p).addScaledVector(fwd, dist);
-    this.promptPanel.group.position.y = EYE - 0.42;
+    this.promptPanel.group.position.y = EYE - (interactive ? 0.30 : 0.42);
     this.promptPanel.group.lookAt(p);
   }
 
@@ -1148,9 +1172,9 @@ export class NavModule implements AssessmentModule {
 
     if (this.promptMode !== 'distance') {
       ui.button('nav:teleport', pad, ui.h - 66, 300, 52, {
-        label: this.teleportMode ? 'UGRÁSOS MÓD BE' : 'KELLEMETLEN? UGRÁS',
-        variant: this.teleportMode ? 'primary' : 'quiet',
-        fontSize: 17,
+        label: this.teleportMode ? 'MOZGÁS: UGRÁS' : 'MOZGÁS: FOLYAMATOS',
+        variant: 'quiet',
+        fontSize: 18,
       });
     }
   }

@@ -133,8 +133,8 @@ export class SignalModule implements AssessmentModule {
       title: 'PERIFÉRIA',
       instruction:
         'Két dolgod van egyszerre. Tartsd a mutatót a középen lassan sodródó gyűrűn, ' +
-        'ÉS reagálj a lehető leggyorsabban, valahányszor a látómeződ szélén felvillan valami. ' +
-        'Néha nem villan fel semmi — ilyenkor ne reagálj.',
+        'ÉS nyomd meg a MARKOLATGOMBOT (grip) a lehető leggyorsabban, valahányszor a látómeződ szélén felvillan valami. ' +
+        'Néha nem villan fel semmi — ilyenkor ne nyomj semmit.',
       controlHint: '',
       trials: 30,
       practiceTrials: 4,
@@ -444,6 +444,9 @@ export class SignalModule implements AssessmentModule {
       this.root.add(mesh);
       this.items.push({ mesh, slot, isTarget });
     }
+
+    // Ray termination + cursor on the selectable stimuli.
+    this.picker.setHoverTargets(this.items.map((i) => i.mesh));
 
     this.pending = {
       setSize,

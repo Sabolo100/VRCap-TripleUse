@@ -8,7 +8,7 @@ import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } f
 import { makePrimitive, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
-import { volumePosition } from '../shared/volume.js';
+import { BodyAnchor } from '../shared/anchor.js';
 
 /**
  * MODULE 15 - ADAPT
@@ -42,7 +42,9 @@ type Phase = 'baseline' | 'adaptation' | 'probe' | 'washout' | 'relearn';
 type ProbeGroup = 'trained' | 'dir30' | 'dir90' | 'elev_up' | 'elev_down' | 'far';
 
 const ROTATION_DEG = 30;
-const HOME = new THREE.Vector3(0, 1.35, -0.25);
+/** Chest-height start point, 0.25 m in front of the participant. */
+const HOME_UP = -0.25;
+const HOME_FORWARD = 0.25;
 const REACH_RADIUS = 0.55;
 const FAR_RADIUS = 0.75;
 /** Direction is read here: far enough to be a real movement, early enough to
@@ -135,6 +137,9 @@ export class AdaptModule implements AssessmentModule {
   private practice = false;
   private aborted = false;
   private hiddenControllers = false;
+  private anchor!: BodyAnchor;
+  /** Captured start point in world space. */
+  private homePos = new THREE.Vector3();
 
   private live: {
     targetPos: THREE.Vector3;
@@ -153,20 +158,23 @@ export class AdaptModule implements AssessmentModule {
   /* -------------------------------------------------------------- init */
 
   async init(ctx: ModuleContext): Promise<void> {
+    this.anchor = new BodyAnchor(ctx);
+    this.anchor.capture();
+    this.anchor.offset(0, HOME_UP, HOME_FORWARD, this.homePos);
     this.ctx = ctx;
     this.root = ctx.root;
     const t = ctx.theme;
     ctx.recorder.setMotionHz(30);
 
     this.home = makePrimitive({ kind: 'sphere', color: t.textMuted, unlit: true, size: 0.04 });
-    this.home.position.copy(HOME);
+    this.home.position.copy(this.homePos);
     this.target = makePrimitive({ kind: 'sphere', color: t.accent, unlit: true, size: 0.05 });
     this.target.visible = false;
     this.cursor = makePrimitive({ kind: 'sphere', color: t.accent2, unlit: true, size: 0.025 });
     this.radiusRing = makePrimitive({
       kind: 'torus', color: t.textMuted, unlit: true, size: REACH_RADIUS * 2, opacity: 0.18,
     });
-    this.radiusRing.position.copy(HOME);
+    this.radiusRing.position.copy(this.homePos);
     this.radiusRing.rotation.x = Math.PI / 2;
 
     this.root.add(this.home, this.target, this.cursor, this.radiusRing);
@@ -211,6 +219,12 @@ export class AdaptModule implements AssessmentModule {
   /* ------------------------------------------------------------ blocks */
 
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
+    // The reaching frame is re-read per block; a participant who shifted
+    // their feet must still find the start point in front of them.
+    this.anchor.capture();
+    this.anchor.offset(0, HOME_UP, HOME_FORWARD, this.homePos);
+    this.home.position.copy(this.homePos);
+    this.radiusRing.position.copy(this.homePos);
     const phase = block.id as Phase;
     this.currentPhase = phase;
     this.practice = practice;
@@ -303,7 +317,7 @@ export class AdaptModule implements AssessmentModule {
       Math.sin((spec.elDeg * Math.PI) / 180),
       -Math.cos((spec.azDeg * Math.PI) / 180) * Math.cos((spec.elDeg * Math.PI) / 180)
     );
-    const targetPos = HOME.clone().addScaledVector(dir, spec.radius);
+    const targetPos = this.homePos.clone().addScaledVector(dir, spec.radius);
     this.target.position.copy(targetPos);
     this.target.visible = true;
 
@@ -395,7 +409,7 @@ export class AdaptModule implements AssessmentModule {
       const step = () => {
         if (this.aborted) { resolve(); return; }
         const h = this.handPos();
-        if (h && h.distanceTo(HOME) < 0.07) {
+        if (h && h.distanceTo(this.homePos) < 0.07) {
           (this.home.material as THREE.MeshBasicMaterial).color.setHex(0x8fa6bf);
           resolve();
           return;
@@ -417,11 +431,11 @@ export class AdaptModule implements AssessmentModule {
 
     // The cursor is the hand rotated about the vertical axis through home.
     // The participant sees only this; the hand itself is hidden.
-    const rel = hand.clone().sub(HOME);
+    const rel = hand.clone().sub(this.homePos);
     if (this.rotationDeg !== 0) {
       rel.applyAxisAngle(new THREE.Vector3(0, 1, 0), (this.rotationDeg * Math.PI) / 180);
     }
-    const cursorPos = HOME.clone().add(rel);
+    const cursorPos = this.homePos.clone().add(rel);
     this.cursor.position.copy(cursorPos);
 
     const l = this.live;
@@ -438,7 +452,7 @@ export class AdaptModule implements AssessmentModule {
     if (l.startedAt !== null) {
       // Distance from the straight home-to-target line: how far the reach
       // left the plane it was aimed in.
-      const toTarget = l.targetPos.clone().sub(HOME);
+      const toTarget = l.targetPos.clone().sub(this.homePos);
       const proj = toTarget.clone().normalize().multiplyScalar(rel.dot(toTarget.clone().normalize()));
       l.planeDeviations.push(rel.clone().sub(proj).length());
     }
@@ -446,8 +460,8 @@ export class AdaptModule implements AssessmentModule {
     // Read the movement direction once, at a fixed fraction of the way out.
     if (!l.sampled && dist >= l.radius * SAMPLE_FRACTION) {
       l.sampled = true;
-      const targetAz = Math.atan2(l.targetPos.x - HOME.x, -(l.targetPos.z - HOME.z)) * 180 / Math.PI;
-      const cursorAz = Math.atan2(cursorPos.x - HOME.x, -(cursorPos.z - HOME.z)) * 180 / Math.PI;
+      const targetAz = Math.atan2(l.targetPos.x - this.homePos.x, -(l.targetPos.z - this.homePos.z)) * 180 / Math.PI;
+      const cursorAz = Math.atan2(cursorPos.x - this.homePos.x, -(cursorPos.z - this.homePos.z)) * 180 / Math.PI;
       l.directionErrorDeg = angleDiffDeg(cursorAz, targetAz);
       this.lastDirectionError = l.directionErrorDeg;
       ctx.recorder.event('direction_sample', {
@@ -458,8 +472,8 @@ export class AdaptModule implements AssessmentModule {
     }
 
     if (dist >= l.radius) {
-      const targetAz = Math.atan2(l.targetPos.x - HOME.x, -(l.targetPos.z - HOME.z)) * 180 / Math.PI;
-      const cursorAz = Math.atan2(cursorPos.x - HOME.x, -(cursorPos.z - HOME.z)) * 180 / Math.PI;
+      const targetAz = Math.atan2(l.targetPos.x - this.homePos.x, -(l.targetPos.z - this.homePos.z)) * 180 / Math.PI;
+      const cursorAz = Math.atan2(cursorPos.x - this.homePos.x, -(cursorPos.z - this.homePos.z)) * 180 / Math.PI;
       const endErr = angleDiffDeg(cursorAz, targetAz);
       this.lastPlaneDeviation = l.planeDeviations.length ? mean(l.planeDeviations) : NaN;
       const mt = l.startedAt === null ? NaN : ctx.engine.clock.frameTime - l.startedAt;

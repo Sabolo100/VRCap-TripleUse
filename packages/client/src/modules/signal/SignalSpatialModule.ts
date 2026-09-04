@@ -77,6 +77,10 @@ interface Pending {
   responded: boolean;
 }
 
+/** How far the head must turn before the panels follow, radians (~14 deg). */
+const PANEL_FOLLOW_DEADZONE_RAD = 0.25;
+const PANEL_FOLLOW_EASE = 0.12;
+
 export class SignalSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.SIGNAL!;
 
@@ -163,6 +167,8 @@ export class SignalSpatialModule implements AssessmentModule {
 
   private yawBins = new Array(24).fill(0);
   private sampleTimer = 0;
+  /** Damped yaw the panels are anchored to. */
+  private panelYaw: number | null = null;
 
   /* ------------------------------------------------------------- init */
 
@@ -232,8 +238,12 @@ export class SignalSpatialModule implements AssessmentModule {
     const p = this.ctx.platform;
     const press = p === 'vr' ? 'a ravasszal' : p === 'mobile' ? 'koppintással' : 'kattintással';
     switch (block) {
-      case 'depth': return `Jelöld meg a célt ${press}. Ha nincs cél, a NINCS CÉL gombot használd. A felirat megmondja, ha ismert a réteg.`;
-      case 'surround': return `Fordulj körbe, és jelöld meg a célt ${press}. Ha nincs cél, a NINCS CÉL gombot használd.`;
+      case 'depth': return p === 'vr'
+        ? 'RAVASZ: célra mutatva kijelölöd · GRIP: nincs cél. A felső felirat megmondja, ha ismert a réteg.'
+        : `Jelöld meg a célt ${press}. Ha nincs cél, a NINCS CÉL gombot használd.`;
+      case 'surround': return p === 'vr'
+        ? 'Fordulj körbe. RAVASZ: célra mutatva kijelölöd · GRIP: nincs cél.'
+        : `Fordulj körbe, és jelöld meg a célt ${press}. Ha nincs cél, a NINCS CÉL gombot használd.`;
       case 'occlusion': return `Jelöld ki ${press} a felvillant gömböket, majd KÉSZ.`;
       case 'depthchange': return `Mutass ${press} arra az objektumra, amelyik változik.`;
     }
@@ -329,6 +339,11 @@ export class SignalSpatialModule implements AssessmentModule {
       const cuedLayer = depthCued && targetItem ? targetItem.layer : depthCued ? rng.int(0, 2) : null;
       const targetYaw = targetItem ? targetItem.azDeg : 0;
       const required = targetItem ? Math.abs(wrapDeg(targetYaw)) : 0;
+
+      // The ray terminates on these and shows a cursor, so the participant
+      // can see WHICH object they are about to select rather than only the
+      // direction they are aiming in.
+      this.picker.setHoverTargets(this.items.map((i) => i.mesh));
 
       this.cueText = depthCued
         ? `${['KÖZELI', 'KÖZÉPSŐ', 'TÁVOLI'][cuedLayer ?? 0]} RÉTEG`
@@ -490,6 +505,7 @@ export class SignalSpatialModule implements AssessmentModule {
 
       this.motMoving = true;
       this.occlusionEvents = 0;
+      this.picker.setHoverTargets(this.motItems.map((m) => m.mesh));
       await this.wait(9000);
       this.motMoving = false;
 
@@ -705,7 +721,21 @@ export class SignalSpatialModule implements AssessmentModule {
   /* ------------------------------------------------------------ input */
 
   private onAction(e: ActionEvent): void {
-    if (!e.down || e.action !== 'PRIMARY') return;
+    if (!e.down) return;
+
+    // "No target" on the grip as well as on the panel. Aiming at a control
+    // that lives in the same space as the stimuli is exactly the situation
+    // where the control can be in the way, so the answer is also available
+    // without pointing at anything.
+    if (e.action === 'SECONDARY' || e.action === 'CANCEL') {
+      if (this.currentBlock === 'depth' || this.currentBlock === 'surround') {
+        const pend = this.pending;
+        if (pend && !pend.responded) this.onAbsent(e.t);
+      }
+      return;
+    }
+
+    if (e.action !== 'PRIMARY') return;
     const ray = e.ray ?? this.ctx.engine.input.primaryRay();
     if (!ray) return;
 
@@ -746,23 +776,54 @@ export class SignalSpatialModule implements AssessmentModule {
     }
   }
 
-  /** Panels follow the head, because in the surround block the participant is
-   *  expected to be facing anywhere at all. */
+  /**
+   * Panels follow the head, because in the surround block the participant may
+   * be facing anywhere - but they must never sit where a stimulus can be.
+   *
+   * The stimulus volume spans -20 to +24 degrees of elevation. The control
+   * panel used to sit at -20, i.e. exactly on the lower edge, which is why it
+   * could end up covering the target the participant was trying to select.
+   * Both panels are now placed outside that band: the control well below it,
+   * the layer cue well above it.
+   *
+   * The follow is also damped. Re-aiming the panel every frame makes it feel
+   * glued to the face; it now only catches up once the head has turned enough
+   * to matter, and then eases rather than snapping.
+   */
   private positionPanels(): void {
     const cam = this.ctx.engine.camera;
-    const p = new THREE.Vector3();
+    const eye = new THREE.Vector3();
     const q = new THREE.Quaternion();
-    cam.getWorldPosition(p);
+    cam.getWorldPosition(eye);
     cam.getWorldQuaternion(q);
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
     fwd.y = 0;
+    if (fwd.lengthSq() < 1e-6) return;
     fwd.normalize();
-    this.controlPanel.group.position.copy(p).addScaledVector(fwd, 1.6);
-    this.controlPanel.group.position.y = 1.02;
-    this.controlPanel.group.lookAt(p);
-    this.cuePanel.group.position.copy(p).addScaledVector(fwd, 1.7);
-    this.cuePanel.group.position.y = 2.05;
-    this.cuePanel.group.lookAt(p);
+
+    const yaw = Math.atan2(fwd.x, -fwd.z);
+    if (this.panelYaw === null) this.panelYaw = yaw;
+    let delta = yaw - this.panelYaw;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    // Dead zone: small head movements leave the panels where they are, so the
+    // participant can look away from the control and back to it.
+    if (Math.abs(delta) > PANEL_FOLLOW_DEADZONE_RAD) {
+      this.panelYaw += delta * PANEL_FOLLOW_EASE;
+    }
+    const dir = new THREE.Vector3(Math.sin(this.panelYaw), 0, -Math.cos(this.panelYaw));
+
+    const place = (g: THREE.Object3D, dist: number, elevDeg: number) => {
+      const rad = (elevDeg * Math.PI) / 180;
+      g.position.copy(eye)
+        .addScaledVector(dir, dist * Math.cos(rad))
+        .setY(eye.y + dist * Math.sin(rad));
+      g.lookAt(eye);
+    };
+    // -36 and +34 degrees: clear of the -20..+24 stimulus band in both
+    // directions, with margin for the panels' own height.
+    place(this.controlPanel.group, 1.45, -36);
+    place(this.cuePanel.group, 1.75, 34);
   }
 
   /* --------------------------------------------------------------- UI */
@@ -771,7 +832,9 @@ export class SignalSpatialModule implements AssessmentModule {
     const t = ui.t;
     ui.roundRect(0, 0, ui.w, ui.h, 14, withAlpha('#000000', 0.5));
     if (this.controlMode === 'absent') {
-      ui.button('ctl:absent', 12, 12, ui.w - 24, ui.h - 24, { label: 'NINCS CÉL', variant: 'ghost', fontSize: 32 });
+      ui.button('ctl:absent', 12, 12, ui.w - 24, ui.h - 40, { label: 'NINCS CÉL', variant: 'ghost', fontSize: 32 });
+      ui.text('vagy nyomd meg a GRIP gombot', ui.w / 2, ui.h - 16,
+        { size: 18, color: ui.t.textMuted, align: 'center' });
     } else if (this.controlMode === 'submit') {
       const targets = this.motItems.filter((m) => m.isTarget).length;
       const selected = this.motItems.filter((m) => m.selected).length;

@@ -112,11 +112,22 @@ export class PanelManager {
 
     this.hoverOwner = chosen?.hit ? chosen.src : null;
 
-    // 3D cursor placement for VR controllers.
+    // 3D cursor placement for VR controllers. A panel wins when the ray
+    // reaches it first; otherwise the module's registered scene objects get
+    // the same treatment, so the ray terminates on the thing being aimed at
+    // instead of passing through it.
     for (const src of sources) {
       if (src.id !== 'left' && src.id !== 'right') continue;
-      if (chosen && chosen.src === src && chosen.hit) {
-        this.engine.input.setCursor(src, chosen.hit.point, chosen.hit.normal);
+      const panelHit = chosen && chosen.src === src ? chosen.hit : null;
+      const sceneHit = this.engine.input.pickPointerTarget(src);
+      // The panel hit carries a point but not a distance, so compare in world
+      // space against the ray origin.
+      const panelDist = panelHit ? panelHit.point.distanceTo(src.ray.origin) : Infinity;
+      const useScene = sceneHit && sceneHit.distance < panelDist;
+      if (useScene && sceneHit) {
+        this.engine.input.setCursor(src, sceneHit.point, sceneHit.face?.normal ?? undefined);
+      } else if (panelHit) {
+        this.engine.input.setCursor(src, panelHit.point, panelHit.normal);
       } else {
         this.engine.input.setCursor(src, null);
       }

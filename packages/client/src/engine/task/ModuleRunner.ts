@@ -62,6 +62,13 @@ export class ModuleRunner {
   private infoPanel: Panel;
   private hudPanel: Panel;
   private blockIndex = 0;
+  /**
+   * Free-try mode: the participant picked one block off the intro screen to
+   * see what it is. It runs with feedback, is never scored, never saved, and
+   * returns to the intro afterwards - so exploring the task cannot
+   * accidentally become a measured run.
+   */
+  private tryOut = false;
   private practicePhase = true;
   private result: ModuleResult | null = null;
   private saveMessage = '';
@@ -108,13 +115,25 @@ export class ModuleRunner {
     const flat = this.ctx.platform !== 'vr';
 
     // The main information surface: intro, instructions, results.
-    this.infoPanel = new Panel({ width: 1.5, height: 0.94, pxPerMeter: 820, theme, name: 'info' });
-    this.infoPanel.group.position.set(0, 1.58, flat ? -1.35 : -1.9);
+    // Legibility in the headset is set by `fontPx / (pxPerMeter * distance)`,
+    // and the physical width cancels out. Lowering pxPerMeter while raising
+    // the metre size by the same factor therefore enlarges every glyph by 35%
+    // without touching a single layout coordinate - the logical canvas is
+    // still 1230 x 771. Body text goes from 0.85 to 1.11 degrees, which is
+    // the difference between squinting and reading.
+    this.infoPanel = new Panel({
+      width: flat ? 1.5 : 2.02, height: flat ? 0.94 : 1.27,
+      pxPerMeter: flat ? 820 : 608, superSample: 2, theme, name: 'info',
+    });
+    this.infoPanel.group.position.set(0, 1.58, flat ? -1.35 : -1.95);
     this.root.add(this.infoPanel.group);
     opts.panels.add(this.infoPanel);
 
     // A slim always-on HUD: block progress and abort.
-    this.hudPanel = new Panel({ width: 1.15, height: 0.14, pxPerMeter: 900, theme, frame: false, name: 'hud' });
+    this.hudPanel = new Panel({
+      width: flat ? 1.15 : 1.4, height: flat ? 0.14 : 0.17,
+      pxPerMeter: flat ? 900 : 740, superSample: 2, theme, frame: false, name: 'hud',
+    });
     this.hudPanel.group.position.set(0, flat ? 0.92 : 0.72, flat ? -1.2 : -1.55);
     this.hudPanel.group.rotation.x = -0.42;
     this.root.add(this.hudPanel.group);
@@ -211,6 +230,17 @@ export class ModuleRunner {
       case 'instructions': {
         const block = this.currentBlock();
         if (!block) return this.finish();
+        if (this.tryOut) {
+          // One block, with feedback, then straight back to the intro. Nothing
+          // is scored and nothing is saved.
+          this.practicePhase = true;
+          this.setState('practice');
+          await this.runBlock(block, true);
+          this.tryOut = false;
+          this.blockIndex = 0;
+          this.setState('intro');
+          break;
+        }
         if (block.practiceTrials > 0) {
           this.practicePhase = true;
           this.setState('practice');
@@ -333,6 +363,15 @@ export class ModuleRunner {
       return;
     }
     if (e.panel !== this.infoPanel) return;
+    if (e.widget.id.startsWith('info:block:')) {
+      const i = Number(e.widget.id.slice('info:block:'.length));
+      if (Number.isFinite(i) && i >= 0 && i < this.opts.module.blocks.length) {
+        this.tryOut = true;
+        this.blockIndex = i;
+        this.setState('instructions');
+      }
+      return;
+    }
     if (e.widget.id === 'info:next') void this.advance();
     if (e.widget.id === 'info:exit') this.opts.onExit();
     if (e.widget.id === 'info:retry') this.opts.onExit();
@@ -395,19 +434,30 @@ export class ModuleRunner {
         }
         ui.title(m.title, pad, 104, 62);
         ui.text(v?.subtitle ?? m.subtitle, pad, 158, { size: 26, color: t.textMuted });
-        let y = ui.paragraph(v?.summary ?? m.summary, pad, 200, ui.w - pad * 2, { size: 23, lineHeight: 34 });
+        let y = ui.paragraph(v?.summary ?? m.summary, pad, 200, ui.w - pad * 2, { size: 27, lineHeight: 40 });
         y += 18;
         ui.divider(y);
         y += 30;
         ui.label('MENET', pad, y, t.textMuted);
         y += 30;
+        // Each row is a button: pressing it runs THAT block on its own, with
+        // feedback, so a new participant can find out what a sub-task actually
+        // is without committing to the whole measurement first.
         this.opts.module.blocks.forEach((b, i) => {
-          ui.text(`${i + 1}.`, pad, y + 14, { size: 20, color: t.accent, weight: '700', font: t.fontMono });
-          ui.text(b.title, pad + 42, y + 14, { size: 21, color: t.text, weight: '600' });
-          ui.text(`${b.trials} ${b.unitLabel ?? 'próba'}`, ui.w - pad, y + 14,
-            { size: 19, color: t.textMuted, align: 'right' });
-          y += 34;
+          ui.button(`info:block:${i}`, pad - 12, y, ui.w - pad * 2 + 24, 44, {
+            label: '', variant: 'ghost',
+          });
+          ui.text(`${i + 1}.`, pad, y + 22, { size: 20, color: t.accent, weight: '700', font: t.fontMono });
+          ui.text(b.title, pad + 42, y + 22, { size: 24, color: t.text, weight: '600' });
+          ui.text(`${b.trials} ${b.unitLabel ?? 'próba'}`, ui.w - pad - 108, y + 22,
+            { size: 22, color: t.textMuted, align: 'right' });
+          ui.text('KIPRÓBÁLOM', ui.w - pad, y + 22,
+            { size: 17, color: t.accent2, align: 'right', weight: '600', font: t.fontMono });
+          y += 50;
         });
+        y += 6;
+        ui.text('Bármelyik sort megnyomhatod: az a rész önmagában lefut, visszajelzéssel, és nem számít bele az eredménybe.',
+          pad, y + 10, { size: 19, color: t.textMuted });
         const label = this.ctx.mode === 'assessment' ? 'MÉRÉS INDÍTÁSA' : 'INDÍTÁS';
         ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, { label, variant: 'primary' });
         ui.button('info:exit', pad, ui.h - 104, 200, 66, { label: 'VISSZA', variant: 'quiet' });
@@ -417,20 +467,28 @@ export class ModuleRunner {
       case 'instructions': {
         const b = this.currentBlock();
         if (!b) break;
-        ui.label(`BLOKK ${this.blockIndex + 1} / ${this.opts.module.blocks.length}`, pad, 52, t.accent);
+        ui.label(
+          this.tryOut
+            ? `KIPRÓBÁLÁS · ${this.blockIndex + 1}. RÉSZ`
+            : `BLOKK ${this.blockIndex + 1} / ${this.opts.module.blocks.length}`,
+          pad, 52, this.tryOut ? t.accent2 : t.accent
+        );
         ui.title(b.title, pad, 108, 52);
-        let y = ui.paragraph(b.instruction, pad, 164, ui.w - pad * 2, { size: 25, lineHeight: 37, color: t.text });
+        let y = ui.paragraph(b.instruction, pad, 164, ui.w - pad * 2, { size: 29, lineHeight: 44, color: t.text });
         y += 22;
-        ui.roundRect(pad, y, ui.w - pad * 2, 92, 12, withAlpha(t.accent, 0.1), withAlpha(t.accent, 0.4), 2);
-        ui.label('IRÁNYÍTÁS', pad + 22, y + 26, t.accent, 15);
-        ui.paragraph(b.controlHint, pad + 22, y + 42, ui.w - pad * 2 - 44, { size: 21, color: t.text, maxLines: 2 });
-        y += 118;
-        const practiceNote = b.practiceTrials > 0
+        ui.roundRect(pad, y, ui.w - pad * 2, 104, 12, withAlpha(t.accent, 0.1), withAlpha(t.accent, 0.4), 2);
+        ui.label('IRÁNYÍTÁS', pad + 22, y + 26, t.accent, 17);
+        ui.paragraph(b.controlHint, pad + 22, y + 44, ui.w - pad * 2 - 44, { size: 24, color: t.text, maxLines: 2 });
+        y += 130;
+        const practiceNote = this.tryOut
+          ? 'Kipróbálás: ez a rész magában fut le, visszajelzéssel. Nem számít bele az eredménybe, ' +
+            'és utána visszakerülsz a modul kezdőképernyőjére.'
+          : b.practiceTrials > 0
           ? `${b.practiceTrials} gyakorló próba következik visszajelzéssel, utána ${b.trials} mért próba.`
           : `${b.trials} mért próba, visszajelzés nélkül.`;
-        ui.paragraph(practiceNote, pad, y, ui.w - pad * 2, { size: 20 });
+        ui.paragraph(practiceNote, pad, y, ui.w - pad * 2, { size: 23 });
         ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, {
-          label: b.practiceTrials > 0 ? 'GYAKORLÁS' : 'INDÍTÁS',
+          label: this.tryOut ? 'KIPRÓBÁLOM' : b.practiceTrials > 0 ? 'GYAKORLÁS' : 'INDÍTÁS',
           variant: 'primary',
         });
         break;
@@ -443,7 +501,7 @@ export class ModuleRunner {
         ui.paragraph(
           'Innentől nincs visszajelzés és nincs segítség. Csak ez a rész számít bele az eredménybe. ' +
             (b ? `${b.trials} próba következik.` : ''),
-          pad, 178, ui.w - pad * 2, { size: 24, lineHeight: 36 }
+          pad, 178, ui.w - pad * 2, { size: 28, lineHeight: 42 }
         );
         ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, { label: 'KEZDHETJÜK', variant: 'primary' });
         break;

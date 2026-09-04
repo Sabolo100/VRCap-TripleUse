@@ -10,6 +10,7 @@ import { Panel, type UI } from '../../engine/ui/Panel.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { volumePosition } from '../shared/volume.js';
+import { BodyAnchor } from '../shared/anchor.js';
 
 /**
  * MODULE 13 - STEADY
@@ -149,6 +150,7 @@ export class SteadyModule implements AssessmentModule {
   private perturbStartT = 0;
   private currentHand: 'left' | 'right' = 'right';
   private oneLegSkipped = false;
+  private anchor!: BodyAnchor;
   private aborted = false;
   private menuAbort = false;
   private practice = false;
@@ -160,6 +162,7 @@ export class SteadyModule implements AssessmentModule {
   /* -------------------------------------------------------------- init */
 
   async init(ctx: ModuleContext): Promise<void> {
+    this.anchor = new BodyAnchor(ctx);
     this.ctx = ctx;
     this.root = ctx.root;
     const t = ctx.theme;
@@ -255,6 +258,7 @@ export class SteadyModule implements AssessmentModule {
       'Állj kényelmesen, lábak vállszélességben, karok lazán. Nézz előre a gyűrűre.',
       [{ id: 'ok', label: 'INDULHAT', variant: 'primary' }]
     );
+    this.anchor.capture();
     this.restHeadY = this.headPos().y;
     ctx.recorder.event('calibration_done', { restHeadY: +this.restHeadY.toFixed(3) });
   }
@@ -354,9 +358,14 @@ export class SteadyModule implements AssessmentModule {
     this.handDot.visible = !!o.handTarget;
     if (o.handTarget) {
       // Arm's length, slightly below eye level: reachable without the shoulder
-      // having to hold the arm up at its limit for thirty seconds.
-      this.handRing.position.set(this.currentHand === 'right' ? 0.16 : -0.16, 1.42, -0.55);
-      this.handRing.lookAt(0, 1.6, 0);
+      // having to hold the arm up at its limit for thirty seconds. Placed from
+      // the participant's own stance, so it is in front of them wherever in
+      // the room they are standing.
+      this.anchor.capture();
+      this.handRing.position.copy(
+        this.anchor.offset(this.currentHand === 'right' ? 0.16 : -0.16, -0.18, 0.55)
+      );
+      this.handRing.lookAt(this.anchor.origin);
     }
 
     const trace: BlockTrace = {

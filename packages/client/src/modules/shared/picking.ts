@@ -19,6 +19,18 @@ export class ObjectPicker {
   }
 
   /**
+   * Declare which objects the participant can aim at right now.
+   *
+   * This drives the pointer visual: the ray stops on these and shows a cursor,
+   * the same way it does on a panel. Call it whenever the selectable set
+   * changes - at the start of a trial, and with an empty list when the
+   * response window closes.
+   */
+  setHoverTargets(objects: THREE.Object3D[]): void {
+    this.ctx.engine.input.setPointerTargets(objects);
+  }
+
+  /**
    * Returns the nearest hit object from `targets`, or null when the ray misses
    * or lands on a panel first.
    */
@@ -49,5 +61,6 @@ export class ObjectPicker {
 
   dispose(): void {
     this.panels = [];
+    this.ctx.engine.input.clearPointerTargets();
   }
 }

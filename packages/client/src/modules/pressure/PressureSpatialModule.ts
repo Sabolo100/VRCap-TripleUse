@@ -102,7 +102,8 @@ export class PressureSpatialModule implements AssessmentModule {
       title: 'NYOMÁS',
       instruction:
         'Fogyni fog az idő, zavaró hangok szólnak, és látod a sorozatodat. Közben a látómeződ szélén ' +
-        'is felvillannak célok — azokra is reagálj. Figyeld, meddig veszed észre őket, ahogy nő a nyomás.',
+        'is felvillannak fehér gömbök — azokra nyomd meg a MARKOLATGOMBOT (grip), bármelyik kézzel. ' +
+        'Figyeld, meddig veszed észre őket, ahogy nő a nyomás.',
       controlHint: '',
       trials: 48,
       practiceTrials: 5,

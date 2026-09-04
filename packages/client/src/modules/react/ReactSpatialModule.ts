@@ -9,6 +9,7 @@ import { Panel, type UI } from '../../engine/ui/Panel.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { volumePosition, Tumbler } from '../shared/volume.js';
+import { BodyAnchor } from '../shared/anchor.js';
 
 /**
  * MODULE 04 - REACT, variant B
@@ -109,6 +110,9 @@ export class ReactSpatialModule implements AssessmentModule {
   private homeMarker!: THREE.Mesh;
   private feedbackPanel!: Panel;
   private tumbler = new Tumbler();
+  /** Peripersonal content is placed relative to where the participant
+   *  actually stands, not around the world origin. */
+  private anchor!: BodyAnchor;
 
   private currentBlock: BlockId = 'reach';
   private practice = false;
@@ -145,6 +149,7 @@ export class ReactSpatialModule implements AssessmentModule {
   /* ------------------------------------------------------------- init */
 
   init(ctx: ModuleContext): void {
+    this.anchor = new BodyAnchor(ctx);
     this.ctx = ctx;
     ctx.root.add(this.root);
 
@@ -199,6 +204,9 @@ export class ReactSpatialModule implements AssessmentModule {
   /* ------------------------------------------------------- block driver */
 
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
+    // Re-read the participant's stance between blocks: they will have moved,
+    // and reaching targets must stay in front of THEM.
+    this.anchor.capture();
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     const count = practice ? block.practiceTrials : block.trials;
@@ -216,7 +224,9 @@ export class ReactSpatialModule implements AssessmentModule {
   /* ------------------------------------------------------- 1: 3D reach */
 
   private homePosition(): THREE.Vector3 {
-    return new THREE.Vector3(0, EYE - 0.42, -0.32);
+    // 0.32 m in front of the chest, 0.42 m below eye level - measured from the
+    // participant, not from the origin of the room.
+    return this.anchor.offset(0, -0.42, 0.32);
   }
 
   private async runReach(count: number): Promise<void> {
@@ -247,7 +257,7 @@ export class ReactSpatialModule implements AssessmentModule {
       await this.wait(rng.range(400, 900));
       if (this.aborted) return;
 
-      const pos = volumePosition(spec.azDeg, spec.elDeg, spec.radius, EYE - 0.25);
+      const pos = this.anchor.place(spec.azDeg, spec.elDeg - 14, spec.radius);
       this.target.position.copy(pos);
       this.target.scale.setScalar(spec.width / 0.045);
       this.target.visible = true;

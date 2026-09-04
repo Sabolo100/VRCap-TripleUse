@@ -64,7 +64,7 @@ export class ReactModule implements AssessmentModule {
       id: 'simple',
       title: 'EGYSZERŰ REAKCIÓ',
       instruction:
-        'Egyetlen gömb van előtted. Amikor felvillan, reagálj a lehető leggyorsabban. ' +
+        'Egyetlen gömb van előtted. Amikor felvillan, NYOMD MEG A RAVASZT a lehető leggyorsabban. ' +
         'Ne találgass: a korai válasz hibának számít. A várakozási idő szándékosan kiszámíthatatlan.',
       controlHint: '',
       trials: 24,
@@ -104,8 +104,8 @@ export class ReactModule implements AssessmentModule {
       id: 'twohand',
       title: 'KÉT KÉZ',
       instruction:
-        'Két gömb: bal és jobb. Amelyik felvillan, azon az oldalon kell reagálni. ' +
-        'Néha mindkettő egyszerre villan — ilyenkor mindkét oldalon reagálj.',
+        'Két gömb: bal és jobb. Amelyik felvillan, AZON AZ OLDALON húzd meg a ravaszt. ' +
+        'Néha mindkettő egyszerre villan — ilyenkor mindkét ravaszt húzd meg.',
       controlHint: '',
       trials: 26,
       practiceTrials: 6,
