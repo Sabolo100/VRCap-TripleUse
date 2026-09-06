@@ -566,9 +566,11 @@ helyreállás valódi költsége részben az, hogy vissza kell találni ahhoz az
 `decision_time` (mennyi idő, amíg a helyes lépést kiválasztja) —, és ez a bontás
 sík platformon nem létezik.
 
-**Mobil.** Támogatott, ±34°-os elrendezéssel és húzásos körbenézéssel; a
-`reorientation_time` mobilon a mutató elfordulásából származik, tehát **más néven**
-kerül a naplóba (`pointer_reorientation_time`), és nem keveredik a VR-értékkel.
+**Mobil.** Támogatott, de az elrendezés ott 3 × 2 rács, mindennel egyszerre
+láthatóan. A `resumption_lag` **egészben** mérhető — ez a szakirodalmi mutató —,
+de nem bontható: érintésnél nincs mozdulat a válasz előtt. Asztali gépen a
+mutató sugarából származik egy megfelelője, ami **más mennyiség**, ezért más a
+neve (`pointer_reorientation_time`), és nem keveredik a VR-értékkel.
 
 **Asset igény:** 1/5 · **Programozási komplexitás:** 3/5
 
@@ -1053,4 +1055,5 @@ részletes specifikáció, csak utána implementáció:
 | `docs/24-MODULE-05-MULTI.md` | MULTI modul részletes specifikációja |
 | `docs/25-MODULE-16-HANDS.md` | HANDS modul részletes specifikációja (csak VR) |
 | `docs/26-MODULE-17-RISK.md` | RISK modul részletes specifikációja |
+| `docs/27-MODULE-18-PROTOCOL.md` | PROTOCOL modul részletes specifikációja |
 | `README.md` | Futtatás, fejlesztés, telepítés |

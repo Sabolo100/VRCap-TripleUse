@@ -18,6 +18,9 @@ import {
   type Grabbable, type Socket,
 } from '../packages/client/src/modules/hands/manipulation.js';
 import { RiskModule, EV_OPTIMAL_PUMPS } from '../packages/client/src/modules/risk/RiskModule.js';
+import {
+  ProtocolModule, generateProcedure, pickRevised, name as stepName,
+} from '../packages/client/src/modules/protocol/ProtocolModule.js';
 import { TrackStation, FORCING_FREQS, TRACK_CLAMP_DEG, type StationHost, type StationEvent }
   from '../packages/client/src/modules/multi/stations.js';
 
@@ -62,7 +65,11 @@ function fakeCtx(platform: 'vr' | 'desktop' | 'mobile' = 'vr', seed = 11): FakeC
     rng: new Rng(seed),
     scene: {},
     panels: { add: () => {}, remove: () => {}, onClick: () => () => {} },
-    audio: { speechAvailable: false, tone: () => 0, noise: () => 0, speak: () => false, stopSpeech: () => {}, outputLatencyMs: 12 },
+    audio: {
+      speechAvailable: false, tone: () => 0, noise: () => 0, speak: () => false,
+      stopSpeech: () => {}, outputLatencyMs: 12,
+      ok: () => {}, error: () => {}, click: () => {}, warn: () => {}, countdown: () => {},
+    },
     theme: {
       accent: '#fff', accent2: '#0ff', accentSoft: '#aaa', ok: '#0f0', bad: '#f00', warn: '#ff0',
       text: '#fff', textMuted: '#888', surface: '#111', surfaceAlt: '#222', bg: '#000', line: '#333',
@@ -934,6 +941,306 @@ console.log('\nRISK  (kockázatvállalás)');
     rm.headlineMetrics.filter((k) => !(k in vrRisk.ctx._metrics)));
   check('the result is flagged as behavioural description only',
     (vrRisk.res.summary as { behaviouralOnly: boolean }).behaviouralOnly === true);
+}
+
+/* ============================================================== PROTOCOL */
+console.log('\nPROTOCOL  (eljárásrendi fegyelem)');
+{
+  /* -------------------------------------------------- the procedure */
+
+  {
+    let ok = true;
+    let distinct = true;
+    for (let seed = 1; seed <= 1000; seed++) {
+      const p = generateProcedure(new Rng(seed));
+      if (p.length !== 10) { ok = false; break; }
+      for (let i = 1; i < p.length; i++) if (p[i]!.station === p[i - 1]!.station) { ok = false; break; }
+      if (new Set(p.map(stepName)).size !== 10) distinct = false;
+    }
+    check('every generated procedure is ten steps with no two in a row on one station', ok);
+    check('and uses ten distinct controls', distinct);
+  }
+  {
+    const a = generateProcedure(new Rng(4242)).map(stepName).join('|');
+    const b = generateProcedure(new Rng(4242)).map(stepName).join('|');
+    const c = generateProcedure(new Rng(4243)).map(stepName).join('|');
+    check('the same seed generates the same procedure', a === b);
+    check('a different seed generates a different one', a !== c);
+  }
+  {
+    let ok = true;
+    for (let seed = 1; seed <= 400; seed++) {
+      const rng = new Rng(seed);
+      const p = generateProcedure(rng);
+      const rev = pickRevised(p, 5, rng);
+      if (rev.station === p[4]!.station || rev.station === p[6]!.station) { ok = false; break; }
+      if (p.map(stepName).includes(stepName(rev))) { ok = false; break; }
+    }
+    check('the revised control is on a new station and is not already in the procedure', ok);
+  }
+
+  /* ------------------------------------------------- the step machine */
+
+  function machine(platform: 'vr' | 'desktop' | 'mobile' = 'vr', revised = false) {
+    const mod = new ProtocolModule();
+    const ctx = fakeCtx(platform);
+    (mod as unknown as { ctx: ModuleContext }).ctx = ctx;
+    const rng = new Rng(7);
+    const proc = generateProcedure(rng);
+    const rev = pickRevised(proc, 5, rng);
+    const M = mod as unknown as {
+      procedure: typeof proc; revisedControl: typeof rev; expected: number;
+      omittedFlags: boolean[]; currentBlock: string; runIndex: number; guided: boolean;
+      pressure: boolean; revisedRun: boolean; lastStepT: number;
+      steps: { stepIndex: number; outcome: string; actual: string | null }[];
+      offProcedureThisRun: number; perseverationsThisRun: number;
+      resume: { startT: number; reorientDoneT: number | null; wrongStations: Set<number> } | null;
+      resumptions: { lagMs: number; reorientationMs: number; decisionMs: number }[];
+      operate(s: { station: number; control: number }, t: number): void;
+      pendingInterruptions: number[];
+    };
+    M.procedure = proc;
+    M.revisedControl = rev;
+    M.expected = 0;
+    M.omittedFlags = new Array(10).fill(false);
+    M.currentBlock = 'baseline';
+    M.runIndex = 0;
+    M.guided = false;
+    M.pressure = false;
+    M.revisedRun = revised;
+    M.lastStepT = 0;
+    M.pendingInterruptions = [];
+    return { mod, ctx, M, proc, rev };
+  }
+
+  {
+    const { M, proc } = machine();
+    M.operate(proc[0]!, 1000);
+    check('a correct step advances the procedure', M.expected === 1);
+    // Somewhere in the procedure but not next, and not later either.
+    M.operate(proc[0]!, 2000);
+    check('a wrong control does NOT advance the procedure', M.expected === 1, M.expected);
+    check('and it is recorded as an order error, not an omission',
+      M.steps.some((s) => s.outcome === 'wrong_control'), M.steps.map((s) => s.outcome));
+  }
+  {
+    const { M, proc } = machine();
+    M.operate(proc[0]!, 100);
+    M.operate(proc[1]!, 200);
+    M.operate(proc[5]!, 300);
+    check('jumping to a later step marks the ones in between as omitted',
+      M.steps.filter((s) => s.outcome === 'omitted').map((s) => s.stepIndex).join(',') === '2,3,4',
+      M.steps.map((s) => `${s.stepIndex}:${s.outcome}`));
+    check('and the procedure continues from after the step actually taken',
+      M.expected === 6, M.expected);
+  }
+  {
+    const { M, proc } = machine();
+    // A control that is not part of the procedure at all.
+    const all: { station: number; control: number }[] = [];
+    for (let s = 0; s < 6; s++) for (let c = 0; c < 3; c++) all.push({ station: s, control: c });
+    const outside = all.find((x) => !proc.map(stepName).includes(stepName(x)))!;
+    M.operate(outside, 100);
+    check('a control outside the procedure is an off-procedure action, not an order error',
+      M.offProcedureThisRun === 1 && !M.steps.some((s) => s.outcome === 'wrong_control'),
+      { off: M.offProcedureThisRun, steps: M.steps.map((s) => s.outcome) });
+    check('and it does not advance the procedure either', M.expected === 0);
+  }
+  {
+    const { M, proc, rev } = machine('vr', true);
+    M.expected = 5;
+    M.operate(proc[5]!, 100);
+    check('in the revised run the OLD control counts as a perseveration',
+      M.perseverationsThisRun === 1, M.perseverationsThisRun);
+    check('and it does not satisfy the step', M.expected === 5);
+    M.operate(rev, 200);
+    check('the new control does satisfy it', M.expected === 6);
+  }
+
+  /* --------------------------------------------------- resumption lag */
+
+  {
+    const { M, proc } = machine('vr');
+    M.expected = 4;
+    // The interruption panel disappeared at t = 1000; the participant turned
+    // to the right station at 2200 and acted at 3600.
+    M.resume = { startT: 1000, reorientDoneT: 2200, wrongStations: new Set([1, 3]) };
+    M.operate(proc[4]!, 3600);
+    const r0 = M.resumptions[0]!;
+    check('resumption lag runs from when the interruption disappeared',
+      near(r0.lagMs, 2600, 0.001), r0.lagMs);
+    check('reorientation is the turn, decision is what happened after it',
+      near(r0.reorientationMs, 1200, 0.001) && near(r0.decisionMs, 1400, 0.001), r0);
+    check('the two parts always add up to the whole',
+      near(r0.reorientationMs + r0.decisionMs, r0.lagMs, 1e-9));
+    check('wrong stations visited before finding the right one are counted',
+      (M.resumptions[0] as unknown as { wrongStationVisits: number }).wrongStationVisits === 2);
+  }
+  {
+    // On a phone there is no orientation at all before the tap.
+    const { M, proc } = machine('mobile');
+    M.expected = 2;
+    M.resume = { startT: 500, reorientDoneT: null, wrongStations: new Set() };
+    M.operate(proc[2]!, 2500);
+    const r0 = M.resumptions[0]!;
+    check('with no orientation signal the lag is still measured whole',
+      near(r0.lagMs, 2000, 0.001), r0.lagMs);
+    check('but it is not decomposed into a made-up split',
+      !Number.isFinite(r0.reorientationMs) && !Number.isFinite(r0.decisionMs), r0);
+  }
+
+  /* ------------------------------------------------------- the scoring */
+
+  interface SR {
+    blockId: string; runIndex: number; stepIndex: number; expected: string;
+    actual: string | null; outcome: string; stepTimeMs: number;
+    afterInterruption: boolean; guided: boolean; pressure: boolean; revised: boolean;
+  }
+  interface RR {
+    blockId: string; runIndex: number; guided: boolean; pressure: boolean; revised: boolean;
+    durationMs: number; correct: number; omitted: number; orderErrors: number;
+    offProcedure: number; perseverations: number; completed: boolean;
+  }
+  function protocolRun(platform: 'vr' | 'desktop' | 'mobile', opts: {
+    learnCorrect: number; baseCorrect: number; pressureCorrect: number;
+    omitted: number; orderErrors: number; perseverations: number;
+    lags: number[]; reorients: number[];
+  }) {
+    const mod = new ProtocolModule();
+    const ctx = fakeCtx(platform);
+    (mod as unknown as { ctx: ModuleContext }).ctx = ctx;
+    const steps: SR[] = [];
+    const mk = (blockId: string, runIndex: number, outcome: string, n: number, extra: Partial<SR> = {}) => {
+      for (let i = 0; i < n; i++) {
+        steps.push({
+          blockId, runIndex, stepIndex: i, expected: 's0:switch', actual: 's0:switch',
+          outcome, stepTimeMs: 2600, afterInterruption: false, guided: false,
+          pressure: false, revised: false, ...extra,
+        });
+      }
+    };
+    mk('learn', 3, 'correct', opts.learnCorrect);
+    mk('learn', 3, 'omitted', 10 - opts.learnCorrect);
+    mk('baseline', 0, 'correct', opts.baseCorrect);
+    mk('baseline', 0, 'omitted', 10 - opts.baseCorrect);
+    mk('revised', 0, 'correct', opts.pressureCorrect, { pressure: true });
+    mk('revised', 0, 'omitted', 10 - opts.pressureCorrect, { pressure: true });
+    // Three guided passes with deliberate mistakes: they must not be scored.
+    mk('learn', 0, 'wrong_control', 10, { guided: true });
+    (mod as unknown as { steps: SR[] }).steps = steps;
+
+    const runs: RR[] = [
+      { blockId: 'learn', runIndex: 0, guided: true, pressure: false, revised: false, durationMs: 40_000, correct: 0, omitted: 10, orderErrors: 10, offProcedure: 0, perseverations: 0, completed: true },
+      { blockId: 'learn', runIndex: 3, guided: false, pressure: false, revised: false, durationMs: 36_000, correct: opts.learnCorrect, omitted: 10 - opts.learnCorrect, orderErrors: 0, offProcedure: 0, perseverations: 0, completed: true },
+      { blockId: 'baseline', runIndex: 0, guided: false, pressure: false, revised: false, durationMs: 32_000, correct: opts.baseCorrect, omitted: opts.omitted, orderErrors: opts.orderErrors, offProcedure: 1, perseverations: 0, completed: true },
+      { blockId: 'revised', runIndex: 0, guided: false, pressure: true, revised: false, durationMs: 38_000, correct: opts.pressureCorrect, omitted: 10 - opts.pressureCorrect, orderErrors: 0, offProcedure: 0, perseverations: 0, completed: false },
+      { blockId: 'revised', runIndex: 1, guided: false, pressure: false, revised: true, durationMs: 34_000, correct: 9, omitted: 1, orderErrors: 0, offProcedure: 0, perseverations: opts.perseverations, completed: true },
+    ];
+    (mod as unknown as { runs: RR[] }).runs = runs;
+    (mod as unknown as { resumptions: unknown[] }).resumptions = opts.lags.map((l, i) => ({
+      runIndex: 0, lagMs: l, reorientationMs: opts.reorients[i] ?? NaN,
+      decisionMs: l - (opts.reorients[i] ?? NaN), wrongStationVisits: 1,
+      resumedAtStep: 4, correct: true,
+    }));
+    const res = mod.finish(ctx);
+    return { ctx, res };
+  }
+
+  const base = {
+    learnCorrect: 9, baseCorrect: 10, pressureCorrect: 8,
+    omitted: 0, orderErrors: 0, perseverations: 1,
+    lags: [3000, 3600, 4200], reorients: [1100, 1300, 1500],
+  };
+  const vrP = protocolRun('vr', base);
+  check('guided passes are excluded from the accuracy, mistakes and all',
+    vrP.ctx._metrics.order_errors === 0, vrP.ctx._metrics.order_errors);
+  check('compliance under pressure is the pressured rate over the baseline rate',
+    near(vrP.ctx._metrics.compliance_under_pressure!, 0.8, 0.001),
+    vrP.ctx._metrics.compliance_under_pressure);
+  check('sequence recall comes from the unguided learning pass',
+    near(vrP.ctx._metrics.sequence_recall_accuracy!, 0.9, 0.001),
+    vrP.ctx._metrics.sequence_recall_accuracy);
+  check('resumption lag is the median of the interruptions',
+    vrP.ctx._metrics.resumption_lag === 3600, vrP.ctx._metrics.resumption_lag);
+  check('VR reports the decomposition and the wrong-station count',
+    ['reorientation_time', 'decision_time', 'wrong_station_visits']
+      .every((k) => k in vrP.ctx._metrics));
+  check('VR scores six components including spatial place keeping',
+    vrP.ctx._scores.length === 6 && vrP.ctx._scores.includes('spatial_place_keeping'),
+    vrP.ctx._scores);
+  check('the result names how much of the recovery was turning',
+    (vrP.res.headline[2]!.hint ?? '').includes('visszatájékozódás'));
+
+  {
+    const over = protocolRun('vr', { ...base, pressureCorrect: 10, baseCorrect: 8 });
+    check('performing better under the deadline is capped at 1.0, not rewarded',
+      over.ctx._metrics.compliance_under_pressure === 1,
+      over.ctx._metrics.compliance_under_pressure);
+  }
+  for (const p of ['desktop', 'mobile'] as const) {
+    const flat = protocolRun(p, base);
+    check(`${p}: the VR decomposition is absent, not zero`,
+      !['reorientation_time', 'decision_time', 'wrong_station_visits']
+        .some((k) => k in flat.ctx._metrics));
+    check(`${p}: resumption lag itself is still measured`,
+      flat.ctx._metrics.resumption_lag === 3600);
+    check(`${p}: five scoring components`, flat.ctx._scores.length === 5, flat.ctx._scores);
+    check(`${p}: spatialWeightsApplied false`,
+      (flat.res.summary as { spatialWeightsApplied: boolean }).spatialWeightsApplied === false);
+  }
+  {
+    const d = protocolRun('desktop', base);
+    check('desktop names the pointer sweep differently from a body turn',
+      'pointer_reorientation_time' in d.ctx._metrics);
+    const m = protocolRun('mobile', base);
+    check('mobile has no reorientation measure under any name',
+      !('pointer_reorientation_time' in m.ctx._metrics));
+  }
+  {
+    const clean = protocolRun('vr', { ...base, perseverations: 0 });
+    const stuck = protocolRun('vr', { ...base, perseverations: 2 });
+    check('perseveration is per revised run and lowers the adaptation score',
+      clean.ctx._metrics.perseveration_rate === 0 && stuck.ctx._metrics.perseveration_rate === 2
+      && clean.res.opsScore > stuck.res.opsScore,
+      [clean.res.opsScore, stuck.res.opsScore]);
+  }
+
+  /* ------------------------------------------------------ trial record */
+
+  {
+    const { mod, ctx, M, proc } = machine();
+    M.operate(proc[0]!, 500);
+    M.operate(proc[3]!, 1500);
+    const outcomes = ctx._trials.map((t) => t.outcome);
+    check('an omitted step is written as a miss with no response',
+      outcomes.filter((o) => o === 'miss').length === 2
+      && ctx._trials.filter((t) => t.outcome === 'miss')
+        .every((t) => (t as unknown as { response: unknown }).response === null),
+      outcomes);
+    check('a correct step is a hit carrying its step time',
+      ctx._trials.some((t) => t.outcome === 'hit' && t.reactionTimeMs === 500), ctx._trials[0]);
+    void mod;
+  }
+  {
+    const { ctx, M, proc } = machine();
+    M.guided = true;
+    M.operate(proc[0]!, 500);
+    check('guided teaching passes write no trial records at all', ctx._trials.length === 0);
+  }
+
+  /* ---------------------------------------------------------- manifest */
+
+  const pm = MODULE_BY_CODE.PROTOCOL!;
+  check('PROTOCOL is active in the catalogue', pm.status === 'active', pm.status);
+  check('PROTOCOL runs on all three platforms',
+    (['vr', 'desktop', 'mobile'] as const).every((p) => isRunnableOn(pm, p)));
+  check('PROTOCOL has no challenge mode - a live score would turn it into a race',
+    pm.challengeMode === false);
+  check('PROTOCOL headline metrics are all produced',
+    pm.headlineMetrics.every((k) => k in vrP.ctx._metrics),
+    pm.headlineMetrics.filter((k) => !(k in vrP.ctx._metrics)));
+  check('PROTOCOL is not shown on the sport domain',
+    pm.domains.C.relevance === 'none');
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`);
