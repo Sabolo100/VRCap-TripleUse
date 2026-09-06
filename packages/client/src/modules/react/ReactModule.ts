@@ -235,7 +235,7 @@ export class ReactModule implements AssessmentModule {
         return p === 'vr'
           ? 'PIROS → bal ravasz, KÉK → jobb ravasz.'
           : p === 'mobile'
-            ? 'PIROS → koppints a képernyő bal harmadára, KÉK → a jobb harmadára.'
+            ? 'PIROS → a képernyő alján a BAL gomb, KÉK → a JOBB gomb.'
             : 'PIROS → F billentyű vagy balra nyíl, KÉK → J billentyű vagy jobbra nyíl.';
       case 'point':
         return p === 'vr'
@@ -253,8 +253,50 @@ export class ReactModule implements AssessmentModule {
         return p === 'vr'
           ? 'Bal gömb → bal ravasz, jobb gömb → jobb ravasz. Ha mindkettő villan, mindkettőt.'
           : p === 'mobile'
-            ? 'Bal gömb → bal képernyőharmad, jobb gömb → jobb harmad. Ha mindkettő villan, két ujjal.'
+            ? 'Bal gömb → BAL gomb, jobb gömb → JOBB gomb. Ha mindkettő villan, nyomd meg mindkettőt.'
             : 'Bal gömb → F billentyű, jobb gömb → J billentyű. Ha mindkettő villan, mindkettőt.';
+    }
+  }
+
+  /**
+   * Touch controls for this module.
+   *
+   * Two blocks were relying on invisible screen thirds for left and right -
+   * a control nobody can discover and nobody can aim at under time pressure.
+   * They become real buttons; the blocks whose answer is genuinely "touch the
+   * thing" keep the whole screen and get a hint instead.
+   */
+  private setupTouchControls(): void {
+    const mc = this.ctx.mobileControls;
+    if (!mc) return;
+    switch (this.currentBlock) {
+      case 'simple':
+        mc.set({ hint: 'Koppints bárhol, amint a gömb felvillan.' });
+        break;
+      case 'choice':
+        mc.set({
+          hint: 'PIROS → BAL, KÉK → JOBB.',
+          buttons: [
+            { id: 'left', label: 'BAL', action: 'LEFT', variant: 'ghost' },
+            { id: 'right', label: 'JOBB', action: 'RIGHT', variant: 'ghost' },
+          ],
+        });
+        break;
+      case 'point':
+        mc.set({ hint: 'Koppints pontosan a gyűrű közepére.' });
+        break;
+      case 'track':
+        mc.set({ hint: 'Tartsd az ujjad a mozgó gömbön, és kövesd végig.' });
+        break;
+      case 'twohand':
+        mc.set({
+          hint: 'Amelyik gömb villan, azt az oldalt nyomd. Ha mindkettő, mindkettőt.',
+          buttons: [
+            { id: 'left', label: 'BAL', action: 'LEFT', variant: 'ghost' },
+            { id: 'right', label: 'JOBB', action: 'RIGHT', variant: 'ghost' },
+          ],
+        });
+        break;
     }
   }
 
@@ -264,6 +306,7 @@ export class ReactModule implements AssessmentModule {
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     this.resetVisuals();
+    this.setupTouchControls();
     const count = practice ? block.practiceTrials : block.trials;
 
     if (this.currentBlock === 'track') {

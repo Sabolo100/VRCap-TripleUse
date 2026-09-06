@@ -8,6 +8,7 @@ import type { MotionSystem } from '../world/MotionSystem.js';
 import type { UITheme } from '../ui/UITheme.js';
 import type { Rng } from '@vrcap/shared';
 import type { AudioSystem } from '../audio/AudioSystem.js';
+import type { MobileControls } from '../ui/MobileControls.js';
 
 /**
  * STANDARD MODULE CONTRACT.
@@ -37,6 +38,15 @@ export interface ModuleContext {
   platform: 'vr' | 'desktop' | 'mobile';
   /** Difficulty / configuration identifier stored with the run. */
   configVersion: string;
+  /**
+   * On-screen controls, present only on a phone.
+   *
+   * A module declares what it needs - a response button, a "no target"
+   * button, drag-to-turn, a slider - and the layer renders it. Buttons
+   * dispatch the same ActionEvents a controller would, so the module's own
+   * input handling does not change. Null on every other platform.
+   */
+  mobileControls: MobileControls | null;
 }
 
 export interface BlockDescriptor {

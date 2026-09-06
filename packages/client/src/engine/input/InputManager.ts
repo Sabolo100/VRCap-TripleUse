@@ -41,6 +41,11 @@ interface XRControllerState {
 }
 
 const RAY_LEN = 12;
+/** Movement below this stays a tap; beyond it the gesture is a turn. */
+const TAP_SLOP_PX = 12;
+/** Screen widths per full turn, expressed as degrees across the canvas. */
+const LOOK_RANGE_DEG = 190;
+const MAX_PITCH_RAD = 0.62;
 
 export class InputManager {
   private engine: Engine;
@@ -57,6 +62,23 @@ export class InputManager {
 
   /** Screen-space zones used for LEFT/RIGHT on touch devices. */
   private touchZones = true;
+
+  /**
+   * Drag-to-turn on a touch screen.
+   *
+   * A headset turns by turning your head. On a phone there was no equivalent
+   * at all, which made every surround task - WATCH's whole premise, SIGNAL's
+   * 360 block, NAV's pointing - unplayable rather than merely awkward.
+   *
+   * The same gesture also has to keep working as a tap, so a press only counts
+   * as a selection if the finger stayed within TAP_SLOP; past that it is a
+   * turn and no PRIMARY is emitted.
+   */
+  private touchLook: 'off' | 'yaw' | 'free' = 'off';
+  private lookState: {
+    id: number; x: number; y: number; startX: number; startY: number;
+    src: SourceId; dragging: boolean; t: number;
+  } | null = null;
 
   /** Locomotion axes, -1..1, unified across thumbstick / WASD / virtual stick. */
   readonly move = new THREE.Vector2();
@@ -214,6 +236,30 @@ export class InputManager {
   private onPointerMove = (ev: PointerEvent) => {
     if (this.engine.inXR) return;
     this.ndcFromEvent(ev);
+
+    const L = this.lookState;
+    if (!L || ev.pointerId !== L.id) return;
+    const dx = ev.clientX - L.x;
+    const dy = ev.clientY - L.y;
+    L.x = ev.clientX;
+    L.y = ev.clientY;
+    if (!L.dragging &&
+        Math.hypot(ev.clientX - L.startX, ev.clientY - L.startY) > TAP_SLOP_PX) {
+      L.dragging = true;
+    }
+    if (!L.dragging) return;
+
+    // Turn the rig, not the camera: the camera's transform belongs to the XR
+    // pose, and modules read head direction from it.
+    const rect = this.canvas.getBoundingClientRect();
+    const perPx = (LOOK_RANGE_DEG * Math.PI) / 180 / Math.max(1, rect.width);
+    this.engine.rig.rotation.y += dx * perPx;
+    if (this.touchLook === 'free') {
+      const next = this.engine.camera.rotation.x + dy * perPx;
+      // Clamped: a phone screen gives no vestibular reference, and letting the
+      // horizon roll past vertical is disorienting rather than useful.
+      this.engine.camera.rotation.x = Math.max(-MAX_PITCH_RAD, Math.min(MAX_PITCH_RAD, next));
+    }
   };
 
   private onContextMenu = (ev: Event) => {
@@ -232,6 +278,19 @@ export class InputManager {
       this.emit('SECONDARY', src, 'none', true, t, null, this.mousePointer.ray);
       return;
     }
+
+    // While turning is enabled the press is ambiguous: it becomes a tap on
+    // release if the finger barely moved, and a turn otherwise. Emitting
+    // PRIMARY here would fire a selection at the start of every swipe.
+    if (this.touchLook !== 'off') {
+      this.lookState = {
+        id: ev.pointerId, x: ev.clientX, y: ev.clientY,
+        startX: ev.clientX, startY: ev.clientY, src, dragging: false, t,
+      };
+      ev.preventDefault?.();
+      return;
+    }
+
     this.emit('PRIMARY', src, 'none', true, t, null, this.mousePointer.ray);
 
     // Touch devices additionally map screen thirds to LEFT / RIGHT so that
@@ -249,6 +308,21 @@ export class InputManager {
     if (this.engine.inXR) return;
     this.mousePointer.pressed = false;
     const src: SourceId = ev.pointerType === 'touch' ? 'touch' : 'mouse';
+
+    const L = this.lookState;
+    if (L && ev.pointerId === L.id) {
+      this.lookState = null;
+      if (!L.dragging) {
+        // It was a tap after all. The ray is rebuilt from the release point so
+        // selection lands where the finger actually was.
+        this.ndcFromEvent(ev);
+        this.updateMouseRay();
+        this.emit('PRIMARY', src, 'none', true, ev.timeStamp, null, this.mousePointer.ray);
+        this.emit('PRIMARY', src, 'none', false, ev.timeStamp, null, this.mousePointer.ray);
+      }
+      return;
+    }
+
     this.emit(ev.button === 2 ? 'SECONDARY' : 'PRIMARY', src, 'none', false, ev.timeStamp, null, this.mousePointer.ray);
   };
 
@@ -489,6 +563,24 @@ export class InputManager {
 
   isKeyDown(code: string): boolean {
     return this.keys.has(code);
+  }
+
+  /** Enable drag-to-turn, and with it the tap/turn disambiguation. */
+  setTouchLook(mode: 'off' | 'yaw' | 'free'): void {
+    this.touchLook = mode;
+    this.lookState = null;
+  }
+
+  /**
+   * Emit an action that did not come from a physical control.
+   *
+   * On-screen buttons are the phone's stand-in for a trigger, and modules
+   * should not have to know which one they got: the event they receive is
+   * identical either way.
+   */
+  emitSynthetic(action: ActionId, t: number, hand: 'left' | 'right' | 'none' = 'none'): void {
+    this.emit(action, 'touch', hand, true, t, null, this.mousePointer.ray);
+    this.emit(action, 'touch', hand, false, t, null, this.mousePointer.ray);
   }
 
   setTouchZonesEnabled(v: boolean): void {

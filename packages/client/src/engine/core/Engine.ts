@@ -29,6 +29,9 @@ export class Engine {
   readonly input: InputManager;
   /** The rig holds the camera; move the rig, never the camera, so XR poses stay valid. */
   readonly rig = new THREE.Group();
+
+  /** Screen pixels at the bottom that on-screen controls cover. */
+  private viewportBottomInset = 0;
   readonly camera: THREE.PerspectiveCamera;
 
   scene: THREE.Scene;
@@ -86,6 +89,17 @@ export class Engine {
 
     this.renderer.xr.addEventListener('sessionstart', this.onSessionStart);
     this.renderer.xr.addEventListener('sessionend', this.onSessionEnd);
+  }
+
+  /**
+   * Keep this many pixels of scene clear of the bottom edge, so touch controls
+   * never sit on top of something the participant has to tap.
+   */
+  setViewportBottomInset(px: number): void {
+    const next = Math.max(0, px);
+    if (Math.abs(next - this.viewportBottomInset) < 1) return;
+    this.viewportBottomInset = next;
+    this.onResize();
   }
 
   async init(): Promise<void> {
@@ -240,6 +254,21 @@ export class Engine {
     // the camera. Only the apparent size on screen does.
     const phone = (deviceSync()?.platform ?? 'desktop') === 'mobile';
     this.camera.fov = h > w ? (phone ? 62 : 78) : phone ? 42 : 65;
+
+    // Reserve the strip the on-screen controls occupy.
+    //
+    // A stimulus that lands under the button bar cannot be tapped, and the
+    // lowest row of a search array sits exactly there. Shifting the projection
+    // window - rather than pitching the camera - moves the scene up out of the
+    // way while leaving the camera's transform untouched, so head direction
+    // and every recorded eccentricity stay exactly as they were.
+    // Capped: past about a fifth of the height the reduced vertical field
+    // starts clipping the top of a stimulus array, which trades one
+    // unreachable row for another.
+    const inset = Math.min(this.viewportBottomInset, h * 0.2);
+    if (inset > 0.5) this.camera.setViewOffset(w, h + inset, 0, inset, w, h);
+    else this.camera.clearViewOffset();
+
     this.camera.updateProjectionMatrix();
   };
 

@@ -390,6 +390,21 @@ Alul a mentés állapota és a terület figyelmeztetése.
 
 ---
 
+### Mobil vezérlés
+
+| Blokk | Mobil megoldás |
+|---|---|
+| 1 Egyszerű reakció | koppintás bárhol |
+| 2 Választásos reakció | **BAL** és **JOBB** gomb |
+| 3 Célra mutatás | koppintás a gyűrű közepére |
+| 4 Folyamatos követés | ujjal követés |
+| 5 Két kéz | **BAL** és **JOBB** gomb, egyszerre is nyomható |
+
+A 2. és 5. blokk korábban a képernyő láthatatlan bal/jobb harmadára épült.
+Ez felfedezhetetlen, és időnyomás alatt céltalan: a válasz helye nem látszott.
+A gombok ugyanazt a `LEFT` / `RIGHT` eseményt adják, amit a ravaszok, tehát a
+modul bemenetkezelése változatlan.
+
 ## 11. VALIDÁCIÓ ÉS KORLÁTOK
 
 **Származás.** Az 1. blokk a Psychomotor Vigilance Test szerkezetét követi

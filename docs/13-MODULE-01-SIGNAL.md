@@ -465,6 +465,21 @@ A `trials.response`:
 
 ---
 
+### Mobil vezérlés
+
+| Blokk | Mobil megoldás |
+|---|---|
+| 1–2 Keresés | koppintás a célra · **NINCS CÉL** gomb a képernyő alján |
+| 3 Követés | koppintás a felvillant gömbökre · **KÉSZ** gomb |
+| 4 Változás | koppintás a változó objektumra |
+| 5 Periféria | **VILLANÁS** gomb — a koppintás nem lehet válasz, mert az a központi feladat felülete |
+
+A „nincs cél" korábban a tömb alá helyezett 3D panel volt. Telefonon a
+látószög szűkítése után az ingerek elé került, és kitakarta a keresett célt;
+DOM-gombként ez nem fordulhat elő. A gombsáv a vetítési ablakot is feljebb
+tolja (`Engine.setViewportBottomInset`), így a tömb legalsó sora sem kerül
+elérhetetlen helyre.
+
 ## 11. VALIDÁCIÓ ÉS KORLÁTOK
 
 **Származás.** Az 1–2. blokk a jellemző- és konjunkciós keresés klasszikus

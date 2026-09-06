@@ -283,13 +283,13 @@ export class SignalModule implements AssessmentModule {
         return p === 'vr'
           ? 'Irányítsd a sugarat a célra és húzd meg a ravaszt. Ha nincs cél, a NINCS CÉL gombot használd.'
           : p === 'mobile'
-            ? 'Koppints a célra. Ha nincs cél, a NINCS CÉL gombra koppints.'
+            ? 'Koppints a célra. Ha nincs ott, a képernyő alján a NINCS CÉL gombra koppints.'
             : 'Kattints a célra. Ha nincs cél, a NINCS CÉL gombra kattints.';
       case 'mot':
         return p === 'vr'
           ? 'Jelöld ki a ravasszal a felvillant gömböket, majd nyomd meg a KÉSZ gombot.'
           : p === 'mobile'
-            ? 'Koppints a felvillant gömbökre, majd a KÉSZ gombra.'
+            ? 'Koppints a felvillant gömbökre, majd a képernyő alján a KÉSZ gombra.'
             : 'Kattints a felvillant gömbökre, majd a KÉSZ gombra.';
       case 'change':
         return p === 'vr'
@@ -312,6 +312,7 @@ export class SignalModule implements AssessmentModule {
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     this.clearScene();
+    this.setupTouchControls();
     const count = practice ? block.practiceTrials : block.trials;
 
     switch (this.currentBlock) {
@@ -383,7 +384,7 @@ export class SignalModule implements AssessmentModule {
             this.fixation.visible = false;
             this.buildSearchArray(sizes[trial]!, presents[trial]!, t);
             this.controlMode = 'absent';
-            this.controlPanel.group.visible = true;
+            this.controlPanel.group.visible = !this.ctx.mobileControls;
             this.controlPanel.invalidate();
           }
           if (phase === 'feedback' && this.practice) {
@@ -466,6 +467,57 @@ export class SignalModule implements AssessmentModule {
       arrayExtentDeg: this.field.azDeg,
       quantisationMs: +this.ctx.engine.clock.frameInterval.toFixed(1),
     }, t);
+  }
+
+  /**
+   * The phone's version of this module's controls.
+   *
+   * On a headset "no target" is a panel floating below the array and the
+   * peripheral response is a trigger. Neither survives a small screen: the
+   * panel ends up behind the stimuli, and a tap anywhere is already how you
+   * select one. Each block therefore states what it needs as on-screen
+   * buttons, and the 3D control panel steps aside.
+   */
+  private setupTouchControls(): void {
+    const mc = this.ctx.mobileControls;
+    if (!mc) return;
+    switch (this.currentBlock) {
+      case 'feature':
+      case 'conjunction':
+        mc.set({
+          hint: 'Koppints a narancssárga célra. Ha nincs ott, használd a gombot.',
+          buttons: [{
+            id: 'absent', label: 'NINCS CÉL', variant: 'ghost', wide: true,
+            onTap: (t) => this.onAbsentPressed(t),
+          }],
+        });
+        break;
+      case 'mot':
+        mc.set({
+          hint: 'Koppints a felvillant gömbökre, majd KÉSZ.',
+          buttons: [{
+            id: 'submit', label: 'KÉSZ', variant: 'primary', wide: true,
+            onTap: () => this.onMotSubmit(),
+          }],
+        });
+        break;
+      case 'change':
+        mc.set({ hint: 'Koppints arra az objektumra, amelyik változik.' });
+        break;
+      case 'peripheral':
+        // A tap cannot mean both "I saw the flash" and "I am tracking the
+        // centre", so the peripheral answer gets a button of its own and the
+        // scene keeps the tap.
+        mc.set({
+          hint: 'Tartsd a tekinteted középen. Amint a szélén felvillan valami, nyomd meg a gombot.',
+          buttons: [{
+            id: 'flash', label: 'VILLANÁS', sub: 'a szemem sarkából láttam',
+            variant: 'accent2', wide: true,
+            onTap: (t) => this.onPeripheralResponse(t),
+          }],
+        });
+        break;
+    }
   }
 
   private onAbsentPressed(t: number): void {
@@ -587,7 +639,7 @@ export class SignalModule implements AssessmentModule {
 
       // Selection phase.
       this.controlMode = 'submit';
-      this.controlPanel.group.visible = true;
+      this.controlPanel.group.visible = !this.ctx.mobileControls;
       this.controlPanel.invalidate();
       this.motSelectionOpen = true;
       const selectionStart = this.ctx.engine.clock.frameTime;
@@ -1007,7 +1059,9 @@ export class SignalModule implements AssessmentModule {
     if (!e.down) return;
 
     if (this.currentBlock === 'peripheral') {
-      if (e.action === 'PRIMARY') this.onPeripheralResponse(e.t);
+      // With a button on screen, a tap on the scene is not an answer - it
+      // would fire every time the participant steadies their grip.
+      if (e.action === 'PRIMARY' && !this.ctx.mobileControls) this.onPeripheralResponse(e.t);
       return;
     }
 

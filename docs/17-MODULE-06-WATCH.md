@@ -418,6 +418,16 @@ A `false_alarm` sorok `stimulus.kind = "watch_false_alarm"` értékkel és
 
 ---
 
+### Mobil vezérlés
+
+Egyetlen **ELTÉRÉS** gomb a képernyő alján. Puszta koppintás is elegendő
+volna, de ez éberségi feladat, ahol a téves riasztás a mérés fele: egy
+markolatigazítás közbeni véletlen érintés hamis riasztásként landolna. A
+dedikált gomb a jelenetet tisztán hagyja.
+
+A rács mobilon eleve ±20°-ra szűkített, tehát minden a látómezőn belül van, és
+fordulásra nincs szükség — a `look` ezért ebben a modulban ki van kapcsolva.
+
 ## 11. VALIDÁCIÓ ÉS KORLÁTOK
 
 **Származás.** Az elrendezés a monoton ingerfolyamban ritka eltérést kereső

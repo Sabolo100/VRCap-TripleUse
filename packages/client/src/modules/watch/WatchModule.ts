@@ -224,7 +224,7 @@ export class WatchModule implements AssessmentModule {
         return 'Fordulj körbe nyugodtan — az események bárhol történhetnek, akár mögötted is. ' +
           'Húzd meg a ravaszt, amint bármelyik fény kilép a közös ütemből.';
       case 'mobile':
-        return 'Koppints, amint bármelyik fény kilép a közös ütemből.';
+        return 'A képernyő alján az ELTÉRÉS gombra koppints, amint bármelyik fény kilép a közös ütemből.';
       default:
         return 'Kattints vagy nyomj SZÓKÖZT, amint bármelyik fény kilép a közös ütemből.';
     }
@@ -268,7 +268,30 @@ export class WatchModule implements AssessmentModule {
 
   /* ------------------------------------------------------- block driver */
 
+  /**
+   * Touch controls.
+   *
+   * The response is a trigger pull in the headset. On a phone a bare tap would
+   * do, but this is a vigilance task: a stray touch while shifting grip would
+   * land as a false alarm on a measure that is mostly about false alarms. A
+   * dedicated button keeps the scene free of accidental answers.
+   *
+   * The lattice is already narrowed to +/-20 degrees on a phone, so everything
+   * is inside the field of view and no turning is required here.
+   */
+  private setupTouchControls(): void {
+    this.ctx.mobileControls?.set({
+      hint: 'Figyeld a közös ütemet. Amint bármelyik fény kilép belőle, nyomd meg a gombot.',
+      buttons: [{
+        id: 'deviation', label: 'ELTÉRÉS', sub: 'most lépett ki az ütemből',
+        variant: 'primary', wide: true,
+        action: 'PRIMARY',
+      }],
+    });
+  }
+
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
+    this.setupTouchControls();
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     if (practice && this.currentBlock !== 'calibration') return;

@@ -176,7 +176,7 @@ export const MODULES: ModuleManifest[] = [
     version: '1.0.0',
     status: 'active',
     duration: 600,
-    supports: ['vr', 'desktop'],
+    supports: ['vr', 'desktop', 'mobile'],
     assessmentMode: true,
     challengeMode: true,
     assetLoad: 2,

@@ -3,7 +3,7 @@
 
 **Verzió:** 1.0.0 · **Állapot:** implementálva
 **Kód:** `packages/client/src/modules/nav/NavModule.ts`
-**Támogatott platformok:** VR · asztali (mobilon nem — lásd 5. fejezet)
+**Támogatott platformok:** VR · asztali · mobil (a mobil korlátaival — lásd 5. fejezet)
 **Névleges időtartam:** ~11 perc
 **Doménkötés:** A elsődleges · B másodlagos · C másodlagos
 
@@ -267,13 +267,42 @@ Rossz kanyarnál **nincs** hangjelzés — a visszajelzés elrontaná a mérést
 | 4 Útvonal-integráció | `adapted` | Ugyanaz; a látómező-különbség számít. |
 | 5 Térkép | `equivalent` | Panelre mutatás. |
 
-### Mobil: nem támogatott
+### Mobil: támogatott, de nem ugyanazt méri
 
-A modul `supports` mezője `['vr', 'desktop']`. Indoklás: a 3. és 4. blokk
-irányválasza a saját testtengelyhez viszonyított irány megmutatása. Telefonon
-a látómező 20°-nál keskenyebb, a nézőpont forgatása pedig ujjhúzással
-történik, ami a testtengely-referenciát megszünteti. Egy leromlott változat
-számot adna, de a szám nem ugyanazt jelentené — ez rosszabb, mint a hiánya.
+**Korábban ki volt zárva.** Az indoklás az volt, hogy a 3. és 4. blokk
+irányválasza a *saját testtengelyhez* viszonyított irány megmutatása, a
+telefon látómezeje pedig 20°-nál keskenyebb, a nézőpont forgatása ujjhúzással
+történik — ami a testtengely-referenciát megszünteti.
+
+**Ebből az egyik premissza megdőlt, a másik nem.** A mobil látómező azóta
+±38°-ra bővült (a látószög telefonon 42°, lásd `Engine.onResize`), tehát a
+szűk mező már nem áll. A testtengely-érv viszont áll: ujjal forgatni nem
+ugyanaz, mint a testtel fordulni.
+
+A modul mégis fut mobilon, mert **a többi blokk mérése ettől nem sérül**, és a
+kizárás azokat is elvette. Amit rögzíteni kell:
+
+| | VR / asztali | Mobil |
+|---|---|---|
+| 1 Bejárás, 2 Újrajárás, 5 Térkép | ugyanaz | **ugyanaz** |
+| 3 Iránybecslés, 4 Útvonal-integráció | egocentrikus, testtengelyhez kötött mutatás | **húzással forgatott nézőpont** — nem testtengely-referenciás |
+| `body_turn_count` | ✓ | **hiányzik** |
+
+A 3. és 4. blokk mobilon tehát **irányítási becslést** mér egy elforgatható
+nézőpontból, nem egocentrikus mutatást. A `comparability` kulcs (`flat:touch`)
+külön tartja ezeket, és mobil eredményt VR-eredménnyel összevetni ezeken a
+blokkokon **nem szabad**. A modul kezdőképernyője ezt nem hirdeti; a
+specifikáció rögzíti, és az elemzésnek figyelembe kell vennie.
+
+### Mobil irányítás
+
+| Blokk | Mobil megoldás |
+|---|---|
+| 1 Bejárás | ujjhúzás a körülnézéshez, haladás automatikus |
+| 2 Újrajárás | ujjhúzás + koppintás a nyílra |
+| 3 Iránybecslés | fordulj a becsült irány felé (célkereszt), majd **ERRE VAN** gomb |
+| 4 Útvonal-integráció | ugyanaz, majd natív csúszka a távolsághoz |
+| 5 Térkép | koppintás a térképen |
 
 ### Adaptációs paraméterek
 

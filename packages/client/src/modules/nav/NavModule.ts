@@ -244,16 +244,24 @@ export class NavModule implements AssessmentModule {
     switch (block) {
       case 'tour':
         return vr ? 'Nézz körül szabadon. A haladás automatikus.'
-          : 'Nézz körül a jobb egérgombot nyomva tartva. A haladás automatikus.';
+          : this.ctx.platform === 'mobile'
+            ? 'Húzd az ujjad a képernyőn, hogy körülnézz. A haladás automatikus.'
+            : 'Nézz körül az egeret húzva. A haladás automatikus.';
       case 'retrace':
         return vr ? 'Mutass a ravasszal arra a nyílra, amerre menni akarsz.'
-          : 'Kattints arra a nyílra, amerre menni akarsz.';
+          : this.ctx.platform === 'mobile'
+            ? 'Húzással nézz körül, majd koppints arra a nyílra, amerre menni akarsz.'
+            : 'Kattints arra a nyílra, amerre menni akarsz.';
       case 'jrd':
         return vr ? 'Fordulj a becsült irányba, és húzd meg a ravaszt.'
-          : 'Fordítsd a kurzort a becsült irányba és kattints.';
+          : this.ctx.platform === 'mobile'
+            ? 'Húzással fordulj a becsült irány felé, majd nyomd meg az ERRE VAN gombot.'
+            : 'Fordítsd a kurzort a becsült irányba és kattints.';
       case 'triangle':
         return vr ? 'Mutass a kiindulópont felé és húzd meg a ravaszt, majd állítsd be a távolságot.'
-          : 'Kattints a becsült irányba, majd állítsd be a távolságot.';
+          : this.ctx.platform === 'mobile'
+            ? 'Fordulj a kiindulópont felé, nyomd meg az ERRE VAN gombot, majd állítsd be a távolságot a csúszkán.'
+            : 'Kattints a becsült irányba, majd állítsd be a távolságot.';
       case 'map':
         return vr ? 'Mutass a térképen a helyes pontra és húzd meg a ravaszt.'
           : 'Kattints a térképen a helyes pontra.';
@@ -498,6 +506,7 @@ export class NavModule implements AssessmentModule {
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
+    this.setupTouchControls(this.currentBlock);
     const count = practice ? block.practiceTrials : block.trials;
     if (count === 0) return;
 
@@ -857,8 +866,23 @@ export class NavModule implements AssessmentModule {
       this.distanceValue = 12;
       this.positionPrompt();
       this.promptPanel.invalidate();
+      // A slider drawn on a 3D panel needs a steady aim at a thin track; on a
+      // phone it is a native range input under the thumb.
+      this.ctx.mobileControls?.set({
+        hint: 'Milyen messze van a kiindulópont?',
+        slider: {
+          label: 'Becsült távolság', min: 2, max: 30, step: 0.5,
+          value: this.distanceValue, unit: 'm',
+          onInput: (v) => { this.distanceValue = v; this.promptPanel.invalidate(); },
+        },
+        buttons: [{
+          id: 'confirm', label: 'MEHET', variant: 'primary', wide: true,
+          onTap: () => { this.ctx.audio.ok(); this.panelResolve?.(); this.panelResolve = null; },
+        }],
+      });
       await new Promise<void>((resolve) => { this.panelResolve = resolve; });
       this.panelResolve = null;
+      this.setupTouchControls('triangle');
       if (this.aborted) return;
 
       const endT = this.ctx.engine.clock.frameTime;
@@ -1003,10 +1027,81 @@ export class NavModule implements AssessmentModule {
 
   /* ------------------------------------------------------------ input */
 
+  /**
+   * Touch controls for this module.
+   *
+   * NAV is the module a phone served worst. Its control hint told the
+   * participant to look around by holding the right mouse button - a control
+   * that does not exist on a touch screen, and there was no camera look on
+   * flat platforms at all. So the tour could not be studied, and the two
+   * pointing blocks could only indicate a direction inside the field of view:
+   * "it is behind me" was unanswerable.
+   *
+   * Dragging now turns the view, and the estimate is taken from where the
+   * participant is facing - the same gesture as in the headset, and the one a
+   * phone user tries first.
+   */
+  private setupTouchControls(block: BlockId): void {
+    const mc = this.ctx.mobileControls;
+    if (!mc) return;
+    switch (block) {
+      case 'tour':
+        mc.set({
+          look: 'yaw',
+          hint: 'Húzd az ujjad a képernyőn, hogy körülnézz. A haladás automatikus.',
+        });
+        break;
+      case 'retrace':
+        mc.set({
+          look: 'yaw',
+          hint: 'Húzd az ujjad a körülnézéshez, majd koppints arra a nyílra, amerre menni akarsz.',
+        });
+        break;
+      case 'jrd':
+      case 'triangle':
+        mc.set({
+          look: 'yaw',
+          reticle: true,
+          hint: 'Fordulj a becsült irány felé, hogy a célkereszt arra mutasson, majd erősítsd meg.',
+          buttons: [{
+            id: 'point', label: 'ERRE VAN', variant: 'primary', wide: true,
+            onTap: () => this.resolvePointFromFacing(),
+          }],
+        });
+        break;
+      case 'map':
+        mc.set({ hint: 'Koppints a térképen arra a pontra, ahol szerinted vagy.' });
+        break;
+    }
+  }
+
+  /**
+   * Answer a pointing question with the direction the participant is facing.
+   *
+   * The ray from a tap can only express a direction inside the field of view,
+   * so on a phone "behind me" had no expressible answer. Turning to face the
+   * estimate and confirming does, and it matches how the same question is
+   * answered in the headset.
+   */
+  private resolvePointFromFacing(): void {
+    if (!this.pointResolve) return;
+    const q = new THREE.Quaternion();
+    this.ctx.engine.camera.getWorldQuaternion(q);
+    const d = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+    const bearing = (Math.atan2(d.x, -d.z) * 180) / Math.PI;
+    this.ctx.audio.ok();
+    const resolve = this.pointResolve;
+    this.pointResolve = null;
+    resolve(bearing);
+  }
+
   private onAction(e: ActionEvent): void {
     if (!e.down || e.action !== 'PRIMARY') return;
 
     // Pointing responses: take the horizontal component of the pointer ray.
+    // On a phone the answer comes from the facing direction instead, via the
+    // confirm button - see resolvePointFromFacing.
+    if (this.pointResolve && this.ctx.mobileControls) return;
     if (this.pointResolve) {
       const ray = e.ray ?? this.ctx.engine.input.primaryRay();
       if (!ray) return;

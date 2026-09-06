@@ -5,6 +5,7 @@ import type { Engine } from '../core/Engine.js';
 import { Panel } from '../ui/Panel.js';
 import type { PanelManager, PanelClickEvent } from '../ui/PanelManager.js';
 import { Recorder } from '../data/Recorder.js';
+import { MobileControls } from '../ui/MobileControls.js';
 import { SignalSystem } from '../world/SignalSystem.js';
 import { MotionSystem } from '../world/MotionSystem.js';
 import { audio } from '../audio/AudioSystem.js';
@@ -79,6 +80,7 @@ export class ModuleRunner {
   private disposed = false;
   private aborted = false;
   private blockRunning = false;
+  private mobileControls: MobileControls | null = null;
 
   constructor(opts: RunnerOptions) {
     this.opts = opts;
@@ -88,11 +90,22 @@ export class ModuleRunner {
       motionHz: opts.motionHz ?? 15,
     });
 
+    // Phones get a DOM control layer; a headset and a laptop have real
+    // buttons and a pointer, and do not.
+    this.mobileControls = deviceSync()?.platform === 'mobile'
+      ? new MobileControls(
+          this.engine.input,
+          () => this.engine.clock.frameTime,
+          (px) => this.engine.setViewportBottomInset(px)
+        )
+      : null;
+
     this.ctx = {
       engine: this.engine,
       scene: this.engine.scene,
       root: this.root,
       panels: opts.panels,
+      mobileControls: this.mobileControls,
       recorder,
       signals: new SignalSystem(),
       motion: new MotionSystem(),
@@ -282,6 +295,9 @@ export class ModuleRunner {
 
   private async runBlock(block: BlockDescriptor, practice: boolean): Promise<void> {
     if (this.aborted) return;
+    // Each block declares its own controls; anything left over from the last
+    // one would be a button that no longer does what it says.
+    this.mobileControls?.clear();
     this.blockRunning = true;
     this.ctx.recorder.event('block_start', { block: block.id, practice });
     try {
@@ -559,6 +575,7 @@ export class ModuleRunner {
     this.disposed = true;
     this.offClick();
     this.offFrame();
+    this.mobileControls?.dispose();
     this.opts.module.dispose(this.ctx);
     this.opts.panels.remove(this.infoPanel);
     this.opts.panels.remove(this.hudPanel);
