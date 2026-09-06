@@ -396,9 +396,12 @@ export class InputManager {
 
   private updateKeyboardLocomotion(): void {
     const k = this.keys;
+    // Arrows as well as WASD: MULTI's tracking station is held with the left
+    // hand while the right works the mouse, and either home position should
+    // work depending on which hand the participant favours.
     this.move.set(
-      (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0),
-      (k.has('KeyW') ? 1 : 0) - (k.has('KeyS') ? 1 : 0)
+      (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0),
+      (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0)
     );
     this.turn.value = (k.has('KeyE') ? 1 : 0) - (k.has('KeyQ') ? 1 : 0);
   }

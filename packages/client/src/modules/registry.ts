@@ -17,6 +17,7 @@ import { FieldModule } from './field/FieldModule.js';
 import { SteadyModule } from './steady/SteadyModule.js';
 import { RhythmModule } from './rhythm/RhythmModule.js';
 import { AdaptModule } from './adapt/AdaptModule.js';
+import { MultiModule } from './multi/MultiModule.js';
 
 /**
  * MODULE REGISTRY.
@@ -40,6 +41,7 @@ const FACTORIES: Record<string, () => AssessmentModule> = {
   STEADY: () => new SteadyModule(),
   RHYTHM: () => new RhythmModule(),
   ADAPT: () => new AdaptModule(),
+  MULTI: () => new MultiModule(),
 };
 
 /**

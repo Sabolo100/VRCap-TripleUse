@@ -199,10 +199,44 @@ kétkezes koordináció. Mindhárom területen elsődleges.
 Részletes specifikáció: `docs/11-MODULE-04-REACT.md`.
 
 ### 05 — MULTI · Többfeladatos terhelés
-Négy állomás egyszerre (követés, rendszerfigyelés, erőforrás-tartás, hangkommunikáció),
-NASA MATB-II mintájára. Kiemelt mutató a **dual-task cost**.
-**A:** harcálláspont-terhelés. **B:** légiirányítás, diszpécser, aneszteziológia.
-**C:** osztott figyelem csapatsportban.
+
+**Cél.** Mennyivel romlik minden egyes részfeladat attól, hogy közben a többit is
+csinálni kell — és hogyan osztja el a felhasználó a figyelmét, amikor nem futja
+mindenre.
+
+**Alapelv.** NASA MATB-II mintájára négy állomás fut egyidejűleg: kompenzációs
+követés, rendszerfigyelés (skálák és jelzőfények), erőforrás-tartás (tartályszintek
+szivattyúkkal) és hangkommunikáció (rádióhívás, ami néha nekünk szól). Mindegyik
+állomás fut **egyedül is**, egy-egy rövid alapvonal-blokkban, és a modul fő mutatója
+a kettő különbsége. Ez a `dual_task_cost` egyetlen becsületes definíciója: a
+terhelés alatti teljesítmény önmagában nem mond semmit anélkül, hogy tudnánk, mire
+képes ugyanaz az ember egy feladattal.
+
+**Amit a térbeliség hozzátesz.** A MATB-II négy panele egy monitoron van, egyszerre
+látható; a figyelem elosztása ott szemmozgás kérdése, amit nem tudunk mérni. Itt a
+négy állomás **körbevesz**: legfeljebb kettő látszik egyszerre, tehát a figyelem
+elosztása fejfordítássá válik — megfigyelhető és naplózható viselkedéssé. Ebből
+születik a `station_dwell_entropy` (mennyire egyenletesen osztja el a felügyeletet)
+és a `neglect_time` (a leghosszabb idő, amíg egy állomásra rá sem nézett).
+
+**Vizsgált képességek:** megosztott figyelem, többfeladatosság, feladatváltás,
+információs túlterhelés, dual-task cost, beszédértés zajban.
+
+**Fő metrikák:** `dual_task_cost` állomásonként, `tracking_rms`,
+`monitor_hit_rate`, `audio_hit_rate`, `station_dwell_entropy`, `neglect_time_s`.
+
+**Doménkötés.**
+**A (elsődleges):** harcálláspont- és járművezetői terhelés — rádió, műszer,
+célkövetés és döntés egyszerre.
+**B (elsődleges):** légiirányítás, mentésirányítás, aneszteziológia: a párhuzamos
+csatornák kezelése a munkakör lényege, nem mellékkörülménye.
+**C (másodlagos):** osztott figyelem csapatsportban.
+
+**Mobil.** Támogatott, de a körülvevő elrendezés ±34°-ra szűkül, és a
+figyelemelosztási mutatók (`station_dwell_entropy`, `neglect_time_s`) **hiányoznak**,
+mert nincs fejirány. A négy állomás vezérlése a vezérlősávra kerül.
+
+**Asset igény:** 1/5 · **Programozási komplexitás:** 4/5
 
 ### 06 — WATCH · Éberség & perifériás figyelem — **implementálva**
 A résztvevő egy **teljes 360°-os, 32 emitteres rács közepén** áll; a fények
@@ -444,6 +478,12 @@ elektronikai szerelő, fodrász, szakács.
 **Megjegyzés.** Kézkövetéssel (hand tracking) érvényesebb, mint kontrollerrel; a
 modul mindkettőt támogatja, de a `comparability` kulcs elkülöníti őket.
 
+**Mobil és asztali.** Nincs. Ez az egyetlen modul, amelynek minden mutatója a
+6DoF követésből származik: egy egérrel húzott pálcika nem ugyanazt méri, és a
+`path_jerk` értelmezhetetlen egy olyan eszközön, ahol a mozgás felbontása a
+képernyő pixelrácsa. A kezdőtér ilyenkor magyarázatot ír ki, nem leromlott
+változatot kínál.
+
 **Asset igény:** 1/5 · **Programozási komplexitás:** 3/5 · **Csak VR**
 
 ---
@@ -473,8 +513,22 @@ síugrás, motorsport.
 **A (másodlagos):** a szélsőségek érdekesek: a túl konzervatív és a túl vakmerő
 döntéshozó egyaránt kockázat.
 
+**Térbeliség.** A BART és az Iowa paradigma önmagában nem térbeli — ezt a
+`03-SPATIAL-DESIGN.md` laposítási tesztje kimondja. A modul ezért nem a látványt
+teszi 3D-be, hanem a **tétet hozza karnyújtásnyira**: a növekvő test a
+peripersonalis térben tágul, a kifutás pillanata fizikailag közeledik, és a
+megállás elköteleződése folyamatosan megfigyelhető (a HOLD `commitment_fraction`
+mintájára). Az Iowa-blokk négy opciója négy különböző irányban és mélységben áll,
+így a választás mozdulat, nem kattintás — a `approach_hesitation` és a
+`reach_reversal_rate` sík platformon hiányzik.
+
 **Etikai megjegyzés.** Az eredmény megfogalmazása kötelezően viselkedésleíró
 („megfigyelt kockázatvállalás ebben a feladatban”), soha nem jellemvonás.
+A modul nem ad „kockázatvállalási pontszámot” rangsorként: a szélsőségek mindkét
+irányban jelzésértékűek, és az eredményképernyő ezt kimondja.
+
+**Mobil.** Támogatott. A pumpálás és a megállás vezérlősávi gomb, az Iowa-opciók
+a `dial` négy szegmense. A nyúlásalapú mutatók hiányoznak.
 
 **Asset igény:** 1/5 · **Programozási komplexitás:** 2/5
 
@@ -503,6 +557,18 @@ kihagyott ellenőrzőlista-lépés megszakítás után. Ez a modul ezt méri, ne
 elméleti tudást — pilóta, ápoló, gyógyszerész, vegyipari operátor.
 **A (másodlagos):** fegyverellenőrzés, rádióeljárás, ellenőrzőpont-protokoll.
 **C:** nem jelenítjük meg alapból.
+
+**Térbeliség.** Az eljárás állomásai **körbeveszik** a felhasználót, tehát az
+ellenőrzőlista soha nem látható egészben. Ez nem díszlet: a megszakítás utáni
+helyreállás valódi költsége részben az, hogy vissza kell találni ahhoz az
+állomáshoz, ahol abbahagytuk. A `resumption_lag` így két összetevőre bomlik —
+`reorientation_time` (mennyi idő, amíg a helyes állomás felé fordul) és
+`decision_time` (mennyi idő, amíg a helyes lépést kiválasztja) —, és ez a bontás
+sík platformon nem létezik.
+
+**Mobil.** Támogatott, ±34°-os elrendezéssel és húzásos körbenézéssel; a
+`reorientation_time` mobilon a mutató elfordulásából származik, tehát **más néven**
+kerül a naplóba (`pointer_reorientation_time`), és nem keveredik a VR-értékkel.
 
 **Asset igény:** 1/5 · **Programozási komplexitás:** 3/5
 
@@ -534,9 +600,21 @@ sportpszichológiában: kapus, vívás, tenisz, küzdősportok.
 **A (másodlagos):** szándékfelismerés testtartásból ellenőrzőponton és tömegben.
 **B (másodlagos):** gyalogos lelépési szándékának előrejelzése vezetés közben.
 
+**Térbeliség.** A pontfény-alak **testméretű és egy karnyújtásnyira áll**, nem egy
+képernyőn. Három mérés következik ebből, amit sík kijelző nem tud: az alak
+**feléd** indul vagy melléd (mélységi szándék, ami csak diszparitásból és
+parallaxisból olvasható), az alak **oldalt** is megjelenhet (perifériás
+kinematikaolvasás), és a nézőpont próbánként **eltolható** (ugyanaz a mozdulat
+oldalról más kinematikai jelzést ad, mint szemből).
+
 **Asset igény:** 2/5 — az egyetlen modul, amely mozgásadatot igényel; a pontfény-alak
-procedurálisan generálható, de a mozdulatok kinematikáját fel kell venni vagy
-paraméteresen modellezni. **Programozási komplexitás:** 3/5
+procedurálisan generálható, a mozdulatok kinematikáját paraméteresen modellezzük
+(nincs mocap-felvétel, és nincs is rá szükség: a manipulált változó maga a
+kinematikai paraméter). **Programozási komplexitás:** 3/5
+
+**Mobil.** Támogatott. A válasz a `dial` iránygombjaival, a magabiztosság a
+`slider`-rel érkezik. A mélységi és perifériás alblokk mobilon nem fut, a hozzájuk
+tartozó mutatók hiányoznak.
 
 ---
 
@@ -972,4 +1050,5 @@ részletes specifikáció, csak utána implementáció:
 | `docs/21-MODULE-13-STEADY.md` | STEADY modul részletes specifikációja |
 | `docs/22-MODULE-14-RHYTHM.md` | RHYTHM modul részletes specifikációja |
 | `docs/23-MODULE-15-ADAPT.md` | ADAPT modul részletes specifikációja |
+| `docs/24-MODULE-05-MULTI.md` | MULTI modul részletes specifikációja |
 | `README.md` | Futtatás, fejlesztés, telepítés |

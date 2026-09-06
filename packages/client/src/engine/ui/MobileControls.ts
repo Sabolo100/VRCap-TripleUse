@@ -37,6 +37,15 @@ export interface MobileButtonSpec {
   wide?: boolean;
 }
 
+export interface MobileStickSpec {
+  /** Which bottom corner. Defaults to the left, for a right-handed tapper. */
+  side?: 'left' | 'right';
+  /** Small caption under the pad. */
+  label?: string;
+  /** Optional push notification; polling `stickVector()` is the normal use. */
+  onChange?: (x: number, y: number) => void;
+}
+
 export interface MobileControlSpec {
   /** Buttons along the bottom, in thumb reach. */
   buttons?: MobileButtonSpec[];
@@ -67,6 +76,20 @@ export interface MobileControlSpec {
     labels?: string[];
     onPick: (index: number, t: number) => void;
   };
+  /**
+   * An analogue thumb stick.
+   *
+   * Some tasks need a continuous, proportional input that a row of buttons
+   * cannot express: MULTI's compensatory tracking is nulling a drifting error
+   * signal, and quantising that into button presses would measure the button
+   * layout rather than the tracking. The stick sits in one bottom corner so
+   * the other thumb stays free for tapping - which is what keeps a dual-task
+   * block genuinely dual on a phone.
+   *
+   * Read it with `stickVector()` each frame rather than reacting to events:
+   * it is a state, not an event.
+   */
+  stick?: MobileStickSpec;
   /** A labelled slider, e.g. a distance estimate. */
   slider?: {
     label: string;
@@ -86,6 +109,12 @@ export class MobileControls {
   private reticleEl: HTMLElement;
   private sliderWrap: HTMLElement;
   private dialEl: HTMLElement;
+  private stickEl: HTMLElement;
+  private stickKnob: HTMLElement;
+  private stickPointer: number | null = null;
+  private stickCentre = { x: 0, y: 0 };
+  private stickRadius = 1;
+  private stickVec = { x: 0, y: 0 };
   private spec: MobileControlSpec = {};
   private disposed = false;
 
@@ -117,10 +146,18 @@ export class MobileControls {
     this.dialEl.className = 'mc-dial';
     this.dialEl.hidden = true;
 
+    this.stickEl = document.createElement('div');
+    this.stickEl.className = 'mc-stick';
+    this.stickEl.hidden = true;
+    this.stickKnob = document.createElement('div');
+    this.stickKnob.className = 'mc-stick-knob';
+    this.stickEl.appendChild(this.stickKnob);
+    this.bindStick();
+
     this.bar = document.createElement('div');
     this.bar.className = 'mc-bar';
 
-    this.root.append(this.reticleEl, this.hintEl, this.dialEl, this.sliderWrap, this.bar);
+    this.root.append(this.reticleEl, this.hintEl, this.dialEl, this.stickEl, this.sliderWrap, this.bar);
     document.body.appendChild(this.root);
   }
 
@@ -137,8 +174,69 @@ export class MobileControls {
 
   clear(): void {
     this.spec = {};
+    this.releaseStick();
     this.render();
     this.input.setTouchLook('off');
+  }
+
+  /**
+   * Current stick deflection, x right and y up, each in [-1, 1] and the pair
+   * clamped to the unit disc. Zero when nothing is touching it.
+   */
+  stickVector(): { x: number; y: number } {
+    return { x: this.stickVec.x, y: this.stickVec.y };
+  }
+
+  /** Whether a finger is on the stick right now. */
+  get stickHeld(): boolean {
+    return this.stickPointer !== null;
+  }
+
+  private bindStick(): void {
+    const el = this.stickEl;
+    el.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const r = el.getBoundingClientRect();
+      this.stickCentre = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      // The knob travels within the pad, so the usable radius is the pad's
+      // radius less half the knob - otherwise full deflection is unreachable
+      // without the finger leaving the pad.
+      this.stickRadius = Math.max(1, r.width / 2 - 6);
+      this.stickPointer = ev.pointerId;
+      el.setPointerCapture(ev.pointerId);
+      this.moveStick(ev.clientX, ev.clientY);
+    });
+    el.addEventListener('pointermove', (ev) => {
+      if (this.stickPointer !== ev.pointerId) return;
+      ev.preventDefault();
+      this.moveStick(ev.clientX, ev.clientY);
+    });
+    const end = (ev: PointerEvent) => {
+      if (this.stickPointer !== ev.pointerId) return;
+      this.releaseStick();
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  }
+
+  private moveStick(cx: number, cy: number): void {
+    let dx = (cx - this.stickCentre.x) / this.stickRadius;
+    // Screen y grows downward; a stick pushed up must read positive.
+    let dy = -(cy - this.stickCentre.y) / this.stickRadius;
+    const len = Math.hypot(dx, dy);
+    if (len > 1) { dx /= len; dy /= len; }
+    this.stickVec = { x: dx, y: dy };
+    this.stickKnob.style.transform =
+      `translate(calc(-50% + ${dx * this.stickRadius}px), calc(-50% + ${-dy * this.stickRadius}px))`;
+    this.spec.stick?.onChange?.(dx, dy);
+  }
+
+  private releaseStick(): void {
+    this.stickPointer = null;
+    this.stickVec = { x: 0, y: 0 };
+    this.stickKnob.style.transform = 'translate(-50%, -50%)';
+    this.spec.stick?.onChange?.(0, 0);
   }
 
   /** Update one button's disabled state without rebuilding the bar. */
@@ -184,6 +282,12 @@ export class MobileControls {
       this.sliderWrap.style.pointerEvents = 'auto';
       this.sliderWrap.append(label, input);
     }
+
+    this.stickEl.hidden = !s.stick;
+    this.stickEl.style.pointerEvents = s.stick ? 'auto' : 'none';
+    this.stickEl.classList.toggle('is-right', s.stick?.side === 'right');
+    this.stickEl.dataset.label = s.stick?.label ?? '';
+    if (!s.stick) this.releaseStick();
 
     this.dialEl.replaceChildren();
     this.dialEl.hidden = !s.dial;
@@ -256,7 +360,7 @@ export class MobileControls {
     // Only the strip that actually swallows touches. The hint does not take
     // input, so a stimulus behind it is still selectable, and reserving space
     // for it as well pushed the top of a search array off the screen.
-    const visible = [this.sliderWrap, this.bar]
+    const visible = [this.sliderWrap, this.bar, this.stickEl]
       .filter((el) => !el.hidden && el.getClientRects().length > 0);
     if (visible.length === 0) {
       this.onInsetChange(0);
@@ -269,6 +373,7 @@ export class MobileControls {
 
   dispose(): void {
     this.disposed = true;
+    this.releaseStick();
     this.onInsetChange(0);
     this.input.setTouchLook('off');
     this.input.setTouchZonesEnabled(true);

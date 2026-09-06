@@ -305,7 +305,7 @@ export const MODULES: ModuleManifest[] = [
     title: 'MULTI',
     subtitle: 'Többfeladatos terhelés',
     version: '0.1.0',
-    status: 'planned',
+    status: 'active',
     duration: 600,
     supports: ['vr', 'desktop', 'mobile'],
     assessmentMode: true,

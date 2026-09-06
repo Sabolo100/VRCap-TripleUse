@@ -31,6 +31,23 @@ Ez a kérdés eldöntendő és ellenőrizhető. A meglévő modulokra alkalmazva
 | PRESSURE (A) | **igen** — egyetlen központi inger | B változat kell |
 | COMMAND (A) | **igen** — vízszintes, sík tábla | B változat kell |
 | ANTICIPATE (A) | **igen** — oldalirányú sín fix mélységen | B változat kell |
+| FIELD | nem — a mért mennyiség maga szögtartomány | megfelel |
+| STEADY | nem — a mérőműszer a 6DoF követés | megfelel |
+| RHYTHM | nem — mélységi és perifériás ütempálya | megfelel |
+| ADAPT | nem — valódi karmozgás, elevációs transzfer | megfelel |
+| MULTI | nem — a négy állomás körülvevő, egyszerre nem látható | megfelel |
+| HANDS | nem — peripersonalis manipuláció, csak VR | megfelel |
+| RISK | **igen** — a döntés maga nem térbeli | térbeli kiterjesztés kell (lásd lent) |
+| PROTOCOL | nem — az eljárás állomásai körülvevő panelen ülnek | megfelel |
+| INTENT | nem — testméretű alak, mélységi és perifériás nézet | megfelel |
+
+**A 12–19. modul nem kapott A/B párt**, mert eleve a térbeliségre épült. Az egyetlen
+kivétel a RISK: a BART és az Iowa paradigma döntési feladat, aminek nincs térbeli
+komponense. Ezt nem B változattal oldjuk meg, hanem azzal, hogy a **kockázat maga
+fizikailag közeledik** (lásd `26-MODULE-17-RISK.md` 1. és 5. fejezet): a tét egy
+táguló test a karnyújtásnyi térben, és a megállás pillanata a `commitment_fraction`
+mintájára folyamatosan megfigyelhető. Ha ez sem lenne igaz, a modul `supports`-a
+őszintén jelezné, hogy sík platformon ugyanazt méri.
 
 ---
 
@@ -194,3 +211,6 @@ Egy modulspecifikáció addig nincs kész, amíg ezekre nincs válasz:
 - [ ] A forgás nem rejti el a diszkriminatív jegyet.
 - [ ] Ha ez B változat: az A-val azonos konstruktum, külön `configVersion`,
       és a publikált paradigma, aminek a kiterjesztése.
+- [ ] A térbeli eszköz **mobilon is deklarált**: vagy adaptált paraméterrel fut,
+      vagy hiányzik. Nincs csendben leromlott változat (lásd
+      `02-CROSSPLATFORM-INTERACTION.md` 4/C).

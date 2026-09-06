@@ -102,6 +102,20 @@ A `02-CROSSPLATFORM-INTERACTION.md` szerint:
 - a platformonként kieső metrikák listája,
 - a `controlHint` szövege mind a három platformra, a tényleges gombot megnevezve.
 
+### 5/B. Mobil vezérlőkészlet
+Kötelező fejezet, a `02-CROSSPLATFORM-INTERACTION.md` 4/B és 4/C alapján.
+**Blokkonként** add meg, mit deklarál a modul a `MobileControls` rétegen:
+
+| Blokk | `buttons` | `dial` | `slider` | `look` | `hint` |
+|---|---|---|---|---|---|
+
+Ehhez tartozik három állítás, mindegyiket ki kell mondani:
+- Melyik válasz melyik gombra kerül, és **miért az** (egy gomb, ha a modul azt méri,
+  amit NEM nyomsz meg; két gomb, ha kétkezes; `dial`, ha a válasz irány).
+- Ha a blokk időt mér: `look: 'off'`, mert a húzás elhalasztja a `PRIMARY`-t a
+  `pointerup`-ig (3.5. fejezet).
+- Melyik metrika esik ki mobilon, és miért nem közelítjük.
+
 ### 6. Nehézség és konfiguráció
 - Mi teszi nehezebbé a feladatot (ingersűrűség, sebesség, válaszablak, disztraktorok).
 - Legalább két nevesített konfiguráció (`<CODE>_STANDARD_A`, `<CODE>_SHORT`),
