@@ -208,6 +208,12 @@ export class ModuleRunner {
     // implements calibrate(), and such a module draws its own content there.
     const hide = s === 'practice' || s === 'assessment' || s === 'calibration';
     this.infoPanel.group.visible = !hide;
+
+    // Touch controls belong to a running block and nothing else. Clearing them
+    // in runBlock was too late: the instructions screen comes first, and the
+    // previous block's buttons stayed on top of it - covering the very button
+    // that starts the next one.
+    if (!hide) this.mobileControls?.clear();
   }
 
   private currentBlock(): BlockDescriptor | undefined {
@@ -295,9 +301,6 @@ export class ModuleRunner {
 
   private async runBlock(block: BlockDescriptor, practice: boolean): Promise<void> {
     if (this.aborted) return;
-    // Each block declares its own controls; anything left over from the last
-    // one would be a button that no longer does what it says.
-    this.mobileControls?.clear();
     this.blockRunning = true;
     this.ctx.recorder.event('block_start', { block: block.id, practice });
     try {

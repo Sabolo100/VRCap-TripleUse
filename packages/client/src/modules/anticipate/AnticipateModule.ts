@@ -201,13 +201,30 @@ export class AnticipateModule implements AssessmentModule {
     this.offInput = ctx.engine.input.on((e) => this.onAction(e));
   }
 
+  /**
+   * Touch controls.
+   *
+   * A timing task wants the response target in the same place every trial: an
+   * unconstrained tap adds the time spent choosing where to put the finger to
+   * every measurement, and that variance lands directly in the variable error
+   * this module reports.
+   */
+  private setupTouchControls(): void {
+    this.ctx.mobileControls?.set({
+      hint: 'Nyomd meg pontosan akkor, amikor a gömb elérné a fehér célt.',
+      buttons: [{
+        id: 'now', label: 'MOST', variant: 'primary', wide: true, action: 'PRIMARY',
+      }],
+    });
+  }
+
   private controlHint(): string {
     const base = ' Nem kell gyorsnak lenned — pontosnak kell lenned.';
     switch (this.ctx.platform) {
       case 'vr':
         return 'Húzd meg a ravaszt PONTOSAN akkor, amikor a gömb elérné a fehér célt.' + base;
       case 'mobile':
-        return 'Koppints PONTOSAN akkor, amikor a gömb elérné a fehér célt.' + base;
+        return 'Nyomd meg a MOST gombot pontosan akkor, amikor a gömb elérné a fehér célt.' + base;
       default:
         return 'Kattints vagy nyomj SZÓKÖZT PONTOSAN akkor, amikor a gömb elérné a fehér célt.' + base;
     }
@@ -269,6 +286,7 @@ export class AnticipateModule implements AssessmentModule {
   /* ------------------------------------------------------- block driver */
 
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
+    this.setupTouchControls();
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     const count = practice ? block.practiceTrials : block.trials;

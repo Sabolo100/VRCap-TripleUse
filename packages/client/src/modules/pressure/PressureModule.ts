@@ -202,12 +202,30 @@ export class PressureModule implements AssessmentModule {
     this.offInput = ctx.engine.input.on((e) => this.onAction(e));
   }
 
+  /**
+   * Touch controls.
+   *
+   * Every block here answers left or right, and on a phone that was mapped to
+   * invisible screen thirds - a control the participant cannot see, cannot
+   * aim at, and certainly cannot hit reliably under the time pressure this
+   * module exists to apply.
+   */
+  private setupTouchControls(): void {
+    this.ctx.mobileControls?.set({
+      hint: 'CIÁN vagy KOCKA → BAL. MAGENTA vagy GÖMB → JOBB.',
+      buttons: [
+        { id: 'left', label: 'BAL', action: 'LEFT', variant: 'ghost' },
+        { id: 'right', label: 'JOBB', action: 'RIGHT', variant: 'ghost' },
+      ],
+    });
+  }
+
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr':
         return 'CIÁN vagy KOCKA → bal ravasz. MAGENTA vagy GÖMB → jobb ravasz.';
       case 'mobile':
-        return 'CIÁN vagy KOCKA → koppints a képernyő bal harmadára. MAGENTA vagy GÖMB → a jobb harmadára.';
+        return 'CIÁN vagy KOCKA → a képernyő alján a BAL gomb. MAGENTA vagy GÖMB → a JOBB gomb.';
       default:
         return 'CIÁN vagy KOCKA → F billentyű (vagy balra nyíl). MAGENTA vagy GÖMB → J billentyű (vagy jobbra nyíl).';
     }
@@ -293,6 +311,7 @@ export class PressureModule implements AssessmentModule {
   /* ------------------------------------------------------- block driver */
 
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
+    this.setupTouchControls();
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     const count = practice ? block.practiceTrials : block.trials;

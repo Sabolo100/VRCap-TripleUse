@@ -205,9 +205,32 @@ export class HoldModule implements AssessmentModule {
     this.offInput = ctx.engine.input.on((e) => this.onAction(e));
   }
 
+  /**
+   * Touch controls.
+   *
+   * This module measures what you do NOT press: a false alarm on a no-go
+   * trial is the score. Letting a bare tap anywhere count as a response makes
+   * every accidental brush of the screen a commission error, which would
+   * inflate exactly the number the block is about. One clearly placed button
+   * keeps deliberate presses and stray touches apart.
+   */
+  private setupTouchControls(): void {
+    this.ctx.mobileControls?.set({
+      hint: this.currentBlock === 'trajectory'
+        ? 'Csak arra nyomj, ami eltalálna. Ami elmegy melletted, arra ne.'
+        : this.currentBlock === 'stop'
+          ? 'Nyomd meg minden testre — kivéve, ha fehérre vált és megszólal a hang.'
+          : 'Csak a PIROS ÉS PULZÁLÓ testre nyomj. Minden másra ne.',
+      buttons: [{
+        id: 'go', label: 'MOST', sub: 'ez az, amire nyomni kell',
+        variant: 'primary', wide: true, action: 'PRIMARY',
+      }],
+    });
+  }
+
   private controlHint(block: BlockId): string {
     const p = this.ctx.platform;
-    const press = p === 'vr' ? 'Húzd meg a ravaszt' : p === 'mobile' ? 'Koppints' : 'Kattints vagy nyomj SZÓKÖZT';
+    const press = p === 'vr' ? 'Húzd meg a ravaszt' : p === 'mobile' ? 'Nyomd meg a MOST gombot' : 'Kattints vagy nyomj SZÓKÖZT';
     switch (block) {
       case 'gonogo':
       case 'reversal':
@@ -307,6 +330,7 @@ export class HoldModule implements AssessmentModule {
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
+    this.setupTouchControls();
     const count = practice ? block.practiceTrials : block.trials;
     if (count === 0) return;
 

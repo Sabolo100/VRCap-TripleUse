@@ -45,6 +45,18 @@ const ROTATION_DEG = 30;
 /** Chest-height start point, 0.25 m in front of the participant. */
 const HOME_UP = -0.25;
 const HOME_FORWARD = 0.25;
+/**
+ * Flat platforms reach on a frontal plane instead of around the body.
+ *
+ * In the headset the targets ring a point just in front of the chest, so
+ * reaching for one is a real arm movement in any direction - including behind
+ * you. On a screen half that ring is off camera, and there is no arm: the
+ * finger moves in two dimensions. The flat version is therefore the
+ * paradigm's original form - a centre-out reach on a plane, with the rotation
+ * applied about the viewing axis rather than about the body's vertical.
+ */
+const FLAT_HOME_FORWARD = 1.15;
+const FLAT_HOME_UP = -0.05;
 const REACH_RADIUS = 0.55;
 const FAR_RADIUS = 0.75;
 /** Direction is read here: far enough to be a real movement, early enough to
@@ -140,6 +152,12 @@ export class AdaptModule implements AssessmentModule {
   private anchor!: BodyAnchor;
   /** Captured start point in world space. */
   private homePos = new THREE.Vector3();
+  /** True when reaching happens on a frontal plane rather than around the body. */
+  private flatReach = false;
+  /** Unit vectors spanning the reach plane, and its normal. */
+  private planeRight = new THREE.Vector3(1, 0, 0);
+  private planeUp = new THREE.Vector3(0, 1, 0);
+  private planeNormal = new THREE.Vector3(0, 0, 1);
 
   private live: {
     targetPos: THREE.Vector3;
@@ -160,7 +178,8 @@ export class AdaptModule implements AssessmentModule {
   async init(ctx: ModuleContext): Promise<void> {
     this.anchor = new BodyAnchor(ctx);
     this.anchor.capture();
-    this.anchor.offset(0, HOME_UP, HOME_FORWARD, this.homePos);
+    this.flatReach = ctx.platform !== 'vr';
+    this.updateReachFrame();
     this.ctx = ctx;
     this.root = ctx.root;
     const t = ctx.theme;
@@ -201,11 +220,24 @@ export class AdaptModule implements AssessmentModule {
     });
   }
 
+  /**
+   * Touch controls.
+   *
+   * The reach itself is the answer, so there is nothing to press - the module
+   * only has to say what to do, because the one thing it must not explain is
+   * the rotation.
+   */
+  private setupTouchControls(): void {
+    this.ctx.mobileControls?.set({
+      hint: 'Húzd az ujjad a középső pontból a célgömb felé, egy határozott mozdulattal.',
+    });
+  }
+
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr': return 'Nyúlj a célhoz — a kezed nem látod, csak a pontot';
       case 'desktop': return 'EGÉR: mozgatás · a kurzor nem ott lesz, ahol az egér';
-      default: return 'HÚZD az ujjad a cél felé';
+      default: return 'HÚZD az ujjad a középső pontból a cél felé';
     }
   }
 
@@ -221,10 +253,14 @@ export class AdaptModule implements AssessmentModule {
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
     // The reaching frame is re-read per block; a participant who shifted
     // their feet must still find the start point in front of them.
+    this.setupTouchControls();
     this.anchor.capture();
-    this.anchor.offset(0, HOME_UP, HOME_FORWARD, this.homePos);
+    this.updateReachFrame();
     this.home.position.copy(this.homePos);
     this.radiusRing.position.copy(this.homePos);
+    // The ring lies in the reach plane: flat on the floor in VR, facing the
+    // participant on a screen.
+    if (this.flatReach) this.radiusRing.lookAt(this.anchor.origin);
     const phase = block.id as Phase;
     this.currentPhase = phase;
     this.practice = practice;
@@ -312,11 +348,7 @@ export class AdaptModule implements AssessmentModule {
     await this.wait(350);
     if (this.aborted) return;
 
-    const dir = new THREE.Vector3(
-      Math.sin((spec.azDeg * Math.PI) / 180) * Math.cos((spec.elDeg * Math.PI) / 180),
-      Math.sin((spec.elDeg * Math.PI) / 180),
-      -Math.cos((spec.azDeg * Math.PI) / 180) * Math.cos((spec.elDeg * Math.PI) / 180)
-    );
+    const dir = this.targetDirection(spec.azDeg, spec.elDeg);
     const targetPos = this.homePos.clone().addScaledVector(dir, spec.radius);
     this.target.position.copy(targetPos);
     this.target.visible = true;
@@ -433,7 +465,10 @@ export class AdaptModule implements AssessmentModule {
     // The participant sees only this; the hand itself is hidden.
     const rel = hand.clone().sub(this.homePos);
     if (this.rotationDeg !== 0) {
-      rel.applyAxisAngle(new THREE.Vector3(0, 1, 0), (this.rotationDeg * Math.PI) / 180);
+      // About the plane's normal on a screen, about the body's vertical in VR:
+      // in both cases the rotation is within the surface the reach happens on.
+      const axis = this.flatReach ? this.planeNormal : new THREE.Vector3(0, 1, 0);
+      rel.applyAxisAngle(axis, (this.rotationDeg * Math.PI) / 180);
     }
     const cursorPos = this.homePos.clone().add(rel);
     this.cursor.position.copy(cursorPos);
@@ -460,8 +495,8 @@ export class AdaptModule implements AssessmentModule {
     // Read the movement direction once, at a fixed fraction of the way out.
     if (!l.sampled && dist >= l.radius * SAMPLE_FRACTION) {
       l.sampled = true;
-      const targetAz = Math.atan2(l.targetPos.x - this.homePos.x, -(l.targetPos.z - this.homePos.z)) * 180 / Math.PI;
-      const cursorAz = Math.atan2(cursorPos.x - this.homePos.x, -(cursorPos.z - this.homePos.z)) * 180 / Math.PI;
+      const targetAz = this.frameAngle(l.targetPos);
+      const cursorAz = this.frameAngle(cursorPos);
       l.directionErrorDeg = angleDiffDeg(cursorAz, targetAz);
       this.lastDirectionError = l.directionErrorDeg;
       ctx.recorder.event('direction_sample', {
@@ -472,8 +507,8 @@ export class AdaptModule implements AssessmentModule {
     }
 
     if (dist >= l.radius) {
-      const targetAz = Math.atan2(l.targetPos.x - this.homePos.x, -(l.targetPos.z - this.homePos.z)) * 180 / Math.PI;
-      const cursorAz = Math.atan2(cursorPos.x - this.homePos.x, -(cursorPos.z - this.homePos.z)) * 180 / Math.PI;
+      const targetAz = this.frameAngle(l.targetPos);
+      const cursorAz = this.frameAngle(cursorPos);
       const endErr = angleDiffDeg(cursorAz, targetAz);
       this.lastPlaneDeviation = l.planeDeviations.length ? mean(l.planeDeviations) : NaN;
       const mt = l.startedAt === null ? NaN : ctx.engine.clock.frameTime - l.startedAt;
@@ -487,10 +522,75 @@ export class AdaptModule implements AssessmentModule {
     }
   }
 
+  /**
+   * Recompute the reach frame from the participant's current stance.
+   *
+   * VR keeps the body-centred horizontal ring. Flat platforms get a plane in
+   * front of the participant, spanned by the camera's right and up vectors, so
+   * every target is on screen and the pointer maps onto it directly.
+   */
+  private updateReachFrame(): void {
+    if (!this.flatReach) {
+      this.anchor.offset(0, HOME_UP, HOME_FORWARD, this.homePos);
+      this.planeRight.set(1, 0, 0);
+      this.planeUp.set(0, 1, 0);
+      this.planeNormal.set(0, 0, 1);
+      return;
+    }
+    this.anchor.offset(0, FLAT_HOME_UP, FLAT_HOME_FORWARD, this.homePos);
+    const q = new THREE.Quaternion();
+    this.ctx.engine.camera.getWorldQuaternion(q);
+    this.planeNormal.set(0, 0, -1).applyQuaternion(q).normalize();
+    this.planeRight.set(1, 0, 0).applyQuaternion(q).normalize();
+    this.planeUp.crossVectors(this.planeNormal, this.planeRight).negate().normalize();
+  }
+
+  /** Direction to a target at `azDeg`, in whichever frame is in use. */
+  private targetDirection(azDeg: number, elDeg: number): THREE.Vector3 {
+    if (this.flatReach) {
+      // On the plane, azimuth is the angle round the ring, zero pointing up.
+      const a = (azDeg * Math.PI) / 180;
+      return this.planeUp.clone().multiplyScalar(Math.cos(a))
+        .addScaledVector(this.planeRight, Math.sin(a))
+        .normalize();
+    }
+    return new THREE.Vector3(
+      Math.sin((azDeg * Math.PI) / 180) * Math.cos((elDeg * Math.PI) / 180),
+      Math.sin((elDeg * Math.PI) / 180),
+      -Math.cos((azDeg * Math.PI) / 180) * Math.cos((elDeg * Math.PI) / 180)
+    );
+  }
+
+  /** Angle of a world point about the reach frame's centre, degrees. */
+  private frameAngle(p: THREE.Vector3): number {
+    const rel = p.clone().sub(this.homePos);
+    if (this.flatReach) {
+      return (Math.atan2(rel.dot(this.planeRight), rel.dot(this.planeUp)) * 180) / Math.PI;
+    }
+    return (Math.atan2(rel.x, -rel.z) * 180) / Math.PI;
+  }
+
+  /**
+   * Where the participant's "hand" is.
+   *
+   * A controller grip in VR. On a flat platform there is no grip object at
+   * all - `pointers[].object3D` is null - so this returned null and the module
+   * hung forever waiting for a hand that never arrived. The pointer ray
+   * intersected with the reach plane is the flat equivalent.
+   */
   private handPos(): THREE.Vector3 | null {
-    const p = this.ctx.engine.input.pointers.find((x) => x.active && (x.id === 'left' || x.id === 'right'))
-      ?? this.ctx.engine.input.pointers.find((x) => x.active);
-    return p?.object3D ? p.object3D.getWorldPosition(new THREE.Vector3()) : null;
+    if (!this.flatReach) {
+      const p = this.ctx.engine.input.pointers.find((x) => x.active && (x.id === 'left' || x.id === 'right'))
+        ?? this.ctx.engine.input.pointers.find((x) => x.active);
+      return p?.object3D ? p.object3D.getWorldPosition(new THREE.Vector3()) : null;
+    }
+    const ray = this.ctx.engine.input.primaryRay();
+    if (!ray) return null;
+    const denom = ray.direction.dot(this.planeNormal);
+    if (Math.abs(denom) < 1e-4) return null;
+    const t = this.homePos.clone().sub(ray.origin).dot(this.planeNormal) / denom;
+    if (t <= 0) return null;
+    return ray.origin.clone().addScaledVector(ray.direction, t);
   }
 
   private wait(ms: number): Promise<void> {

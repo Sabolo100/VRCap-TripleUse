@@ -51,6 +51,22 @@ export interface MobileControlSpec {
   look?: 'off' | 'yaw' | 'free';
   /** Crosshair at screen centre - for "turn to face it" answers. */
   reticle?: boolean;
+  /**
+   * A ring of direction choices.
+   *
+   * "Which way was it?" has no answer a row of buttons expresses well: the
+   * choices are directions, and laying them out as directions is both faster
+   * to hit and impossible to misread. Used by FIELD for the eight-way
+   * peripheral answer and the four-way gap answer, and available to anything
+   * else that asks the same question.
+   */
+  dial?: {
+    /** Number of evenly spaced directions, starting at the top, clockwise. */
+    segments: number;
+    /** Optional labels, one per segment. */
+    labels?: string[];
+    onPick: (index: number, t: number) => void;
+  };
   /** A labelled slider, e.g. a distance estimate. */
   slider?: {
     label: string;
@@ -69,6 +85,7 @@ export class MobileControls {
   private hintEl: HTMLElement;
   private reticleEl: HTMLElement;
   private sliderWrap: HTMLElement;
+  private dialEl: HTMLElement;
   private spec: MobileControlSpec = {};
   private disposed = false;
 
@@ -96,10 +113,14 @@ export class MobileControls {
     this.sliderWrap.className = 'mc-slider';
     this.sliderWrap.hidden = true;
 
+    this.dialEl = document.createElement('div');
+    this.dialEl.className = 'mc-dial';
+    this.dialEl.hidden = true;
+
     this.bar = document.createElement('div');
     this.bar.className = 'mc-bar';
 
-    this.root.append(this.reticleEl, this.hintEl, this.sliderWrap, this.bar);
+    this.root.append(this.reticleEl, this.hintEl, this.dialEl, this.sliderWrap, this.bar);
     document.body.appendChild(this.root);
   }
 
@@ -162,6 +183,29 @@ export class MobileControls {
       });
       this.sliderWrap.style.pointerEvents = 'auto';
       this.sliderWrap.append(label, input);
+    }
+
+    this.dialEl.replaceChildren();
+    this.dialEl.hidden = !s.dial;
+    this.dialEl.style.pointerEvents = s.dial ? 'auto' : 'none';
+    if (s.dial) {
+      const d = s.dial;
+      for (let i = 0; i < d.segments; i++) {
+        const a = (i / d.segments) * Math.PI * 2 - Math.PI / 2;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'mc-dial-btn';
+        // Placed on a circle so the control looks like the question it asks.
+        btn.style.left = `${50 + Math.cos(a) * 38}%`;
+        btn.style.top = `${50 + Math.sin(a) * 38}%`;
+        btn.textContent = d.labels?.[i] ?? '';
+        btn.addEventListener('pointerdown', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          d.onPick(i, ev.timeStamp || this.now());
+        });
+        this.dialEl.appendChild(btn);
+      }
     }
 
     this.bar.replaceChildren();

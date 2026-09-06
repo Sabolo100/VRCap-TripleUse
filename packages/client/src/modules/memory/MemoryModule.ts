@@ -212,6 +212,33 @@ export class MemoryModule implements AssessmentModule {
     });
   }
 
+  /**
+   * Touch controls.
+   *
+   * Most blocks answer by pointing at a cell, which a tap already does. The
+   * n-back block is the exception: there the answer is "this one matches",
+   * which is not a place on screen - and a tap would be ambiguous with
+   * selecting a cell.
+   */
+  private setupTouchControls(): void {
+    const mc = this.ctx.mobileControls;
+    if (!mc) return;
+    if (this.currentBlock === 'nback') {
+      mc.set({
+        hint: 'Nyomd meg a gombot, valahányszor a gömb ugyanoda kerül, ahol két lépéssel korábban volt.',
+        buttons: [{
+          id: 'match', label: 'UGYANOTT', variant: 'primary', wide: true, action: 'PRIMARY',
+        }],
+      });
+      return;
+    }
+    mc.set({
+      hint: this.currentBlock === 'bind'
+        ? 'Koppints arra a helyre, ahol a megmutatott alakzat volt.'
+        : 'Koppints a kockákra abban a sorrendben, ahogy felvillantak.',
+    });
+  }
+
   private controlHint(block: BlockId): string {
     const p = this.ctx.platform;
     const press = p === 'vr' ? 'a ravasszal' : p === 'mobile' ? 'koppintással' : 'kattintással';
@@ -330,6 +357,7 @@ export class MemoryModule implements AssessmentModule {
   async runBlock(ctx: ModuleContext, block: BlockDescriptor, practice: boolean): Promise<void> {
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
+    this.setupTouchControls();
     const count = practice ? block.practiceTrials : block.trials;
     if (count === 0) return;
 

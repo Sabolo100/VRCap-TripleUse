@@ -148,12 +148,30 @@ export class CommandModule implements AssessmentModule {
     this.setBoardVisible(false);
   }
 
+  /**
+   * Touch controls.
+   *
+   * Assignment is two taps - a unit, then a target - which touch already does.
+   * Marking the board was a grip press in the headset and a right click on a
+   * laptop; a phone has neither, and "long press" is a gesture people discover
+   * by accident if at all. It becomes a mode button instead.
+   */
+  private setupTouchControls(): void {
+    this.ctx.mobileControls?.set({
+      hint: 'Koppints egy egységre, majd a cél gyűrűjére.',
+      buttons: [{
+        id: 'mark', label: 'JELÖLÉS', sub: 'a következő koppintás jelöl a táblán',
+        variant: 'ghost', wide: true, action: 'SECONDARY',
+      }],
+    });
+  }
+
   private controlHint(): string {
     const p = this.ctx.platform;
     if (p === 'vr')
       return 'Mutass egy egységre a ravasszal, majd a cél gyűrűjére — ezzel kiosztod. Markolat gomb: jelölés a táblán.';
     if (p === 'mobile')
-      return 'Koppints egy egységre, majd a cél gyűrűjére. Hosszú koppintás: jelölés a táblán.';
+      return 'Koppints egy egységre, majd a cél gyűrűjére. A JELÖLÉS gombbal jelölhetsz a táblán.';
     return 'Kattints egy egységre, majd a cél gyűrűjére. Jobb gomb: jelölés a táblán.';
   }
 
@@ -209,6 +227,7 @@ export class CommandModule implements AssessmentModule {
   /* --------------------------------------------------------- rounds */
 
   async runBlock(_ctx: ModuleContext, block: BlockDescriptor): Promise<void> {
+    this.setupTouchControls();
     const key = block.id;
     const already = this.client.state.results.find((r) => (r.round === 'A') === (key === 'roundA'));
     if (already) return;

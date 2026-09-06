@@ -291,11 +291,74 @@ export class FieldModule implements AssessmentModule {
     }
   }
 
+  /**
+   * Touch controls.
+   *
+   * The answer here is two answers in sequence, and both were headset-shaped:
+   * a shape choice on two different controller buttons, then a direction
+   * picked off a dial you aim at with a ray. On a phone the shape choice
+   * becomes two buttons and the dial becomes a real ring of touch targets -
+   * which is also faster to hit, and the whole point of this module is how
+   * little time the participant needs.
+   */
+  private setTouchPhase(phase: 'central' | 'peripheral' | 'gap'): void {
+    const mc = this.ctx.mobileControls;
+    if (!mc) return;
+    if (phase === 'central') {
+      mc.set({
+        hint: 'Mi volt középen?',
+        buttons: [
+          { id: 'cube', label: 'KOCKA', action: 'PRIMARY', variant: 'ghost' },
+          { id: 'sphere', label: 'GÖMB', action: 'SECONDARY', variant: 'ghost' },
+        ],
+      });
+      return;
+    }
+    if (phase === 'peripheral') {
+      mc.set({
+        hint: 'Merre villant?',
+        dial: { segments: DIRECTIONS, onPick: (i, t) => this.pickDirection(i, t) },
+      });
+      return;
+    }
+    mc.set({
+      hint: 'Merre néz a rés?',
+      dial: {
+        segments: 4,
+        labels: ['FENT', 'JOBB', 'LENT', 'BAL'],
+        onPick: (i, t) => this.pickGap(i, t),
+      },
+    });
+  }
+
+  /** Peripheral direction answer, from the dial rather than a panel widget. */
+  private pickDirection(idx: number, t: number): void {
+    const l = this.live;
+    if (!l || l.phase !== 'peripheral') return;
+    this.ctx.recorder.event('peripheral_response', {
+      answer: idx, correct: idx === l.directionIndex,
+      rtMs: +(t - l.onsetT).toFixed(1),
+      errorDirections: Math.min(
+        Math.abs(idx - l.directionIndex), DIRECTIONS - Math.abs(idx - l.directionIndex)
+      ),
+    }, t);
+    l.answer = idx;
+    l.resolve();
+  }
+
+  private pickGap(idx: number, t: number): void {
+    const l = this.live;
+    if (!l || l.phase !== 'gap') return;
+    l.answer = idx;
+    this.ctx.recorder.event('gap_response', { answer: idx, correct: idx === l.gapDirection }, t);
+    l.resolve();
+  }
+
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr': return 'RAVASZ: kocka · GRIP: gömb · majd a TÁRCSÁN az irány';
       case 'desktop': return 'Z: kocka · M: gömb · NYILAK: irány · ENTER: rögzít';
-      default: return 'BAL: kocka · JOBB: gömb · majd koppints az irányra';
+      default: return 'KOCKA / GÖMB gomb, majd a körből az irány';
     }
   }
 
@@ -431,6 +494,7 @@ export class FieldModule implements AssessmentModule {
       this.centralCube.visible = shape === 'cube';
       this.centralSphere.visible = shape === 'sphere';
 
+      this.setTouchPhase('central');
       const head = this.headAngles();
       const onsetT = ctx.engine.clock.frameTime;
       this.peripheral.visible = !spec.centralOnly;
@@ -589,6 +653,7 @@ export class FieldModule implements AssessmentModule {
       this.dvaRing.visible = true;
 
       const onsetT = ctx.engine.clock.frameTime;
+      this.setTouchPhase('gap');
       ctx.recorder.event('dva_trial_start', {
         speedMps: +speed.toFixed(2), gapDirection: gap, startM: start,
         quantisationMs: +ctx.engine.clock.frameInterval.toFixed(1),
@@ -692,9 +757,11 @@ export class FieldModule implements AssessmentModule {
       }, e.t);
       if (l.centralOnly) { l.resolve(); return; }
       l.phase = 'peripheral';
+      this.setTouchPhase('peripheral');
       // The dial only appears after the central answer, which enforces the
       // ordering the UFOV paradigm depends on.
-      this.dialPanel.group.visible = true;
+      // The 3D dial is redundant once the touch ring is up.
+      this.dialPanel.group.visible = !this.ctx.mobileControls;
       this.dialPanel.invalidate();
       return;
     }
