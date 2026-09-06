@@ -1,4 +1,5 @@
 import './styles/main.css';
+import './styles/mobile.css';
 import * as THREE from 'three';
 import {
   DOMAINS, MODULE_BY_CODE, domainBySlug, randomSeed, configVersionFor, variantOf, supportsPlatform,
@@ -15,6 +16,8 @@ import { api } from './app/api.js';
 import { applyDomainTheme } from './shell/theme.js';
 import { renderLanding } from './shell/LandingView.js';
 import { renderHub } from './shell/HubView.js';
+import { renderMobileLanding, renderMobileHub } from './shell/mobile/MobileApp.js';
+import { requestLandscape, releaseLandscape } from './shell/mobile/orientation.js';
 import { toast } from './shell/dom.js';
 import { HubScene } from './hub/HubScene.js';
 import { createModule } from './modules/registry.js';
@@ -63,8 +66,35 @@ class App {
 
     void api.health().then((ok) => store.set({ offline: !ok }));
 
+    // The phone layout is a property of the device, not of the current view,
+    // so the flag is set once rather than toggled from every render path.
+    document.body.classList.toggle('is-mobile-app', this.isPhone());
+
+    this.registerServiceWorker();
+
     window.addEventListener('hashchange', () => this.route());
     this.route();
+  }
+
+  /**
+   * Register the service worker so the app is installable and opens offline.
+   *
+   * Only over HTTPS (or localhost) - the API refuses to register otherwise,
+   * and a rejected promise here would surface as a console error on every
+   * plain-http visit for no benefit.
+   */
+  private registerServiceWorker(): void {
+    if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
+    const go = () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('[pwa] service worker registration failed', err);
+      });
+    };
+    // boot() runs behind a couple of awaits, so `load` has usually fired by
+    // the time we get here - waiting for it again would mean never
+    // registering at all.
+    if (document.readyState === 'complete') go();
+    else window.addEventListener('load', go, { once: true });
   }
 
   /* ------------------------------------------------------------ routing */
@@ -77,9 +107,11 @@ class App {
       this.showShell();
       applyDomainTheme(null);
       store.set({ domain: null });
-      renderLanding(this.shellEl, (d) => {
-        location.hash = `#/${DOMAINS[d].slug}`;
-      });
+      const pick = (d: DomainCode) => { location.hash = `#/${DOMAINS[d].slug}`; };
+      // A phone gets a different information architecture, not a narrower
+      // stylesheet: see shell/mobile/MobileApp.ts.
+      if (this.isPhone()) renderMobileLanding(this.shellEl, this.mobileCallbacks(null, pick));
+      else renderLanding(this.shellEl, pick);
       return;
     }
 
@@ -103,7 +135,42 @@ class App {
     this.renderHubShell(domain.code);
   }
 
+  /**
+   * True for a touch device that is not a headset. The Quest browser reports
+   * `desktop` until an immersive session starts, so it keeps the wide layout
+   * it needs as a WebXR launcher.
+   */
+  private isPhone(): boolean {
+    return (deviceSync()?.platform ?? 'desktop') === 'mobile';
+  }
+
+  private mobileCallbacks(
+    domain: DomainCode | null,
+    onPickDomain: (d: DomainCode) => void
+  ): Parameters<typeof renderMobileHub>[2] {
+    return {
+      onStartModule: (m, variant) => {
+        if (domain) void this.startModule(m, domain, false, variant);
+      },
+      onEnterVR: () => { if (domain) void this.enterVrHub(domain); },
+      onPickDomain,
+      onChangeDomain: () => { location.hash = '#/'; },
+      onSignIn: (id) => (domain ? this.signIn(id, domain) : Promise.resolve()),
+      onSignOut: () => {
+        store.signOut();
+        if (domain) this.renderHubShell(domain);
+      },
+    };
+  }
+
   private renderHubShell(domain: DomainCode): void {
+    if (this.isPhone()) {
+      renderMobileHub(
+        this.shellEl, domain,
+        this.mobileCallbacks(domain, (d) => { location.hash = `#/${DOMAINS[d].slug}`; })
+      );
+      return;
+    }
     renderHub(this.shellEl, domain, {
       onStartModule: (m, variant) => void this.startModule(m, domain, false, variant),
       onEnterVR: () => void this.enterVrHub(domain),
@@ -131,6 +198,8 @@ class App {
   /* -------------------------------------------------------- 2D / 3D mode */
 
   private showShell(): void {
+    // Back on the shell, the phone is free to rotate again.
+    releaseLandscape();
     document.body.classList.remove('mode-3d');
     document.body.classList.add('mode-2d');
     this.shellEl.style.display = '';
@@ -143,6 +212,9 @@ class App {
     document.body.classList.add('mode-3d');
     this.shellEl.style.display = 'none';
     this.xrEl.style.display = '';
+    // A module's 3D UI is laid out for a wide viewport; on a phone that means
+    // landscape. See shell/mobile/orientation.ts.
+    if (this.isPhone()) requestLandscape();
     this.engine.start();
   }
 
@@ -184,6 +256,7 @@ class App {
   }
 
   private leaveScene(): void {
+    releaseLandscape();
     this.teardownModuleScene();
     this.teardownHubScene();
     const d = store.get().domain;

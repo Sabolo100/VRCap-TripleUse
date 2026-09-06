@@ -4,6 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#070b10" />
+
+    <!-- Installable web app. iOS ignores the manifest for the home-screen
+         icon and status bar, so those need their own tags. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VR CAP" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="format-detection" content="telephone=no" />
     <meta name="description" content="VR Cognitive Assessment Platform - védelmi, munkaalkalmassági és sportági kognitív mérés WebXR-ben." />
     <title>VR CAP — Cognitive Assessment Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
