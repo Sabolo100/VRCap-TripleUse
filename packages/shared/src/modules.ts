@@ -956,7 +956,7 @@ export const MODULES: ModuleManifest[] = [
     title: 'HANDS',
     subtitle: 'Finom manuális ügyesség',
     version: '0.1.0',
-    status: 'planned',
+    status: 'active',
     duration: 360,
     supports: ['vr'],
     assessmentMode: true,

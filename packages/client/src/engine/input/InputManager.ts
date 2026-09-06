@@ -467,6 +467,28 @@ export class InputManager {
 
   /* ---------------------------------------------------------- utilities */
 
+  /**
+   * The controller's GRIP space - where the hand physically is, as opposed to
+   * the target ray, which points forward out of it.
+   *
+   * A manipulation module needs the grip: HANDS measures where a peg was
+   * released relative to a 9 mm hole, and the target ray origin sits a few
+   * centimetres ahead of the hand and tilted. Reading this object's world
+   * position also keeps full float precision, which `pose()` does not - it
+   * rounds to a millimetre, and hand tremor is a few tenths of one.
+   *
+   * Null outside XR, or when that hand is not tracked.
+   */
+  gripSpace(hand: 'left' | 'right'): THREE.Object3D | null {
+    const c = this.controllers.find((x) => x.connected && x.hand === hand);
+    return c ? c.grip : null;
+  }
+
+  /** Whether that hand's trigger is currently held. */
+  isPressed(hand: 'left' | 'right'): boolean {
+    return this.pointers.some((p) => p.hand === hand && p.active && p.pressed);
+  }
+
   /** The ray that should drive UI hover, i.e. the most recently active source. */
   primaryRay(): THREE.Ray | null {
     if (this.engine.inXR) {

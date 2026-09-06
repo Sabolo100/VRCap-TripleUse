@@ -1051,4 +1051,5 @@ részletes specifikáció, csak utána implementáció:
 | `docs/22-MODULE-14-RHYTHM.md` | RHYTHM modul részletes specifikációja |
 | `docs/23-MODULE-15-ADAPT.md` | ADAPT modul részletes specifikációja |
 | `docs/24-MODULE-05-MULTI.md` | MULTI modul részletes specifikációja |
+| `docs/25-MODULE-16-HANDS.md` | HANDS modul részletes specifikációja (csak VR) |
 | `README.md` | Futtatás, fejlesztés, telepítés |

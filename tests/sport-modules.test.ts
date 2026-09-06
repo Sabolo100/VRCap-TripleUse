@@ -840,8 +840,11 @@ console.log('\nPLATFORM GATING');
   }
   check('an external module is never gated by supports',
     supportsPlatform(MODULE_BY_CODE.SPACE!, 'desktop'));
+  // Checks the rule, not one particular module: the catalogue's planned
+  // entries become active as they are built, and this assertion should not
+  // have to be rewritten each time one does.
   check('a planned module is not runnable anywhere',
-    !isRunnableOn(MODULE_BY_CODE.MULTI!, 'vr'));
+    !isRunnableOn({ ...MODULE_BY_CODE.WATCH!, status: 'planned' }, 'vr'));
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURES`);

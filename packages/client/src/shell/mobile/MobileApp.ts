@@ -280,8 +280,9 @@ function openModuleSheet(
 
       if (needsVr) {
         nodes.push(el('div', { class: 'm-note' }, [
-          'Ehhez a modulhoz VR headset kell: maga a mérés a fej és a kéz térbeli követése. ' +
-          'Telefonon nem indítható.',
+          'Ehhez a modulhoz VR headset kell: maga a mérés a fej és a kéz térbeli követéséből ' +
+          'származik. Ujjal ugyanez a feladat egy másik képességet mérne, ezért nem kínálunk ' +
+          'belőle leromlott változatot.',
         ]));
       } else if (!startable) {
         nodes.push(el('div', { class: 'm-note' }, [
