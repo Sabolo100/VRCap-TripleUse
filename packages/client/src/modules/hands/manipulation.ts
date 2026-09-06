@@ -49,6 +49,23 @@ export class MotionTrack {
     return l * 1000;
   }
 
+  /** Sample times, ms. */
+  times(): number[] { return [...this.t]; }
+
+  /**
+   * The track projected onto an axis, in metres from the first sample.
+   *
+   * RISK uses this to read the conflict between two targets: the participant's
+   * position along the line joining them is one number, and its zigzags are
+   * the decision changing its mind.
+   */
+  project(axis: THREE.Vector3): number[] {
+    if (this.p.length === 0) return [];
+    const a = axis.clone().normalize();
+    const origin = this.p[0]!;
+    return this.p.map((v) => v.clone().sub(origin).dot(a));
+  }
+
   straightLineMm(): number {
     if (this.p.length < 2) return 0;
     return this.p[0]!.distanceTo(this.p[this.p.length - 1]!) * 1000;

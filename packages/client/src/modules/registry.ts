@@ -19,6 +19,7 @@ import { RhythmModule } from './rhythm/RhythmModule.js';
 import { AdaptModule } from './adapt/AdaptModule.js';
 import { MultiModule } from './multi/MultiModule.js';
 import { HandsModule } from './hands/HandsModule.js';
+import { RiskModule } from './risk/RiskModule.js';
 
 /**
  * MODULE REGISTRY.
@@ -44,6 +45,7 @@ const FACTORIES: Record<string, () => AssessmentModule> = {
   ADAPT: () => new AdaptModule(),
   MULTI: () => new MultiModule(),
   HANDS: () => new HandsModule(),
+  RISK: () => new RiskModule(),
 };
 
 /**

@@ -1052,4 +1052,5 @@ részletes specifikáció, csak utána implementáció:
 | `docs/23-MODULE-15-ADAPT.md` | ADAPT modul részletes specifikációja |
 | `docs/24-MODULE-05-MULTI.md` | MULTI modul részletes specifikációja |
 | `docs/25-MODULE-16-HANDS.md` | HANDS modul részletes specifikációja (csak VR) |
+| `docs/26-MODULE-17-RISK.md` | RISK modul részletes specifikációja |
 | `README.md` | Futtatás, fejlesztés, telepítés |

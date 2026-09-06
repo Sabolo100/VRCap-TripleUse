@@ -17,6 +17,7 @@ import {
   MotionTrack, GrabSystem, buildWirePath, wireProbe, keyAngleError,
   type Grabbable, type Socket,
 } from '../packages/client/src/modules/hands/manipulation.js';
+import { RiskModule, EV_OPTIMAL_PUMPS } from '../packages/client/src/modules/risk/RiskModule.js';
 import { TrackStation, FORCING_FREQS, TRACK_CLAMP_DEG, type StationHost, type StationEvent }
   from '../packages/client/src/modules/multi/stations.js';
 
@@ -660,6 +661,279 @@ console.log('\nHANDS  (finom kézügyesség)');
   check('HANDS headline metrics are all produced',
     m.headlineMetrics.every((k) => k in h.ctx._metrics),
     m.headlineMetrics.filter((k) => !(k in h.ctx._metrics)));
+}
+
+/* ================================================================== RISK */
+console.log('\nRISK  (kockázatvállalás)');
+{
+  const MAX_PUMPS = 16;
+  const PUMP_VALUE = 5;
+
+  /* --------------------------------------------- the odds themselves */
+
+  {
+    // Expected value of planning to stop after k pumps: the balloon survives
+    // iff its burst point is beyond k, which with a uniform burst point over
+    // 1..16 happens with probability (16-k)/16.
+    let best = -1;
+    let bestK = 0;
+    for (let k = 0; k <= MAX_PUMPS; k++) {
+      const ev = PUMP_VALUE * k * ((MAX_PUMPS - k) / MAX_PUMPS);
+      if (ev > best) { best = ev; bestK = k; }
+    }
+    check('the EV-maximising stop is where the module says it is',
+      bestK === EV_OPTIMAL_PUMPS, { bestK, EV_OPTIMAL_PUMPS, ev: best });
+  }
+  {
+    const rng = new Rng(31337);
+    const counts = new Array(MAX_PUMPS + 1).fill(0);
+    const N = 40_000;
+    for (let i = 0; i < N; i++) counts[rng.int(1, MAX_PUMPS)]++;
+    const expected = N / MAX_PUMPS;
+    let chi = 0;
+    for (let k = 1; k <= MAX_PUMPS; k++) chi += ((counts[k]! - expected) ** 2) / expected;
+    check('burst points are uniform over 1..16 (chi-square, 15 df, crit 30.6)',
+      chi < 30.6 && counts[0] === 0, chi);
+  }
+
+  /* ------------------------------------------------------ deck design */
+
+  function newCycle(mod: RiskModule, deck: string, rng: Rng) {
+    return (mod as unknown as {
+      newCycle(d: string, r: Rng): { gain: number; loss: number }[];
+    }).newCycle(deck, rng);
+  }
+  {
+    const mod = new RiskModule();
+    const nets: Record<string, number> = {};
+    for (const d of ['A', 'B', 'C', 'D']) {
+      const cyc = newCycle(mod, d, new Rng(9));
+      nets[d] = cyc.reduce((a, c) => a + c.gain - c.loss, 0);
+      check(`deck ${d} deals exactly ten cards per cycle`, cyc.length === 10, cyc.length);
+    }
+    check('A and B are the bad decks at -250 per ten cards',
+      nets.A === -250 && nets.B === -250, nets);
+    check('C and D are the good decks at +250 per ten cards',
+      nets.C === 250 && nets.D === 250, nets);
+    check('A loses often and B rarely, at the same net balance',
+      newCycle(mod, 'A', new Rng(9)).filter((c) => c.loss > 0).length === 5
+      && newCycle(mod, 'B', new Rng(9)).filter((c) => c.loss > 0).length === 1);
+    check('C loses often and D rarely, at the same net balance',
+      newCycle(mod, 'C', new Rng(9)).filter((c) => c.loss > 0).length === 5
+      && newCycle(mod, 'D', new Rng(9)).filter((c) => c.loss > 0).length === 1);
+  }
+  {
+    const mod = new RiskModule();
+    const a = JSON.stringify(newCycle(mod, 'A', new Rng(77)));
+    const b = JSON.stringify(newCycle(mod, 'A', new Rng(77)));
+    const c = JSON.stringify(newCycle(mod, 'A', new Rng(78)));
+    check('the same seed deals the same loss order', a === b);
+    check('a different seed deals a different loss order', a !== c);
+  }
+  {
+    const s1 = new Rng(555).shuffle(['A', 'B', 'C', 'D']);
+    const s2 = new Rng(555).shuffle(['A', 'B', 'C', 'D']);
+    const s3 = new Rng(556).shuffle(['A', 'B', 'C', 'D']);
+    check('deck positions are seeded, so a repeat run cannot reuse "the second from the left"',
+      JSON.stringify(s1) === JSON.stringify(s2) && JSON.stringify(s1) !== JSON.stringify(s3));
+  }
+
+  /* -------------------------------------------------- angular size */
+
+  {
+    const mod = new RiskModule();
+    const setup = (block: string, pumps: number) => {
+      (mod as unknown as { currentBlock: string; pumps: number }).currentBlock = block;
+      (mod as unknown as { pumps: number }).pumps = pumps;
+      return (mod as unknown as { angularSizeDeg(): number }).angularSizeDeg();
+    };
+    const sizes = [0, 4, 8, 12, 16].map((n) => setup('bart_approach', n));
+    check('the approaching balloon holds a constant 12.0 deg of visual angle',
+      sizes.every((s) => Math.abs(s - 12.0) < 0.2), sizes);
+    const grow = [0, 8, 16].map((n) => setup('bart_size', n));
+    check('the growing balloon really does grow in angular size',
+      grow[0]! < grow[1]! && grow[1]! < grow[2]! && grow[0]! > 4 && grow[2]! > 20, grow);
+    // Both blocks must reach a similar final salience, or the comparison would
+    // be about size rather than about depth.
+    check('the two blocks are not wildly different in scale',
+      Math.abs(grow[1]! - 12) < 3, grow[1]);
+  }
+
+  /* ---------------------------------------------------------- scoring */
+
+  interface B {
+    blockId: string; index: number; explodeAt: number; pumps: number;
+    exploded: boolean; earned: number; firstRtMs: number; decisionRts: number[];
+    hesitationMs: number[]; reversals: number; pathMm: number;
+  }
+  const balloon = (blockId: string, i: number, pumps: number, exploded: boolean): B => ({
+    blockId, index: i, explodeAt: exploded ? pumps : pumps + 3, pumps, exploded,
+    earned: exploded ? 0 : pumps * PUMP_VALUE, firstRtMs: 700,
+    decisionRts: new Array(pumps + 1).fill(700), hesitationMs: [320, 380], reversals: 1,
+    pathMm: 400,
+  });
+  interface C { trial: number; deck: string; slot: number; gain: number; loss: number; rtMs: number; switched: boolean; afterLoss: boolean }
+  const card = (trial: number, deck: string, afterLoss = false): C => ({
+    trial, deck, slot: 0, gain: deck === 'A' || deck === 'B' ? 100 : 50,
+    loss: 0, rtMs: afterLoss ? 1200 : 900, switched: false, afterLoss,
+  });
+
+  function riskRun(platform: 'vr' | 'desktop' | 'mobile', opts: {
+    sizePumps: number[]; approachPumps?: number[]; exploded?: number[];
+    deckSeq: string[];
+  }) {
+    const mod = new RiskModule();
+    const ctx = fakeCtx(platform);
+    (mod as unknown as { ctx: ModuleContext }).ctx = ctx;
+    const bs: B[] = [];
+    opts.sizePumps.forEach((n, i) =>
+      bs.push(balloon('bart_size', i, n, (opts.exploded ?? []).includes(i))));
+    (opts.approachPumps ?? []).forEach((n, i) => bs.push(balloon('bart_approach', i, n, false)));
+    (mod as unknown as { balloons: B[] }).balloons = bs;
+    (mod as unknown as { cards: C[] }).cards = opts.deckSeq.map((d, i) => card(i + 1, d, i % 5 === 0));
+    (mod as unknown as { bank: number }).bank = 400;
+    const res = mod.finish(ctx);
+    return { mod, ctx, res };
+  }
+
+  // A participant who reliably stops at 6, plus one burst that must be excluded.
+  const seq = [
+    ...new Array(20).fill('A'), ...new Array(20).fill('B'),
+    ...new Array(10).fill('C'), ...new Array(10).fill('D'),
+  ];
+  const vrRisk = riskRun('vr', {
+    // The burst is deliberately NOT the last balloon of its block: loss
+    // chasing needs a balloon after it, inside the same block.
+    sizePumps: [6, 6, 6, 6, 6], exploded: [1],
+    approachPumps: [5, 5, 5, 5],
+    deckSeq: seq,
+  });
+  check('adjusted risk index excludes bursts, as the BART requires',
+    near(vrRisk.ctx._metrics.adjusted_risk_index!, (6 * 4 + 5 * 4) / 8, 0.001),
+    vrRisk.ctx._metrics.adjusted_risk_index);
+  check('calibration error is the unsigned distance from the EV optimum',
+    near(vrRisk.ctx._metrics.risk_calibration_error!, Math.abs(5.5 - EV_OPTIMAL_PUMPS), 0.001),
+    vrRisk.ctx._metrics.risk_calibration_error);
+  check('approach shift compares the two blocks, whose odds are identical',
+    near(vrRisk.ctx._metrics.approach_risk_shift!, -1, 0.001),
+    vrRisk.ctx._metrics.approach_risk_shift);
+  check('VR reports the reach measures under the reach name',
+    'reach_reversal_rate' in vrRisk.ctx._metrics && !('pointer_reversal_rate' in vrRisk.ctx._metrics));
+  check('VR scores five components including cue independence',
+    vrRisk.ctx._scores.length === 5 && vrRisk.ctx._scores.includes('cue_independence'),
+    vrRisk.ctx._scores);
+
+  {
+    // Symmetry: 4 pumps and 12 pumps are equally far from the optimum of 8.
+    const timid = riskRun('desktop', { sizePumps: [4, 4, 4, 4], deckSeq: seq });
+    const bold = riskRun('desktop', { sizePumps: [12, 12, 12, 12], deckSeq: seq });
+    check('the calibration score treats over- and under-shooting identically',
+      near(timid.res.opsScore, bold.res.opsScore, 0.5),
+      [timid.res.opsScore, bold.res.opsScore]);
+    check('and neither is called better in the headline text',
+      timid.res.headline[1]!.value.includes('óvatosabb')
+      && bold.res.headline[1]!.value.includes('merészebb'));
+  }
+  {
+    const d = riskRun('desktop', { sizePumps: [7, 7, 7, 7], deckSeq: seq });
+    check('desktop does not run the approach block, so the shift is absent',
+      !('approach_risk_shift' in d.ctx._metrics) && !('adjusted_risk_index_approach' in d.ctx._metrics));
+    check('desktop names the pointer path differently from a reach',
+      'pointer_reversal_rate' in d.ctx._metrics && !('reach_reversal_rate' in d.ctx._metrics));
+    check('desktop scores four components, weights still summing to one',
+      d.ctx._scores.length === 4 && !d.ctx._scores.includes('cue_independence'), d.ctx._scores);
+    check('desktop records that no spatial weighting was applied',
+      (d.res.summary as { spatialWeightsApplied: boolean }).spatialWeightsApplied === false);
+    check('the result says why the approach measure is missing',
+      d.res.headline.some((h) => (h.hint ?? '').includes('VR kell')));
+  }
+  {
+    const m = riskRun('mobile', { sizePumps: [7, 7, 7, 7], deckSeq: seq });
+    check('mobile has neither reach nor pointer measures: a tap has no path before it',
+      !('reach_reversal_rate' in m.ctx._metrics) && !('pointer_reversal_rate' in m.ctx._metrics));
+    check('mobile reports the absence explicitly rather than as zero',
+      (m.res.summary as { reach: unknown }).reach === null);
+  }
+
+  /* --------------------------------------------------- card learning */
+
+  {
+    const always = riskRun('desktop', { sizePumps: [7, 7], deckSeq: new Array(60).fill('A') });
+    check('never learning gives a flat slope',
+      near(always.ctx._metrics.learning_slope!, 0, 0.001), always.ctx._metrics.learning_slope);
+    check('and a consistency of 1.0 - the choice never changed',
+      near(always.ctx._metrics.decision_consistency!, 1, 0.001),
+      always.ctx._metrics.decision_consistency);
+  }
+  {
+    const learner = [
+      ...new Array(20).fill('A'),
+      ...new Array(10).fill('A'), ...new Array(10).fill('C'),
+      ...new Array(20).fill('D'),
+    ];
+    const l = riskRun('desktop', { sizePumps: [7, 7], deckSeq: learner });
+    check('a participant who moves to the good decks has a positive slope',
+      l.ctx._metrics.learning_slope! > 5, l.ctx._metrics.learning_slope);
+    check('and their final block net score is at ceiling',
+      l.ctx._metrics.net_score_final === 20, l.ctx._metrics.net_score_final);
+  }
+  {
+    const flip: string[] = [];
+    for (let i = 0; i < 60; i++) flip.push(i % 2 === 0 ? 'A' : 'C');
+    const f = riskRun('desktop', { sizePumps: [7, 7], deckSeq: flip });
+    check('switching on every card gives a consistency of 0',
+      near(f.ctx._metrics.decision_consistency!, 0, 0.001), f.ctx._metrics.decision_consistency);
+  }
+  {
+    // Chasing: after a burst the next balloon is pumped harder.
+    const mod = new RiskModule();
+    const ctx = fakeCtx('vr');
+    (mod as unknown as { ctx: ModuleContext }).ctx = ctx;
+    (mod as unknown as { balloons: B[] }).balloons = [
+      balloon('bart_size', 0, 6, true), balloon('bart_size', 1, 11, false),
+      balloon('bart_size', 2, 6, false), balloon('bart_size', 3, 5, false),
+      balloon('bart_size', 4, 6, true), balloon('bart_size', 5, 12, false),
+    ];
+    (mod as unknown as { cards: C[] }).cards = seq.map((d, i) => card(i + 1, d));
+    mod.finish(ctx);
+    // after a burst: balloons 1 and 5 -> 11 and 12, mean 11.5
+    // after a cash-out: balloons 2, 3 and 4 -> 6, 5 and 6, mean 5.667
+    check('loss chasing compares the balloon after a burst with the one after a cash-out',
+      near(ctx._metrics.loss_chasing_index!, 11.5 - (6 + 5 + 6) / 3, 0.001),
+      ctx._metrics.loss_chasing_index);
+  }
+
+  /* ----------------------------------------------------- trial record */
+
+  {
+    const mod = new RiskModule();
+    const ctx = fakeCtx('vr');
+    (mod as unknown as { ctx: ModuleContext; practice: boolean }).ctx = ctx;
+    (mod as unknown as { practice: boolean }).practice = false;
+    (mod as unknown as { currentBlock: string }).currentBlock = 'bart_size';
+    (mod as unknown as { recordBalloonTrial(b: B): void }).recordBalloonTrial(
+      balloon('bart_size', 0, 7, false));
+    (mod as unknown as { recordCardTrial(c: C): void }).recordCardTrial(card(1, 'A'));
+    check('every RISK trial records `correct` as null - there is no right answer',
+      ctx._trials.length === 2 && ctx._trials.every((t) => (t as unknown as { correct: unknown }).correct === null),
+      ctx._trials);
+    check('a burst balloon is a miss and a cashed one a hit, without implying either was wrong',
+      ctx._trials[0]!.outcome === 'hit');
+  }
+
+  /* ---------------------------------------------------------- manifest */
+
+  const rm = MODULE_BY_CODE.RISK!;
+  check('RISK is active in the catalogue', rm.status === 'active', rm.status);
+  check('RISK runs on all three platforms',
+    (['vr', 'desktop', 'mobile'] as const).every((p) => isRunnableOn(rm, p)));
+  check('RISK has no challenge mode - a live score would break the measurement',
+    rm.challengeMode === false);
+  check('RISK headline metrics are all produced',
+    rm.headlineMetrics.every((k) => k in vrRisk.ctx._metrics),
+    rm.headlineMetrics.filter((k) => !(k in vrRisk.ctx._metrics)));
+  check('the result is flagged as behavioural description only',
+    (vrRisk.res.summary as { behaviouralOnly: boolean }).behaviouralOnly === true);
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`);
