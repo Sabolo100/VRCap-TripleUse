@@ -28,14 +28,25 @@ rendszer külön eszközosztályként kezeli.
 | **13 STEADY** | Poszturográfia a headset 6DoF adatából: Romberg, mozgó szoba, egy lábon állás, kéztremor — **csak VR** |
 | **14 RHYTHM** | Szinkronizációs-folytatásos kopogás; a térben mozgó ütemjelzés előnye a villanáshoz képest, mélységi és perifériás pályán |
 | **15 ADAPT** | Rejtett 30°-os vizuomotoros rotáció: tanulási ráta, utóhatás, savings, és elevációs általánosítás |
+| **05 MULTI** | Négy egyidejű MATB-II állomás; VR-ben körülvevő elrendezésben, ahol a figyelemelosztás mérhető fejfordítás lesz |
+| **16 HANDS** | Pegboard, kulcsos behelyezés, drótpálya és összeszerelés a karnyújtásnyi térben — **csak VR** |
+| **17 RISK** | BART és Iowa; a tét egyszer szögméretben nő, egyszer közeledik állandó szögméret mellett |
+| **18 PROTOCOL** | Tíz lépéses eljárás megszakítással, időnyomással és menet közbeni módosítással; a helyreállás két összetevőre bontva |
+| **19 INTENT** | Procedurális pontfény-alak időbeli takarással; a fő mutató nem sebesség, hanem időpont |
 | **02 SPACE** | Külső modulként bekötve (Shepard–Metzler) |
-| **Katalógus** | 19 modul, területenkénti relevanciával; a többi 5 látszik, de még nem indítható |
+| **Katalógus** | 19 modul, mind implementálva, területenkénti relevanciával |
 | **Backend** | Fastify API + PostgreSQL, eseményszintű naplózással, CSV/JSON exporttal |
 
-**Indítható most: 14 modul** — SIGNAL, SPACE, NAV, REACT, WATCH, PRESSURE,
-HOLD, MEMORY, COMMAND, ANTICIPATE, FIELD, STEADY, RHYTHM, ADAPT. A
-relevancia-jelölés mutatja, melyik elsődleges az adott területen; a
-sportterületen a 12–15. modul mind megjelenik.
+**Indítható most: mind a 19 modul** — SIGNAL, SPACE, NAV, REACT, MULTI,
+WATCH, PRESSURE, HOLD, MEMORY, COMMAND, ANTICIPATE, FIELD, STEADY, RHYTHM,
+ADAPT, HANDS, RISK, PROTOCOL, INTENT. A relevancia-jelölés mutatja, melyik
+elsődleges az adott területen.
+
+**Két modul csak VR-ben fut**, és ez nem mulasztás: a STEADY minden mutatója
+a headset 6DoF követéséből származik, a HANDS-é a kéz valódi térbeli
+mozgásából. Egérrel vagy ujjal ugyanazok a feladatok más képességet
+mérnének, ezért nem kínálunk belőlük leromlott változatot — a modulkártya
+letiltva, indoklással jelenik meg.
 
 ### A térbeliség kihasználása
 
@@ -179,9 +190,14 @@ packages/
                 naplózás, hang, primitívek, jelrendszer, mozgásrendszer
     shell/      2D DOM felület (területválasztás, kezdőtér)
     hub/        3D kezdőtér
-    modules/    SIGNAL (01), NAV (03), REACT (04), WATCH (06), PRESSURE (07),
-                HOLD (08), MEMORY (09), COMMAND (10), ANTICIPATE (11)
-    modules/shared/  gömbhéj- és térfogat-elrendezés, tárgyválasztás, forgatás
+    modules/    SIGNAL (01), NAV (03), REACT (04), MULTI (05), WATCH (06),
+                PRESSURE (07), HOLD (08), MEMORY (09), COMMAND (10),
+                ANTICIPATE (11), FIELD (12), STEADY (13), RHYTHM (14),
+                ADAPT (15), HANDS (16), RISK (17), PROTOCOL (18), INTENT (19)
+    modules/shared/  gömbhéj- és térfogat-elrendezés, tárgyválasztás, forgatás,
+                testhorgony (BodyAnchor)
+    engine/ui/MobileControls.ts  érintéses vezérlőréteg: gomb, tárcsa, csúszka,
+                analóg kar, húzásos körbenézés
   server/     Fastify API, PostgreSQL, migrációk, COMMAND szobaszerver botokkal
 docs/         Specifikációk (lásd lent)
 tests/        Headless tesztek
@@ -209,6 +225,11 @@ tests/        Headless tesztek
 | [`docs/17-MODULE-06-WATCH.md`](docs/17-MODULE-06-WATCH.md) | WATCH részletes specifikációja |
 | [`docs/18-MODULE-08-HOLD.md`](docs/18-MODULE-08-HOLD.md) | HOLD részletes specifikációja |
 | [`docs/19-MODULE-09-MEMORY.md`](docs/19-MODULE-09-MEMORY.md) | MEMORY részletes specifikációja |
+| [`docs/24-MODULE-05-MULTI.md`](docs/24-MODULE-05-MULTI.md) | MULTI részletes specifikációja |
+| [`docs/25-MODULE-16-HANDS.md`](docs/25-MODULE-16-HANDS.md) | HANDS részletes specifikációja (csak VR) |
+| [`docs/26-MODULE-17-RISK.md`](docs/26-MODULE-17-RISK.md) | RISK részletes specifikációja |
+| [`docs/27-MODULE-18-PROTOCOL.md`](docs/27-MODULE-18-PROTOCOL.md) | PROTOCOL részletes specifikációja |
+| [`docs/28-MODULE-19-INTENT.md`](docs/28-MODULE-19-INTENT.md) | INTENT részletes specifikációja |
 
 ---
 

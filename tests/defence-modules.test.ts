@@ -8,7 +8,11 @@
  * claims is absent on a flat platform has to be genuinely absent - not zero,
  * not approximated.
  */
-import { Rng, MODULE_BY_CODE, isRunnableOn } from '@vrcap/shared';
+import {
+  Rng, MODULE_BY_CODE, MODULES, isRunnableOn, isRunnable, supportsPlatform,
+  configVersionFor, modulesForDomain,
+} from '@vrcap/shared';
+import { createModule, implementedModules } from '../packages/client/src/modules/registry.js';
 import type { ModuleContext } from '../packages/client/src/engine/task/Module.js';
 import * as THREE from 'three';
 import { MultiModule } from '../packages/client/src/modules/multi/MultiModule.js';
@@ -1496,6 +1500,83 @@ console.log('\nINTENT  (mozgásolvasás)');
   check('INTENT headline metrics are all produced',
     im.headlineMetrics.every((k) => k in vrI.ctx._metrics),
     im.headlineMetrics.filter((k) => !(k in vrI.ctx._metrics)));
+}
+
+/* ================================================= catalogue consistency */
+console.log('\nKATALÓGUS  (a teljes modullista)');
+{
+  const planned = MODULES.filter((m) => m.status === 'planned');
+  check('nothing is left marked "planned" in the catalogue',
+    planned.length === 0, planned.map((m) => m.code));
+
+  const missing = MODULES
+    .filter((m) => isRunnable(m) && m.status !== 'external')
+    .filter((m) => !implementedModules().includes(m.code));
+  check('every runnable catalogue entry has an implementation', missing.length === 0, missing.map((m) => m.code));
+
+  for (const m of MODULES) {
+    if (!isRunnable(m) || m.status === 'external') continue;
+    const mod = createModule(m.code);
+    if (!mod) { check(`${m.code}: factory returns a module`, false); continue; }
+    check(`${m.code}: the module carries its own manifest`, mod.manifest.code === m.code, mod.manifest.code);
+    check(`${m.code}: has at least one block, all with a positive trial count`,
+      mod.blocks.length > 0 && mod.blocks.every((b) => b.trials > 0),
+      mod.blocks.map((b) => `${b.id}:${b.trials}`));
+    check(`${m.code}: every block has an instruction and a unique id`,
+      mod.blocks.every((b) => b.instruction.trim().length > 0)
+      && new Set(mod.blocks.map((b) => b.id)).size === mod.blocks.length,
+      mod.blocks.map((b) => b.id));
+    // Only the FIRST block has to explain the task in full. Later ones are
+    // deliberately terse in some modules - ADAPT's "carry on the same way" is
+    // short on purpose, because saying more would leak the hidden rotation.
+    check(`${m.code}: the opening block explains the task`,
+      (mod.blocks[0]?.instruction.length ?? 0) > 40, mod.blocks[0]?.instruction.length);
+    check(`${m.code}: supports at least one platform, and says which`,
+      m.supports.length > 0 && m.supports.every((p) => ['vr', 'desktop', 'mobile'].includes(p)),
+      m.supports);
+    check(`${m.code}: headline metrics are named`, m.headlineMetrics.length >= 2, m.headlineMetrics);
+  }
+
+  /*
+   * What the participant actually sees on the card. The hub and the phone app
+   * both derive "startable" and "needs a headset" from these two functions,
+   * so asserting them here is asserting the screen without a browser.
+   */
+  for (const p of ['vr', 'desktop', 'mobile'] as const) {
+    const shown = modulesForDomain('A');
+    check(`${p}: every defence module is listed on the hub`,
+      shown.length >= 15, shown.length);
+    for (const m of shown) {
+      const startable = isRunnableOn(m, p);
+      const needsVr = m.status === 'active' && !supportsPlatform(m, p);
+      check(`${p}/${m.code}: startable and needs-headset are never both true`,
+        !(startable && needsVr));
+      check(`${p}/${m.code}: an implemented module is either startable or explained`,
+        !isRunnable(m) || startable || needsVr, { startable, needsVr, supports: m.supports });
+    }
+  }
+  for (const code of ['HANDS', 'STEADY']) {
+    const m = MODULE_BY_CODE[code]!;
+    check(`${code}: shows the headset explanation on a phone, not a start button`,
+      m.status === 'active' && !supportsPlatform(m, 'mobile') && !isRunnableOn(m, 'mobile'));
+  }
+  for (const code of ['MULTI', 'RISK', 'PROTOCOL', 'INTENT']) {
+    check(`${code}: startable on a phone`, isRunnableOn(MODULE_BY_CODE[code]!, 'mobile'));
+    check(`${code}: records a config version that keeps its norms separate`,
+      configVersionFor(MODULE_BY_CODE[code]!) === `${code}_STANDARD_A`,
+      configVersionFor(MODULE_BY_CODE[code]!));
+  }
+
+  // The five built in this pass.
+  for (const code of ['MULTI', 'HANDS', 'RISK', 'PROTOCOL', 'INTENT']) {
+    const m = MODULE_BY_CODE[code]!;
+    check(`${code}: has a domain rationale wherever it is relevant`,
+      (['A', 'B', 'C'] as const).every((d) => {
+        const dom = m.domains[d];
+        return dom.relevance === 'none' ? !!dom.rationale : !!dom.headline && !!dom.rationale;
+      }));
+    check(`${code}: constructs are declared`, m.constructs.length >= 3, m.constructs.length);
+  }
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`);
