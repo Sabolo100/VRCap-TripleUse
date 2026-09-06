@@ -118,7 +118,7 @@ export function renderMobileHub(host: HTMLElement, domain: DomainCode, cb: Mobil
     el('header', { class: 'm-topbar' }, [
       el('div', { class: 'm-topbar-title' }, [
         el('span', { class: 'm-topbar-eyebrow' }, [d.shortLabel]),
-        el('h1', {}, [tabTitle(currentTab, d.copy.moduleNoun)]),
+        el('h1', {}, [tabTitle(currentTab, d.copy.moduleNounPlural)]),
       ]),
       s.offline ? el('span', { class: 'm-pill warn' }, ['offline']) : null,
       s.subject
@@ -164,9 +164,9 @@ export function renderMobileHub(host: HTMLElement, domain: DomainCode, cb: Mobil
   host.appendChild(page);
 }
 
-function tabTitle(t: Tab, moduleNoun: string): string {
+function tabTitle(t: Tab, modulePlural: string): string {
   switch (t) {
-    case 'tests': return moduleNoun.charAt(0).toUpperCase() + moduleNoun.slice(1) + 'ek';
+    case 'tests': return modulePlural.charAt(0).toUpperCase() + modulePlural.slice(1);
     case 'profile': return 'Profil';
     case 'history': return 'Előzmény';
     case 'account': return 'Fiók';
@@ -299,7 +299,7 @@ function openModuleSheet(
         nodes.push(
           el('button', {
             class: 'm-cta', type: 'button',
-            onclick: () => { close(); cb.onStartModule(m); },
+            onclick: () => { close({ keepEntry: true }); cb.onStartModule(m); },
           }, [icon('play'), DOMAINS[domain].copy.startCta])
         );
       }
@@ -310,13 +310,14 @@ function openModuleSheet(
 }
 
 function variantCard(
-  m: ModuleManifest, v: ModuleVariant, usable: boolean, cb: MobileCallbacks, close: () => void
+  m: ModuleManifest, v: ModuleVariant, usable: boolean, cb: MobileCallbacks,
+  close: (o?: { keepEntry?: boolean }) => void
 ): HTMLElement {
   return el('button', {
     class: `m-variant${v.spatial ? ' is-spatial' : ''}`,
     type: 'button',
     disabled: !usable,
-    onclick: () => { close(); cb.onStartModule(m, v.id); },
+    onclick: () => { close({ keepEntry: true }); cb.onStartModule(m, v.id); },
   }, [
     el('span', { class: 'm-variant-head' }, [
       el('span', { class: 'm-variant-id' }, [v.id]),

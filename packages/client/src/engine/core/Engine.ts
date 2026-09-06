@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { deviceSync } from './Device.js';
 import { Clock } from './Clock.js';
 import { InputManager } from '../input/InputManager.js';
 import { detectDevice, updateDeviceRuntime } from './Device.js';
@@ -89,6 +90,11 @@ export class Engine {
 
   async init(): Promise<void> {
     this.device = await detectDevice();
+    // Detection is async, and the field of view depends on its answer. The
+    // first resize almost certainly ran before this resolved, so re-apply it
+    // now rather than leaving a phone framed as a laptop until something else
+    // happens to trigger a resize.
+    this.onResize();
   }
 
   /* ------------------------------------------------------------- scenes */
@@ -217,9 +223,23 @@ export class Engine {
     const h = this.container.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / Math.max(1, h);
-    // A narrow phone in portrait needs a wider vertical FOV or the scene
-    // reads as if the user is standing too close to everything.
-    this.camera.fov = h > w ? 78 : 65;
+    // Field of view is what decides how large the scene reads on a flat
+    // screen, and a phone needs a different answer from a laptop.
+    //
+    // The module UI is a 1.5 x 0.94 m panel at 1.35 m. At 65 degrees on a
+    // phone in landscape that panel covers about 40% of the width and the
+    // stimuli shrink with it - everything looked far away, which is exactly
+    // what the first phone test reported. The binding constraint is vertical:
+    // fitting 0.94 m at 1.35 m needs a half-angle of 19.2 degrees, so 42
+    // degrees fills about 90% of the height with a little margin, and the
+    // widest stimulus a module places on mobile (20 degrees of azimuth) stays
+    // comfortably inside the horizontal 40.
+    //
+    // Nothing about the measurements changes: stimulus positions and the
+    // eccentricities recorded with them come from world geometry, not from
+    // the camera. Only the apparent size on screen does.
+    const phone = (deviceSync()?.platform ?? 'desktop') === 'mobile';
+    this.camera.fov = h > w ? (phone ? 62 : 78) : phone ? 42 : 65;
     this.camera.updateProjectionMatrix();
   };
 

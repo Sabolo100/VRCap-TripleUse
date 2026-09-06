@@ -131,7 +131,7 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
   wrap.appendChild(
     el('div', { class: 'section-title', id: 'modules' }, [
       el('h3', {}, ['Most indítható']),
-      el('span', { class: 'sub' }, [`${runnable.length} modul · ${d.copy.moduleNoun}ok`]),
+      el('span', { class: 'sub' }, [`${runnable.length} · ${d.copy.moduleNounPlural}`]),
     ])
   );
   const g1 = el('div', { class: 'module-grid' });
@@ -374,7 +374,7 @@ function renderRunsPanel(domain: DomainCode): HTMLElement {
       );
     }
   }
-  return el('div', { class: 'panel' }, [el('h3', {}, [`Utolsó ${d.copy.runNoun}ok`]), body]);
+  return el('div', { class: 'panel' }, [el('h3', {}, [`Utolsó ${d.copy.runNounPlural}`]), body]);
 }
 
 function renderProfilePanel(domain: DomainCode): HTMLElement {

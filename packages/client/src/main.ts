@@ -44,6 +44,8 @@ class App {
   private overlayEl = document.getElementById('overlay') as HTMLElement;
 
   private hubScene: HubScene | null = null;
+  /** Set while a module owns the screen, so the back gesture can exit it. */
+  private runningModule: { domain: DomainCode; fromVr: boolean } | null = null;
   /** Exposed through the debug handle; treat as private elsewhere. */
   moduleScene: {
     scene: THREE.Scene;
@@ -71,6 +73,17 @@ class App {
     document.body.classList.toggle('is-mobile-app', this.isPhone());
 
     this.registerServiceWorker();
+
+    // On a phone, back is how people leave things. Inside a module it used to
+    // pop the hash and land on the domain picker - the participant lost the
+    // whole area, not just the test. A module now owns a history entry, so
+    // back exits the test and returns to its own hub.
+    window.addEventListener('popstate', () => {
+      const running = this.runningModule;
+      if (!running) return;
+      this.runningModule = null;
+      this.exitModule(running.domain, running.fromVr, false);
+    });
 
     window.addEventListener('hashchange', () => this.route());
     this.route();
@@ -324,7 +337,19 @@ class App {
     this.engine.setScene(scene);
     this.showScene();
 
-    const state = store.get();
+    // The module's own history entry. Same URL, so nothing navigates; the
+    // popstate handler above turns a back gesture into "leave the test".
+    //
+    // When the launch came from a bottom sheet, that sheet's entry is still
+    // the current one and it was deliberately left for us - taking it over
+    // keeps the stack at [hub, module] instead of growing a dead entry that
+    // back would have to step through twice.
+    this.runningModule = { domain, fromVr };
+    const state = { module: manifest.code };
+    if (history.state?.sheet) history.replaceState(state, '');
+    else history.pushState(state, '');
+
+    const snapshot = store.get();
     const runner = new ModuleRunner({
       engine: this.engine,
       panels,
@@ -335,8 +360,8 @@ class App {
       variant: chosen?.id,
       configVersion: configVersionFor(manifest, variant),
       motionHz: manifest.code === 'REACT' ? 30 : 10,
-      subjectId: state.subject?.id.startsWith('local:') ? null : state.subject?.id ?? null,
-      sessionId: state.sessionId,
+      subjectId: snapshot.subject?.id.startsWith('local:') ? null : snapshot.subject?.id ?? null,
+      sessionId: snapshot.sessionId,
       onSave: (payload: RunPayload) => this.saveRun(payload, domain),
       onExit: () => this.exitModule(domain, fromVr),
     });
@@ -368,7 +393,17 @@ class App {
     return res;
   }
 
-  private exitModule(domain: DomainCode, fromVr: boolean): void {
+  private exitModule(domain: DomainCode, fromVr: boolean, popEntry = true): void {
+    // Leaving by button rather than by gesture. Navigating back consumes the
+    // module's history entry, and the popstate handler calls this again with
+    // popEntry = false to do the actual teardown - so `runningModule` must
+    // stay set until then, or that handler bails out and the module is left
+    // running behind the shell.
+    if (popEntry && this.runningModule && history.state?.module) {
+      history.back();
+      return;
+    }
+    this.runningModule = null;
     this.teardownModuleScene();
     if (fromVr && this.hubScene) {
       this.hubScene.setVisible(true);

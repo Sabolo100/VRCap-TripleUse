@@ -22,14 +22,31 @@ export interface SheetOptions {
   onClose?: () => void;
 }
 
-export function showSheet(opts: SheetOptions, body: (close: () => void) => Node[]): void {
+/**
+ * `keepEntry` hands the sheet's history entry to whatever the caller is about
+ * to do instead of consuming it.
+ *
+ * Without it, starting a module from inside a sheet raced: the sheet's
+ * `history.back()` is asynchronous, so it landed AFTER the module had pushed
+ * its own entry, and the back handler read that pop as "leave the test" -
+ * the module opened and closed again immediately.
+ */
+export interface CloseOptions { keepEntry?: boolean }
+
+export function showSheet(
+  opts: SheetOptions,
+  body: (close: (o?: CloseOptions) => void) => Node[]
+): void {
   openSheet?.close();
 
   const scrim = el('div', { class: 'm-scrim' });
   const panel = el('div', { class: 'm-sheet', role: 'dialog', 'aria-modal': 'true' });
 
   let closed = false;
-  const close = (fromPop = false) => {
+  const close = (o: CloseOptions | boolean = false) => {
+    // Historic signature: `close(true)` meant "closing because of a pop".
+    const fromPop = o === true;
+    const keepEntry = typeof o === 'object' && o.keepEntry === true;
     if (closed) return;
     closed = true;
     openSheet = null;
@@ -43,8 +60,9 @@ export function showSheet(opts: SheetOptions, body: (close: () => void) => Node[
       opts.onClose?.();
     }, 220);
     window.removeEventListener('popstate', onPop);
-    // Consume the history entry we pushed, unless the pop is what closed us.
-    if (!fromPop && history.state?.sheet) history.back();
+    // Consume the history entry we pushed - unless the pop is what closed us,
+    // or the caller is taking the entry over.
+    if (!fromPop && !keepEntry && history.state?.sheet) history.back();
   };
   const onPop = () => close(true);
 
@@ -60,7 +78,7 @@ export function showSheet(opts: SheetOptions, body: (close: () => void) => Node[
       el('h2', {}, [opts.title]),
     ])
   );
-  const scroll = el('div', { class: 'm-sheet-body' }, body(() => close()));
+  const scroll = el('div', { class: 'm-sheet-body' }, body((o) => close(o ?? false)));
   panel.appendChild(scroll);
 
   document.body.appendChild(scrim);

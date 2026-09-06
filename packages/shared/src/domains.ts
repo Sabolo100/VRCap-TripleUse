@@ -53,8 +53,18 @@ export interface DomainCopy {
   scoreShort: string;
   /** What a single module run is called. */
   runNoun: string;
+  /**
+   * Plural of `runNoun`, spelled out rather than derived.
+   *
+   * Hungarian plurals follow vowel harmony: "futás" takes -ok, "mérés" takes
+   * -ek. Appending a fixed suffix produced "mérésok" and "modulek", so the
+   * forms are written out instead of synthesised.
+   */
+  runNounPlural: string;
   /** What the collection of modules is called. */
   moduleNoun: string;
+  /** Plural of `moduleNoun`. See `runNounPlural` for why it is explicit. */
+  moduleNounPlural: string;
   /** Verb on the start button. */
   startCta: string;
   /** Label of the person being tested. */
@@ -132,7 +142,9 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
       scoreName: 'OPS SCORE',
       scoreShort: 'OPS',
       runNoun: 'futás',
+      runNounPlural: 'futások',
       moduleNoun: 'modul',
+      moduleNounPlural: 'modulok',
       startCta: 'MISSZIÓ INDÍTÁSA',
       subjectNoun: 'operátor',
       profileTitle: 'Operational Performance Profile',
@@ -182,7 +194,9 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
       scoreName: 'READINESS SCORE',
       scoreShort: 'RDY',
       runNoun: 'mérés',
+      runNounPlural: 'mérések',
       moduleNoun: 'vizsgálat',
+      moduleNounPlural: 'vizsgálatok',
       startCta: 'VIZSGÁLAT INDÍTÁSA',
       subjectNoun: 'vizsgált személy',
       profileTitle: 'Occupational Capability Profile',
@@ -232,7 +246,9 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
       scoreName: 'PERFORMANCE INDEX',
       scoreShort: 'PERF',
       runNoun: 'gyakorlat',
+      runNounPlural: 'gyakorlatok',
       moduleNoun: 'teszt',
+      moduleNounPlural: 'tesztek',
       startCta: 'TESZT INDÍTÁSA',
       subjectNoun: 'sportoló',
       profileTitle: 'Athlete Perceptual-Cognitive Profile',
