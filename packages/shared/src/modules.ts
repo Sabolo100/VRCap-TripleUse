@@ -1109,8 +1109,8 @@ export const MODULES: ModuleManifest[] = [
     title: 'INTENT',
     subtitle: 'Mozgásolvasás & szándékfelismerés',
     version: '0.1.0',
-    status: 'planned',
-    duration: 360,
+    status: 'active',
+    duration: 420,
     supports: ['vr', 'desktop', 'mobile'],
     assessmentMode: true,
     challengeMode: true,
@@ -1128,7 +1128,7 @@ export const MODULES: ModuleManifest[] = [
       { id: 'kinematic_cue_use', label: 'Kinematikai jelzések használata' },
       { id: 'situational_judgement', label: 'Helyzetértékelés', catalogRef: 41 },
     ],
-    headlineMetrics: ['prediction_accuracy', 'earliest_reliable_frame', 'deception_susceptibility', 'confidence_calibration'],
+    headlineMetrics: ['prediction_accuracy', 'earliest_reliable_frame_ms', 'deception_susceptibility', 'confidence_calibration'],
     domains: {
       A: {
         relevance: S,

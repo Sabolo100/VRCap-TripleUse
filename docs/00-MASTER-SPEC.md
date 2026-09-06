@@ -1018,16 +1018,22 @@ választotta a könnyebb változatot.
 - **02 SPACE** külső modulként bekötve
 - API + PostgreSQL séma + migrációk + export
 
-**Következő.** A `docs/01-MODULE-SPEC-PROMPT.md` szerint modulonként előbb
-részletes specifikáció, csak utána implementáció:
+**Kész (v0.4).** A katalógus mind a 19 modulja implementálva:
+- **12 FIELD**, **13 STEADY**, **14 RHYTHM**, **15 ADAPT** — sportterület, eleve térbeli.
+- **05 MULTI** — négy egyidejű MATB-II állomás; VR-ben körülvevő elrendezésben.
+- **16 HANDS** — csak VR: pegboard, kulcsos behelyezés, drótpálya, összeszerelés.
+- **17 RISK** — BART és Iowa; egyetlen térbeli manipulációval (közeledő tét).
+- **18 PROTOCOL** — tíz lépéses eljárás megszakítással, nyomással, módosítással.
+- **19 INTENT** — procedurális pontfény-alak időbeli takarással.
 
-1. **12 FIELD**, **15 ADAPT** — adaptív küszöbkeresés, rejtett rotáció.
-2. **05 MULTI** — a korábbi alrendszerek egyidejű futtatása; egyben a platform
-   stressztesztje.
-3. **13 STEADY**, **16 HANDS** — csak VR, 6DoF-alapú mérés.
-4. **17 RISK**, **18 PROTOCOL**, **14 RHYTHM**.
-5. **19 INTENT** — az ANTICIPATE okklúziós motorjára épül.
-6. **AI vizsgálatvezető** (Phase 2).
+**Következő.**
+1. **Normagyűjtés.** Minden horgony provizórikus; a `metric_norms` tábla kész,
+   a feltöltés az első valódi mintától indul. A `scoring_version` miatt a
+   meglévő futások visszamenőleg újraszámolhatók.
+2. **A HANDS és az INTENT validálása.** A HANDS-nél a tapintás hiánya, az
+   INTENT-nél a paraméteres (nem felvett) mozdulat a legfontosabb nyitott
+   kérdés — mindkettő a saját dokumentumában részletezve.
+3. **AI vizsgálatvezető** (Phase 2).
 
 ---
 
@@ -1056,4 +1062,5 @@ részletes specifikáció, csak utána implementáció:
 | `docs/25-MODULE-16-HANDS.md` | HANDS modul részletes specifikációja (csak VR) |
 | `docs/26-MODULE-17-RISK.md` | RISK modul részletes specifikációja |
 | `docs/27-MODULE-18-PROTOCOL.md` | PROTOCOL modul részletes specifikációja |
+| `docs/28-MODULE-19-INTENT.md` | INTENT modul részletes specifikációja |
 | `README.md` | Futtatás, fejlesztés, telepítés |

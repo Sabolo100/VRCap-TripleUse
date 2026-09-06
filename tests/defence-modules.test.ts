@@ -21,6 +21,8 @@ import { RiskModule, EV_OPTIMAL_PUMPS } from '../packages/client/src/modules/ris
 import {
   ProtocolModule, generateProcedure, pickRevised, name as stepName,
 } from '../packages/client/src/modules/protocol/ProtocolModule.js';
+import { IntentModule, risingCrossing } from '../packages/client/src/modules/intent/IntentModule.js';
+import { pose, depthOffsetM, JOINTS } from '../packages/client/src/modules/intent/figure.js';
 import { TrackStation, FORCING_FREQS, TRACK_CLAMP_DEG, type StationHost, type StationEvent }
   from '../packages/client/src/modules/multi/stations.js';
 
@@ -1241,6 +1243,259 @@ console.log('\nPROTOCOL  (eljárásrendi fegyelem)');
     pm.headlineMetrics.filter((k) => !(k in vrP.ctx._metrics)));
   check('PROTOCOL is not shown on the sport domain',
     pm.domains.C.relevance === 'none');
+}
+
+/* ================================================================ INTENT */
+console.log('\nINTENT  (mozgásolvasás)');
+{
+  const MOVEMENT_MS = 1400;
+  const OCCLUSIONS = [0.40, 0.55, 0.70, 0.85];
+
+  /* ------------------------------------------------- the point-light rig */
+
+  check('the figure is thirteen joints', JOINTS.length === 13, JOINTS.length);
+  {
+    const a = pose({ t: 0.6, dirEarly: 1, dirFinal: 1, height: 1.7 });
+    const b = pose({ t: 0.6, dirEarly: 1, dirFinal: 1, height: 1.7 });
+    check('the same parameters give the same pose, exactly',
+      JOINTS.every((j) => a[j]!.distanceTo(b[j]!) === 0));
+  }
+  {
+    // The core design claim: a feint differs from a genuine trial in ONE sign.
+    const genuine = pose({ t: 0.35, dirEarly: 1, dirFinal: 1, height: 1.7 });
+    const feint = pose({ t: 0.35, dirEarly: -1, dirFinal: 1, height: 1.7 });
+    const leanDiff = genuine.head.x - feint.head.x;
+    check('during preparation a feint leans the other way', Math.abs(leanDiff) > 0.02, leanDiff);
+    const gLate = pose({ t: 0.95, dirEarly: 1, dirFinal: 1, height: 1.7 });
+    const fLate = pose({ t: 0.95, dirEarly: -1, dirFinal: 1, height: 1.7 });
+    check('the leading foot commits identically in both - only the preparation differs',
+      Math.abs(gLate.ankleR.x - fLate.ankleR.x) < 0.06,
+      gLate.ankleR.x - fLate.ankleR.x);
+    check('and both end up going the same way',
+      Math.sign(gLate.hipL.x) === Math.sign(fLate.hipL.x) && gLate.hipL.x > 0.2);
+  }
+  {
+    // At the earliest occlusion a feint is unreadable BY DESIGN: only the
+    // preparation has happened, and it points the wrong way.
+    const early = pose({ t: 0.40, dirEarly: -1, dirFinal: 1, height: 1.7 });
+    check('at the first occlusion the visible lean points AWAY from the outcome',
+      Math.sign(early.head.x) === -1, early.head.x);
+    const late = pose({ t: 0.85, dirEarly: -1, dirFinal: 1, height: 1.7 });
+    check('by the last occlusion the commitment has overtaken the lean',
+      late.hipL.x > 0, late.hipL.x);
+  }
+  {
+    const h1 = pose({ t: 0.5, dirEarly: 1, dirFinal: 1, height: 1.70 });
+    const h2 = pose({ t: 0.5, dirEarly: 1, dirFinal: 1, height: 0.85 });
+    check('the figure scales with its height', near(h1.head.y, h2.head.y * 2, 1e-9));
+  }
+  {
+    const toward = depthOffsetM(0.9, -1, -1, 1.0);
+    const away = depthOffsetM(0.9, 1, 1, 1.0);
+    check('the depth movement goes both ways and by the same amount',
+      toward < 0 && away > 0 && near(Math.abs(toward), Math.abs(away), 1e-9), [toward, away]);
+    check('and it starts from rest', near(depthOffsetM(0, 1, 1, 1.0), 0, 1e-9));
+  }
+
+  /* --------------------------------------------------- the trial list */
+
+  function lists(seed: number) {
+    const mod = new IntentModule();
+    const ctx = fakeCtx('vr', seed);
+    (mod as unknown as { ctx: ModuleContext }).ctx = ctx;
+    return {
+      frontal: mod.trialList('frontal', new Rng(seed)),
+      depth: mod.trialList('depth', new Rng(seed)),
+      peripheral: mod.trialList('peripheral', new Rng(seed)),
+    };
+  }
+  {
+    const { frontal, depth, peripheral } = lists(1234);
+    check('the frontal block is 48 trials', frontal.length === 48, frontal.length);
+    check('direction is balanced',
+      frontal.filter((t) => t.dirFinal === -1).length === 24, frontal.length);
+    check('viewpoint is balanced',
+      frontal.filter((t) => t.viewpoint === 'side').length === 24);
+    check('each occlusion level appears equally often',
+      OCCLUSIONS.every((o) => frontal.filter((t) => t.occlusion === o).length === 12),
+      OCCLUSIONS.map((o) => frontal.filter((t) => t.occlusion === o).length));
+    const feints = frontal.filter((t) => t.deceptive);
+    check('one quarter of the trials are feints', feints.length === 12, feints.length);
+    check('and the feints are spread evenly over the occlusion levels, not clumped',
+      OCCLUSIONS.every((o) => feints.filter((t) => t.occlusion === o).length === 3),
+      OCCLUSIONS.map((o) => feints.filter((t) => t.occlusion === o).length));
+    check('every feint has its preparation inverted, and no genuine trial does',
+      feints.every((t) => t.dirEarly === -t.dirFinal)
+      && frontal.filter((t) => !t.deceptive).every((t) => t.dirEarly === t.dirFinal));
+    check('the depth and peripheral blocks are 16 trials each',
+      depth.length === 16 && peripheral.length === 16);
+    check('the peripheral block uses both sides equally',
+      peripheral.filter((t) => t.azDeg < 0).length === 8,
+      peripheral.filter((t) => t.azDeg < 0).length);
+  }
+  {
+    const a = JSON.stringify(lists(99).frontal);
+    const b = JSON.stringify(lists(99).frontal);
+    const c = JSON.stringify(lists(100).frontal);
+    check('the same seed gives the same trial list', a === b);
+    check('a different seed gives a different order', a !== c);
+  }
+
+  /* --------------------------------------------- the earliest-frame rule */
+
+  {
+    const pts = [{ x: 560, y: 0.50 }, { x: 770, y: 0.60 }, { x: 980, y: 0.80 }, { x: 1190, y: 0.92 }];
+    const c = risingCrossing(pts, 0.70);
+    check('a rising curve crossing 0.70 between 770 and 980 is interpolated there',
+      c.bounded && near(c.ms, 875, 30), c);
+  }
+  {
+    const c = risingCrossing(
+      [{ x: 560, y: 0.55 }, { x: 770, y: 0.58 }, { x: 980, y: 0.61 }, { x: 1190, y: 0.64 }], 0.70);
+    check('a curve that never reaches the level reports the LONGEST occlusion, not the shortest',
+      !c.bounded && c.ms === 1190 && c.label.startsWith('≥'), c);
+  }
+  {
+    const c = risingCrossing(
+      [{ x: 560, y: 0.90 }, { x: 770, y: 0.92 }, { x: 980, y: 0.95 }, { x: 1190, y: 0.97 }], 0.70);
+    check('a curve already above at the earliest occlusion reports "at most" that',
+      !c.bounded && c.above && c.ms === 560 && c.label.startsWith('≤'), c);
+  }
+  check('an empty curve gives no number at all',
+    !Number.isFinite(risingCrossing([], 0.7).ms));
+
+  /* ------------------------------------------------------------ scoring */
+
+  interface A {
+    block: string; occlusion: number; dirFinal: number; dirEarly: number;
+    deceptive: boolean; viewpoint: string; azDeg: number;
+    answer: number; correct: boolean; rtMs: number; confidence: number; confidenceRtMs: number;
+  }
+  const ans = (o: Partial<A> & { correct: boolean }): A => ({
+    block: 'frontal', occlusion: 0.70, dirFinal: 1, dirEarly: 1, deceptive: false,
+    viewpoint: 'front', azDeg: 0, answer: 1, rtMs: 900, confidence: 2, confidenceRtMs: 600, ...o,
+  });
+
+  function intentRun(platform: 'vr' | 'desktop' | 'mobile', build: (push: (a: A) => void) => void) {
+    const mod = new IntentModule();
+    const ctx = fakeCtx(platform);
+    (mod as unknown as { ctx: ModuleContext }).ctx = ctx;
+    const list: A[] = [];
+    build((a) => list.push(a));
+    (mod as unknown as { answers: A[] }).answers = list;
+    const res = mod.finish(ctx);
+    return { ctx, res };
+  }
+
+  const accByOcc: Record<number, number> = { 0.40: 0.5, 0.55: 0.6, 0.70: 0.8, 0.85: 0.95 };
+  const standard = (push: (a: A) => void) => {
+    for (const occ of OCCLUSIONS) {
+      // Nine genuine trials per level at the intended accuracy, three feints.
+      const nCorrect = Math.round(accByOcc[occ]! * 9);
+      for (let i = 0; i < 9; i++) {
+        push(ans({
+          occlusion: occ, correct: i < nCorrect,
+          viewpoint: i % 2 === 0 ? 'front' : 'side',
+          confidence: i < nCorrect ? 3 : 1,
+        }));
+      }
+      for (let i = 0; i < 3; i++) {
+        push(ans({ occlusion: occ, deceptive: true, dirEarly: -1, correct: occ >= 0.70 && i === 0 }));
+      }
+    }
+  };
+
+  const vrI = intentRun('vr', (push) => {
+    standard(push);
+    for (let i = 0; i < 16; i++) {
+      push(ans({ block: 'depth', occlusion: i < 8 ? 0.55 : 0.85, correct: i % 4 !== 0 }));
+    }
+    for (let i = 0; i < 16; i++) {
+      push(ans({
+        block: 'peripheral', occlusion: i < 8 ? 0.55 : 0.85,
+        azDeg: i % 2 === 0 ? -55 : 55, correct: i % 3 !== 0,
+      }));
+    }
+  });
+  check('prediction accuracy excludes the feints',
+    near(vrI.ctx._metrics.prediction_accuracy!, (5 + 5 + 7 + 9) / 36, 0.02),
+    vrI.ctx._metrics.prediction_accuracy);
+  check('the earliest reliable frame is interpolated on the genuine curve',
+    vrI.ctx._metrics.earliest_reliable_frame_ms! > 770
+    && vrI.ctx._metrics.earliest_reliable_frame_ms! < 980,
+    vrI.ctx._metrics.earliest_reliable_frame_ms);
+  check('deception susceptibility uses only the two late occlusions',
+    // late genuine (7+9)/18 = 0.889 ; late deceptive 2/6 = 0.333
+    near(vrI.ctx._metrics.deception_susceptibility!, 16 / 18 - 2 / 6, 0.02),
+    vrI.ctx._metrics.deception_susceptibility);
+  check('confidence calibration is the high-minus-low accuracy difference',
+    near(vrI.ctx._metrics.confidence_calibration!, 1 - 0, 0.02),
+    vrI.ctx._metrics.confidence_calibration);
+  check('VR reports the depth and peripheral measures',
+    ['depth_intent_accuracy', 'depth_earliest_frame_ms', 'peripheral_intent_accuracy', 'peripheral_cost']
+      .every((k) => k in vrI.ctx._metrics));
+  check('the peripheral cost is matched on occlusion level, not taken raw',
+    Number.isFinite(vrI.ctx._metrics.peripheral_cost!), vrI.ctx._metrics.peripheral_cost);
+  check('VR scores six components', vrI.ctx._scores.length === 6, vrI.ctx._scores);
+
+  for (const p of ['desktop', 'mobile'] as const) {
+    const flat = intentRun(p, standard);
+    check(`${p}: the depth and peripheral measures are absent, not zero`,
+      !['depth_intent_accuracy', 'depth_earliest_frame_ms', 'peripheral_intent_accuracy', 'peripheral_cost']
+        .some((k) => k in flat.ctx._metrics));
+    check(`${p}: prediction accuracy and the earliest frame are still measured`,
+      'prediction_accuracy' in flat.ctx._metrics && 'earliest_reliable_frame_ms' in flat.ctx._metrics);
+    check(`${p}: four scoring components`, flat.ctx._scores.length === 4, flat.ctx._scores);
+    check(`${p}: spatialWeightsApplied false`,
+      (flat.res.summary as { spatialWeightsApplied: boolean }).spatialWeightsApplied === false);
+    check(`${p}: the result says the depth measure needs VR`,
+      flat.res.headline.some((h) => (h.hint ?? '').includes('VR kell')));
+  }
+  {
+    // Never reaching the level must be reported as a bound, not as a number.
+    const poor = intentRun('desktop', (push) => {
+      for (const occ of OCCLUSIONS) {
+        for (let i = 0; i < 9; i++) push(ans({ occlusion: occ, correct: i < 5 }));
+      }
+    });
+    const sum = poor.res.summary as { earliestReliableBounded: boolean; earliestReliableFrameMs: number | null; earliestReliableLabel: string };
+    check('a participant who never reaches the level gets a bound, not a fabricated number',
+      sum.earliestReliableBounded === false && sum.earliestReliableFrameMs === null
+      && sum.earliestReliableLabel.startsWith('≥'), sum);
+    check('and the result screen says so in words',
+      (poor.res.headline[1]!.hint ?? '').includes('sem állt össze'));
+  }
+  {
+    const front = intentRun('desktop', (push) => {
+      for (const occ of OCCLUSIONS) {
+        for (let i = 0; i < 8; i++) {
+          push(ans({ occlusion: occ, viewpoint: i < 4 ? 'front' : 'side', correct: i < 4 ? true : i < 6 }));
+        }
+      }
+    });
+    check('viewpoint cost is the front-minus-side accuracy difference',
+      near(front.ctx._metrics.viewpoint_cost!, 1 - 0.5, 0.001), front.ctx._metrics.viewpoint_cost);
+  }
+  {
+    const over = intentRun('desktop', (push) => {
+      for (const occ of OCCLUSIONS) {
+        for (let i = 0; i < 8; i++) push(ans({ occlusion: occ, correct: i < 4, confidence: 3 }));
+      }
+    });
+    check('overconfidence is the confidence level minus the accuracy it earned',
+      near(over.ctx._metrics.overconfidence!, 1 - 0.5, 0.001), over.ctx._metrics.overconfidence);
+  }
+
+  /* ---------------------------------------------------------- manifest */
+
+  const im = MODULE_BY_CODE.INTENT!;
+  check('INTENT is active in the catalogue', im.status === 'active', im.status);
+  check('INTENT runs on all three platforms',
+    (['vr', 'desktop', 'mobile'] as const).every((p) => isRunnableOn(im, p)));
+  check('INTENT is primary for sport', im.domains.C.relevance === 'primary');
+  check('INTENT headline metrics are all produced',
+    im.headlineMetrics.every((k) => k in vrI.ctx._metrics),
+    im.headlineMetrics.filter((k) => !(k in vrI.ctx._metrics)));
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`);

@@ -21,6 +21,7 @@ import { MultiModule } from './multi/MultiModule.js';
 import { HandsModule } from './hands/HandsModule.js';
 import { RiskModule } from './risk/RiskModule.js';
 import { ProtocolModule } from './protocol/ProtocolModule.js';
+import { IntentModule } from './intent/IntentModule.js';
 
 /**
  * MODULE REGISTRY.
@@ -48,6 +49,7 @@ const FACTORIES: Record<string, () => AssessmentModule> = {
   HANDS: () => new HandsModule(),
   RISK: () => new RiskModule(),
   PROTOCOL: () => new ProtocolModule(),
+  INTENT: () => new IntentModule(),
 };
 
 /**
