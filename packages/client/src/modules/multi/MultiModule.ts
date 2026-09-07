@@ -10,6 +10,7 @@ import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { BodyAnchor } from '../shared/anchor.js';
 import { viewRelation } from '../shared/volume.js';
+import { fitAngles } from '../../engine/ui/viewport.js';
 import {
   CALL_SIGNS, CommStation, MonitorStation, ResourceStation, TrackStation,
   FORCING_FREQS, TRACK_CLAMP_DEG, MONITOR_WINDOW_MS, COMM_WINDOW_MS,
@@ -279,14 +280,27 @@ export class MultiModule implements AssessmentModule {
     const byId: Record<StationId, Station> = {
       track: this.track, monitor: this.monitor, resource: this.resource, comm: this.comm,
     };
+    const w = this.panelWidth();
+    const h = (w * 366) / 540;
     for (const id of STATION_ORDER) {
       const [az, el] = L[id];
-      this.anchor.place(az, el, RADIUS_M, pos);
+      // On a flat screen the layout has to fit a 65 or 42 degree viewport that
+      // the participant cannot look outside of; in VR this passes through and
+      // the surround stays exactly as designed.
+      const fit = fitAngles(this.ctx, {
+        azDeg: az, elDeg: el, distanceM: RADIUS_M, widthM: w, heightM: h,
+      });
+      this.anchor.place(fit.azDeg, fit.elDeg, fit.distanceM, pos);
       byId[id].place(pos, origin);
     }
     // The status line sits below the tracking station, which is the one place
     // every layout keeps in front of the participant.
-    this.anchor.place(0, this.ctx.platform === 'vr' ? -22 : -24, RADIUS_M * 0.92, pos);
+    const st = fitAngles(this.ctx, {
+      elDeg: this.ctx.platform === 'vr' ? -22 : -24,
+      distanceM: RADIUS_M * 0.92,
+      widthM: this.statusPanel.width, heightM: this.statusPanel.height,
+    });
+    this.anchor.place(0, st.elDeg, st.distanceM, pos);
     this.statusPanel.group.position.copy(pos);
     this.statusPanel.group.lookAt(origin);
   }

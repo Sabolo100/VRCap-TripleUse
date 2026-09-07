@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Engine } from '../core/Engine.js';
+import { isEffectivelyVisible } from './Panel.js';
 import type { Panel, WidgetRect } from './Panel.js';
 import type { ActionEvent, PointerSource } from '../core/types.js';
 
@@ -66,7 +67,7 @@ export class PanelManager {
 
   private meshes(): THREE.Mesh[] {
     const out: THREE.Mesh[] = [];
-    for (const p of this.panels) if (p.mesh.visible && p.group.parent) out.push(p.mesh);
+    for (const p of this.panels) if (p.group.parent && isEffectivelyVisible(p.mesh)) out.push(p.mesh);
     return out;
   }
 

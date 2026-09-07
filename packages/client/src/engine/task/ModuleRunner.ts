@@ -3,6 +3,7 @@ import { Rng, randomSeed, SCORING_VERSION, variantOf } from '@vrcap/shared';
 import type { DomainCode, RunMode, RunPayload, RunHeader, VariantId } from '@vrcap/shared';
 import type { Engine } from '../core/Engine.js';
 import { Panel } from '../ui/Panel.js';
+import { FLAT_HUD } from '../ui/viewport.js';
 import type { PanelManager, PanelClickEvent } from '../ui/PanelManager.js';
 import { Recorder } from '../data/Recorder.js';
 import { MobileControls } from '../ui/MobileControls.js';
@@ -52,6 +53,37 @@ export interface RunnerOptions {
   configVersion?: string;
   /** Set for modules that have more than one runnable form. */
   variant?: VariantId;
+}
+
+/**
+ * Where the runner's own two panels go.
+ *
+ * Exported so the panel-visibility audit can measure the instruction panel -
+ * which carries the button that starts a block - and the HUD strip without
+ * copying these numbers into a test, where they would quietly drift out of
+ * step with the ones that actually run.
+ */
+export function runnerPanelLayout(flat: boolean) {
+  return {
+    info: {
+      width: flat ? 1.5 : 2.02,
+      height: flat ? 0.94 : 1.27,
+      pxPerMeter: flat ? 820 : 608,
+      position: [0, 1.58, flat ? -1.35 : -1.95] as [number, number, number],
+    },
+    hud: {
+      width: flat ? 1.15 : 1.4,
+      height: flat ? FLAT_HUD.heightM : 0.17,
+      pxPerMeter: flat ? 900 : 740,
+      // On a flat screen the strip's placement is shared with the module
+      // panels, which have to stay above it: -29.5 in a headset is comfortable
+      // but sits ON the bottom edge of a 65 degree viewport, where the block
+      // line was being clipped.
+      elDeg: flat ? FLAT_HUD.elDeg : -29.5,
+      distanceM: flat ? FLAT_HUD.distanceM : 1.7,
+      tiltRad: FLAT_HUD.tiltRad,
+    },
+  };
 }
 
 export class ModuleRunner {
@@ -134,21 +166,24 @@ export class ModuleRunner {
     // without touching a single layout coordinate - the logical canvas is
     // still 1230 x 771. Body text goes from 0.85 to 1.11 degrees, which is
     // the difference between squinting and reading.
+    const L = runnerPanelLayout(flat);
     this.infoPanel = new Panel({
-      width: flat ? 1.5 : 2.02, height: flat ? 0.94 : 1.27,
-      pxPerMeter: flat ? 820 : 608, superSample: 2, theme, name: 'info',
+      width: L.info.width, height: L.info.height,
+      pxPerMeter: L.info.pxPerMeter, superSample: 2, theme, name: 'info',
     });
-    this.infoPanel.group.position.set(0, 1.58, flat ? -1.35 : -1.95);
+    this.infoPanel.group.position.set(...L.info.position);
     this.root.add(this.infoPanel.group);
     opts.panels.add(this.infoPanel);
 
     // A slim always-on HUD: block progress and abort.
     this.hudPanel = new Panel({
-      width: flat ? 1.15 : 1.4, height: flat ? 0.14 : 0.17,
-      pxPerMeter: flat ? 900 : 740, superSample: 2, theme, frame: false, name: 'hud',
+      width: L.hud.width, height: L.hud.height,
+      pxPerMeter: L.hud.pxPerMeter, superSample: 2, theme, frame: false, name: 'hud',
     });
-    this.hudPanel.group.position.set(0, flat ? 0.92 : 0.72, flat ? -1.2 : -1.55);
-    this.hudPanel.group.rotation.x = -0.42;
+    const hudRad = (L.hud.elDeg * Math.PI) / 180;
+    this.hudPanel.group.position.set(
+      0, 1.6 + Math.sin(hudRad) * L.hud.distanceM, -Math.cos(hudRad) * L.hud.distanceM);
+    this.hudPanel.group.rotation.x = L.hud.tiltRad;
     this.root.add(this.hudPanel.group);
     opts.panels.add(this.hudPanel);
 
@@ -198,6 +233,41 @@ export class ModuleRunner {
 
   /* --------------------------------------------------------- lifecycle */
 
+  /**
+   * On a phone the 3D HUD is not reachable.
+   *
+   * It sits 25 degrees below the horizon, and a phone's usable band is about
+   * 30 degrees wide once the control bar has cropped it - a band the modules
+   * already fill with stimuli. So the block name, the progress and the exit
+   * button move into the DOM strip along the top, where they cost no world
+   * space, and the 3D panel is hidden rather than left floating off-screen.
+   */
+  private syncTopBar(): void {
+    const mc = this.mobileControls;
+    if (!mc) return;
+    this.hudPanel.group.visible = false;
+    // Never over a running block. The strip would sit exactly where a phone's
+    // stimuli reach - the modules use most of the 30 degree band that is left
+    // once the control bar has cropped it - and covering a search array to
+    // show a progress bar is a bad trade in a measurement task. During a block
+    // the way out is the back gesture, which the shell already handles.
+    if (this.state === 'practice' || this.state === 'assessment' || this.state === 'calibration') {
+      mc.setTopBar(null);
+      return;
+    }
+    const blocks = this.opts.module.blocks;
+    const m = this.ctx.manifest;
+    const current = blocks[this.blockIndex];
+    mc.setTopBar({
+      title: `${m.ordinal} ${m.code}`,
+      subtitle: current ? `${this.blockIndex + 1}/${blocks.length}  ${current.title}` : undefined,
+      progress: blocks.map((_, i) => (i < this.blockIndex ? 1 : i === this.blockIndex ? 0.5 : 0)),
+      // No practice badge here: the strip is only up between blocks, and the
+      // instruction panel already says whether practice comes next.
+      onExit: () => this.abort(),
+    });
+  }
+
   private setState(s: RunnerState): void {
     this.state = s;
     this.ctx.recorder.event('flow_state', { state: s, block: this.currentBlock()?.id ?? null });
@@ -208,6 +278,7 @@ export class ModuleRunner {
     // implements calibrate(), and such a module draws its own content there.
     const hide = s === 'practice' || s === 'assessment' || s === 'calibration';
     this.infoPanel.group.visible = !hide;
+    this.syncTopBar();
 
     // Touch controls belong to a running block and nothing else. Clearing them
     // in runBlock was too late: the instructions screen comes first, and the

@@ -57,6 +57,27 @@ export interface PanelOptions {
   superSample?: number;
 }
 
+/**
+ * Whether an object is really on screen, ancestors included.
+ *
+ * `Object3D.visible = false` on a parent hides the subtree when RENDERING, but
+ * it leaves every child's own `visible` flag true - and a raycast against the
+ * child still hits it. Panels are hidden by their group, so checking the mesh
+ * alone let clicks land on buttons nobody could see: a stray press during
+ * calibration was reaching the instruction panel underneath it and advancing
+ * the run.
+ */
+export function isEffectivelyVisible(o: THREE.Object3D | null): boolean {
+  // Nothing is not visible: the safe answer for a hit-test guard.
+  if (!o) return false;
+  let n: THREE.Object3D | null = o;
+  while (n) {
+    if (!n.visible) return false;
+    n = n.parent;
+  }
+  return true;
+}
+
 export class Panel {
   readonly mesh: THREE.Mesh;
   readonly group = new THREE.Group();

@@ -9,6 +9,7 @@ import { Panel, type UI } from '../../engine/ui/Panel.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import { BodyAnchor } from '../shared/anchor.js';
 import { viewRelation } from '../shared/volume.js';
+import { fitAngles } from '../../engine/ui/viewport.js';
 
 /**
  * MODULE 18 - PROTOCOL
@@ -274,17 +275,27 @@ export class ProtocolModule implements AssessmentModule {
   private place(): void {
     const L = this.layout();
     const pos = new THREE.Vector3();
+    const fitFor = (panel: Panel, azDeg: number, elDeg: number, distanceM: number) =>
+      fitAngles(this.ctx, {
+        azDeg, elDeg, distanceM, widthM: panel.width, heightM: panel.height,
+      });
     for (let s = 0; s < STATIONS; s++) {
-      this.anchor.place(L[s]![0], L[s]![1], 2.0, pos);
+      // VR passes straight through and keeps the 60 degree ring; a flat
+      // viewport gets the grid clamped to what it can actually show.
+      const f = fitFor(this.stationPanels[s]!, L[s]![0], L[s]![1], 2.0);
+      this.anchor.place(f.azDeg, f.elDeg, f.distanceM, pos);
       this.stationPanels[s]!.group.position.copy(pos);
       this.stationPanels[s]!.group.lookAt(this.anchor.origin);
     }
     // The interruption panel is deliberately somewhere that is not a station:
     // being pulled away is part of the manipulation.
-    this.anchor.place(this.ctx.platform === 'vr' ? 30 : 0, this.ctx.platform === 'vr' ? -22 : 0, 1.7, pos);
+    const fi = fitFor(this.interruptPanel,
+      this.ctx.platform === 'vr' ? 30 : 0, this.ctx.platform === 'vr' ? -22 : 0, 1.7);
+    this.anchor.place(fi.azDeg, fi.elDeg, fi.distanceM, pos);
     this.interruptPanel.group.position.copy(pos);
     this.interruptPanel.group.lookAt(this.anchor.origin);
-    this.anchor.place(0, this.ctx.platform === 'vr' ? -30 : -26, 1.9, pos);
+    const fs = fitFor(this.statusPanel, 0, this.ctx.platform === 'vr' ? -30 : -26, 1.9);
+    this.anchor.place(fs.azDeg, fs.elDeg, fs.distanceM, pos);
     this.statusPanel.group.position.copy(pos);
     this.statusPanel.group.lookAt(this.anchor.origin);
   }

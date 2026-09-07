@@ -12,6 +12,7 @@ import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { ObjectPicker } from '../shared/picking.js';
 import { layoutShell, shellPosition, fieldFor, type ShellField, type ShellSlot } from '../shared/layout.js';
+import { fitAngles } from '../../engine/ui/viewport.js';
 
 /**
  * MODULE 01 - SIGNAL
@@ -246,8 +247,7 @@ export class SignalModule implements AssessmentModule {
     this.controlPanel = new Panel({
       width: 0.62, height: 0.16, pxPerMeter: 950, theme: ctx.theme, frame: false, name: 'signal-control',
     });
-    this.controlPanel.group.position.copy(shellPosition(0, -(this.field.elDeg + 9), this.field));
-    this.controlPanel.group.lookAt(0, this.field.height, 0);
+    this.placeBelowArray(this.controlPanel, this.field.elDeg + 9);
     this.controlPanel.setDraw((ui) => this.drawControl(ui));
     this.controlPanel.group.visible = false;
     this.root.add(this.controlPanel.group);
@@ -256,8 +256,7 @@ export class SignalModule implements AssessmentModule {
     this.feedbackPanel = new Panel({
       width: 0.9, height: 0.2, pxPerMeter: 900, theme: ctx.theme, frame: false, name: 'signal-feedback',
     });
-    this.feedbackPanel.group.position.copy(shellPosition(0, -(this.field.elDeg + 17), this.field));
-    this.feedbackPanel.group.lookAt(0, this.field.height, 0);
+    this.placeBelowArray(this.feedbackPanel, this.field.elDeg + 17);
     this.feedbackPanel.setDraw((ui) => this.drawFeedback(ui));
     this.feedbackPanel.group.visible = false;
     this.root.add(this.feedbackPanel.group);
@@ -273,6 +272,22 @@ export class SignalModule implements AssessmentModule {
       if (e.widget.id === 'ctl:absent') this.onAbsentPressed(e.t);
       if (e.widget.id === 'ctl:submit') this.onMotSubmit();
     });
+  }
+
+  /**
+   * A panel below the search array, clear of the stimuli but still on screen.
+   *
+   * The offsets below the array are what the task wants; on a phone they run
+   * off the bottom of a 42 degree viewport, where there is no way to look
+   * down, so the placement is clamped to what is actually visible.
+   */
+  private placeBelowArray(panel: Panel, belowDeg: number): void {
+    const fit = fitAngles(this.ctx, {
+      elDeg: -belowDeg, distanceM: this.field.radius,
+      widthM: panel.width, heightM: panel.height,
+    });
+    panel.group.position.copy(shellPosition(0, fit.elDeg, { ...this.field, radius: fit.distanceM }));
+    panel.group.lookAt(0, this.field.height, 0);
   }
 
   private controlHint(block: BlockId): string {

@@ -6,6 +6,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, disposeTree, Pool } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { fitAngles } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { ObjectPicker } from '../shared/picking.js';
@@ -813,17 +814,25 @@ export class SignalSpatialModule implements AssessmentModule {
     }
     const dir = new THREE.Vector3(Math.sin(this.panelYaw), 0, -Math.cos(this.panelYaw));
 
-    const place = (g: THREE.Object3D, dist: number, elevDeg: number) => {
-      const rad = (elevDeg * Math.PI) / 180;
-      g.position.copy(eye)
-        .addScaledVector(dir, dist * Math.cos(rad))
-        .setY(eye.y + dist * Math.sin(rad));
-      g.lookAt(eye);
+    const place = (panel: Panel, dist: number, elevDeg: number) => {
+      // The requested elevation clears the VR stimulus band. On a flat screen
+      // it is well outside a 65 degree viewport, and since the camera cannot
+      // be tilted there, the panel would simply not exist for the participant.
+      const fit = fitAngles(this.ctx, {
+        elDeg: elevDeg, distanceM: dist,
+        widthM: panel.width, heightM: panel.height,
+      });
+      const rad = (fit.elDeg * Math.PI) / 180;
+      panel.group.position.copy(eye)
+        .addScaledVector(dir, fit.distanceM * Math.cos(rad))
+        .setY(eye.y + fit.distanceM * Math.sin(rad));
+      panel.group.lookAt(eye);
     };
-    // -36 and +34 degrees: clear of the -20..+24 stimulus band in both
-    // directions, with margin for the panels' own height.
-    place(this.controlPanel.group, 1.45, -36);
-    place(this.cuePanel.group, 1.75, 34);
+    // -36 and +34 degrees: clear of the -20..+24 VR stimulus band in both
+    // directions, with margin for the panels' own height. The flat bands are
+    // only +/-14, so the clamped placement still clears them comfortably.
+    place(this.controlPanel, 1.45, -36);
+    place(this.cuePanel, 1.75, 34);
   }
 
   /* --------------------------------------------------------------- UI */

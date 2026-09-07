@@ -740,3 +740,56 @@ canvas.m-radar { width: 100%; height: auto; display: block; }
   .mc-stick { width: 104px; height: 104px; }
   .mc-stick-knob { width: 44px; height: 44px; }
 }
+
+/* Module chrome along the top: which block is running, and the way out.
+   In the DOM rather than the scene, because a phone's 42 degree viewport has
+   no vertical room left once the modules have taken their share. */
+.mc-top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 6px) 12px 8px;
+  background: linear-gradient(to bottom, color-mix(in srgb, #000 78%, transparent), transparent);
+  pointer-events: none;
+}
+.mc-top-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mc-top-left strong {
+  font: 700 13px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.mc-top-sub {
+  font: 500 11.5px/1.2 var(--font-body);
+  color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mc-top-pips { display: flex; gap: 4px; flex: 1; align-items: center; }
+.mc-top-pips i {
+  flex: 1; max-width: 46px; height: 4px; border-radius: 2px;
+  background: color-mix(in srgb, var(--muted) 34%, transparent);
+}
+.mc-top-pips i.is-done { background: var(--ok); }
+.mc-top-pips i.is-active { background: var(--accent); }
+.mc-top-badge {
+  font: 700 10px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  padding: 4px 7px; border-radius: 7px;
+  background: var(--warn); color: #0a0d12;
+  white-space: nowrap;
+}
+.mc-top-exit {
+  pointer-events: auto;
+  appearance: none; border: 0; cursor: pointer; font-family: inherit;
+  padding: 8px 12px; min-height: 38px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #000 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 34%, transparent);
+  color: var(--text);
+  font: 700 11px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}

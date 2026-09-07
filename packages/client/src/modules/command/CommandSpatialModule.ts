@@ -5,6 +5,7 @@ import {
 } from '@vrcap/shared';
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { eyeFrame, placeInView } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import { makePrimitive, makeLabel, disposeTree } from '../../engine/world/Primitives.js';
 import { CommandClient } from './CommandClient.js';
@@ -211,17 +212,36 @@ export class CommandSpatialModule implements AssessmentModule {
     // around the structure - which is the actual task here.
     this.root.position.set(0, 0, 0);
     this.root.rotation.set(0, 0, 0);
-    this.tallyPanel.group.position.set(
-      sp ? sp.x * 0.42 : 0, 0.95, sp ? sp.z * 0.42 : -1.1
-    );
-    this.tallyPanel.group.lookAt(rig.position.x, 1.35, rig.position.z);
-    const side = sp ? new THREE.Vector3(sp.x, 0, sp.z).normalize() : new THREE.Vector3(0, 0, -1);
-    const perp = new THREE.Vector3(-side.z, 0, side.x);
-    this.sidePanel.group.position.copy(
-      new THREE.Vector3(sp?.x ?? 0, 1.35, sp?.z ?? 0)
-        .addScaledVector(side, -0.75).addScaledVector(perp, 0.95)
-    );
-    this.sidePanel.group.lookAt(rig.position.x, 1.4, rig.position.z);
+    if (this.ctx.platform === 'vr') {
+      this.tallyPanel.group.position.set(
+        sp ? sp.x * 0.42 : 0, 0.95, sp ? sp.z * 0.42 : -1.1
+      );
+      this.tallyPanel.group.lookAt(rig.position.x, 1.35, rig.position.z);
+      const side = sp ? new THREE.Vector3(sp.x, 0, sp.z).normalize() : new THREE.Vector3(0, 0, -1);
+      const perp = new THREE.Vector3(-side.z, 0, side.x);
+      this.sidePanel.group.position.copy(
+        new THREE.Vector3(sp?.x ?? 0, 1.35, sp?.z ?? 0)
+          .addScaledVector(side, -0.75).addScaledVector(perp, 0.95)
+      );
+      this.sidePanel.group.lookAt(rig.position.x, 1.4, rig.position.z);
+    } else {
+      // The seat ring is a VR arrangement: the tally sits low on the structure
+      // and the side board is round to one side, both a head turn away. On a
+      // screen neither is reachable - one is below the bottom edge and the
+      // other is behind the viewer - so they are brought in front of the seat.
+      // The rig was just rotated, so its matrix has to be current before the
+      // camera's world facing can be read from it.
+      rig.updateMatrixWorld(true);
+      const frame = eyeFrame(this.ctx);
+      placeInView(this.ctx, this.tallyPanel.group, {
+        ...frame, azDeg: 30, elDeg: -6, distanceM: 1.7,
+        widthM: this.tallyPanel.width, heightM: this.tallyPanel.height,
+      });
+      placeInView(this.ctx, this.sidePanel.group, {
+        ...frame, azDeg: -32, elDeg: -4, distanceM: 1.8,
+        widthM: this.sidePanel.width, heightM: this.sidePanel.height,
+      });
+    }
     this.ctx.recorder.event('seat_assigned', { seat, variant: 'B' });
   }
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { ModuleContext } from '../../engine/task/Module.js';
+import { isEffectivelyVisible } from '../../engine/ui/Panel.js';
 import type { Panel } from '../../engine/ui/Panel.js';
 
 /**
@@ -41,7 +42,9 @@ export class ObjectPicker {
     const hit = this.raycaster.intersectObjects(targets, true)[0];
     if (!hit) return null;
 
-    const panelMeshes = this.panels.filter((p) => p.mesh.visible && p.group.parent).map((p) => p.mesh);
+    const panelMeshes = this.panels
+      .filter((p) => p.group.parent && isEffectivelyVisible(p.mesh))
+      .map((p) => p.mesh);
     if (panelMeshes.length) {
       const panelHit = this.raycaster.intersectObjects(panelMeshes, false)[0];
       if (panelHit && panelHit.distance < hit.distance) return null;

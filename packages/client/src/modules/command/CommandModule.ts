@@ -5,6 +5,7 @@ import {
 } from '@vrcap/shared';
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { placeInView } from '../../engine/ui/viewport.js';
 import { Keyboard3D } from '../../engine/ui/Keyboard3D.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import { makePrimitive, makeLabel, disposeTree } from '../../engine/world/Primitives.js';
@@ -112,6 +113,7 @@ export class CommandModule implements AssessmentModule {
 
     this.sidePanel = new Panel({ width: 0.78, height: 0.92, pxPerMeter: 900, theme: ctx.theme, name: 'cmd-side' });
     placeArc(this.sidePanel.group, 52, 1.32, 1.0);
+    this.placeFlatPanels();
     this.sidePanel.setDraw((ui) => this.drawSide(ui));
     this.root.add(this.sidePanel.group);
     ctx.panels.add(this.sidePanel);
@@ -163,6 +165,30 @@ export class CommandModule implements AssessmentModule {
         id: 'mark', label: 'JELÖLÉS', sub: 'a következő koppintás jelöl a táblán',
         variant: 'ghost', wide: true, action: 'SECONDARY',
       }],
+    });
+  }
+
+  /**
+   * Where the two briefing panels go on a screen.
+   *
+   * In the headset they ring the table: the plan just above it, the side board
+   * 52 degrees round, both a turn of the head away. A flat viewport has no
+   * head to turn - the side board at -52 degrees is simply not on the screen,
+   * and neither is the bottom of the plan on a phone. So on flat platforms
+   * they are brought in front, above and beside the board, and fitted to the
+   * viewport that actually exists.
+   */
+  private placeFlatPanels(): void {
+    if (this.ctx.platform === 'vr') return;
+    const eye = new THREE.Vector3(0, 1.6, 0);
+    placeInView(this.ctx, this.planPanel.group, {
+      eye, azDeg: 0, elDeg: 12, distanceM: 1.7,
+      widthM: this.planPanel.width, heightM: this.planPanel.height,
+    });
+    this.planPanel.group.rotation.x = 0;
+    placeInView(this.ctx, this.sidePanel.group, {
+      eye, azDeg: -34, elDeg: -2, distanceM: 1.8,
+      widthM: this.sidePanel.width, heightM: this.sidePanel.height,
     });
   }
 

@@ -7,6 +7,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { fitAngles } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { layoutVolume, volumeFor, viewRelation, wrapDeg, type VolumeField, type VolumeSlot } from '../shared/volume.js';
@@ -633,9 +634,17 @@ export class WatchModule implements AssessmentModule {
     fwd.y = 0;
     fwd.normalize();
     // The HUD follows the participant so it is readable whichever way they
-    // have turned - and it must, because turning is the task.
-    this.hudPanel.group.position.copy(p).addScaledVector(fwd, 1.7);
-    this.hudPanel.group.position.y = this.field.height - 0.62;
+    // have turned - and it must, because turning is the task. On a phone the
+    // drop below eye level has to be clamped: 42 degrees of vertical viewport
+    // is not much, and there is no looking down on a flat screen.
+    const fit = fitAngles(this.ctx, {
+      elDeg: -20, distanceM: 1.7,
+      widthM: this.hudPanel.width, heightM: this.hudPanel.height,
+    });
+    const rad = (fit.elDeg * Math.PI) / 180;
+    this.hudPanel.group.position.copy(p)
+      .addScaledVector(fwd, fit.distanceM * Math.cos(rad));
+    this.hudPanel.group.position.y = p.y + fit.distanceM * Math.sin(rad);
     this.hudPanel.group.lookAt(p);
   }
 

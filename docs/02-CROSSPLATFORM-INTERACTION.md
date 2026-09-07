@@ -183,6 +183,43 @@ előrébb hozzuk (1,35 m), így a látott *szögméret* nagyjából azonos marad
 kell csökkenteni** és `width`-et ugyanannyival növelni; a rajzoló callback egy sorát
 sem kell átírni.
 
+**A panelnek bele kell férnie a látómezőbe.** Headsetben lenézel, és a
+vezérlőpanel ott van. Laptopon **nem tudsz lenézni** — a kamera nem mozdul —,
+tehát a látómezőn kívüli panel nem kényelmetlen, hanem **elérhetetlen**, és a
+modul egy olyan gombra vár, amit senki nem lát. A SIGNAL „nincs cél"
+vezérlője pontosan így tűnt el: −36° kényelmes VR-ben, és a 65°-os viewport
+alsó széle alatt van.
+
+| | függőleges | vízszintes (16:10) |
+|---|---|---|
+| VR (használható) | ±45° | ±55° |
+| Asztali (65°) | **±32,5°** | ±45,5° |
+| Mobil fekvő (42°) | **±21°** | ±34,3° |
+
+Ezért minden panelelhelyezés a `engine/ui/viewport.ts` `fitAngles()` /
+`placeInView()` függvényén megy át. Az kap egy **szándékolt** irányt, és
+visszaadja a legközelebbit, ami ténylegesen elfér:
+
+1. VR-ben **változatlanul** továbbengedi a kérést — ott a hangolt elrendezés a helyes.
+2. Ha a panel csak túl oldalra esik, a **középpontját** húzza be.
+3. Ha a panel **szélesebb**, mint a rendelkezésre álló hely, egyetlen
+   középpont sem segít — ilyenkor **hátrébb tolja**, ami a szögméretét
+   csökkenti anélkül, hogy az elrendezés megváltozna (így fér el a NAV térképe
+   telefonon). A hátratolás korlátos, hogy a be nem férő panel az auditban
+   bukjon el, ne csendben elússzon.
+4. A futtató HUD-sávja a blokk teljes ideje alatt fent van, ezért a
+   modulpanelek **nem nyúlhatnak bele** (`flatHudTopDeg()`).
+
+Ezt a `tests/panel-visibility.test.ts` audit tartja életben: minden modult
+felépít fejetlenül, és megméri, hova kerül minden panele.
+
+**Rejtett panel nem kattintható.** A `Object3D.visible = false` a *szülőn*
+csak a **rajzolást** kapcsolja ki; a gyerek saját `visible` flagje igaz marad,
+és a raycast eltalálja. A panelek a csoportjukkal rejtőznek, ezért a
+találatszűrésnek a teljes szülőláncot kell néznie (`isEffectivelyVisible`) —
+enélkül a kalibráció közbeni kattintás az alatta lévő instrukciós panelre
+esett, és tovább léptette a futást.
+
 **Szövegbevitel.** Immerzív munkamenetben a DOM `<input>` nem látszik. Minden
 VR-ben bekért szöveg (azonosító, szobakód, üzenet) a `Keyboard3D` panelen megy át.
 Lapos módban a natív DOM űrlapot használjuk, mert az gyorsabb és akadálymentesebb.

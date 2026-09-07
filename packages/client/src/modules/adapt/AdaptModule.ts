@@ -176,12 +176,14 @@ export class AdaptModule implements AssessmentModule {
   /* -------------------------------------------------------------- init */
 
   async init(ctx: ModuleContext): Promise<void> {
+    // ctx first: updateReachFrame() reads the camera through it on flat
+    // platforms, where the reach plane is built from the camera basis.
+    this.ctx = ctx;
+    this.root = ctx.root;
     this.anchor = new BodyAnchor(ctx);
     this.anchor.capture();
     this.flatReach = ctx.platform !== 'vr';
     this.updateReachFrame();
-    this.ctx = ctx;
-    this.root = ctx.root;
     const t = ctx.theme;
     ctx.recorder.setMotionHz(30);
 

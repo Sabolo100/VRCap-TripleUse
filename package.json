@@ -17,7 +17,7 @@
     "start": "npm run start -w @vrcap/server",
     "migrate": "npm run migrate -w @vrcap/server",
     "typecheck": "tsc -b packages/shared packages/client packages/server",
-    "test": "tsx tests/psychophysics.test.ts && tsx tests/trialmachine.test.ts && tsx tests/command-scenario.test.ts && tsx tests/react-scoring.test.ts && tsx tests/new-modules.test.ts && tsx tests/spatial-modules.test.ts && tsx tests/variants.test.ts && tsx tests/sport-modules.test.ts && tsx tests/defence-modules.test.ts"
+    "test": "tsx tests/psychophysics.test.ts && tsx tests/trialmachine.test.ts && tsx tests/command-scenario.test.ts && tsx tests/react-scoring.test.ts && tsx tests/new-modules.test.ts && tsx tests/spatial-modules.test.ts && tsx tests/variants.test.ts && tsx tests/sport-modules.test.ts && tsx tests/defence-modules.test.ts && tsx tests/panel-visibility.test.ts"
   },
   "devDependencies": {
     "typescript": "^5.6.3",

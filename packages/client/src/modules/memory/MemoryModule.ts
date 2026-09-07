@@ -180,6 +180,9 @@ export class MemoryModule implements AssessmentModule {
         ? { az: 24, elMin: -10, elMax: 14, layers: [2.6, 3.2, 3.9], minSep: 8, count: 12 }
         : { az: 19, elMin: -9, elMax: 12, layers: [2.6, 3.1, 3.7], minSep: 9, count: 9 };
 
+    // Created before buildCells(), which registers the cells as hover targets
+    // on it. Its panel list is filled in below, once the prompt panel exists.
+    this.picker = new ObjectPicker(ctx, []);
     this.buildCells();
 
     this.nbackMesh = makePrimitive({ kind: 'sphere', color: ctx.theme.accent, unlit: true, size: 0.24 });
@@ -200,7 +203,7 @@ export class MemoryModule implements AssessmentModule {
     this.root.add(this.promptPanel.group);
     ctx.panels.add(this.promptPanel);
 
-    this.picker = new ObjectPicker(ctx, [this.promptPanel]);
+    this.picker.setPanels([this.promptPanel]);
 
     for (const b of this.blocks) b.controlHint = this.controlHint(b.id as BlockId);
 

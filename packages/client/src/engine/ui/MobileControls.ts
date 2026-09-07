@@ -46,6 +46,18 @@ export interface MobileStickSpec {
   onChange?: (x: number, y: number) => void;
 }
 
+export interface MobileTopBarSpec {
+  /** Module code and ordinal, e.g. "01 SIGNAL". */
+  title: string;
+  /** Block line, e.g. "1/4 MÉLYSÉGI KERESÉS". */
+  subtitle?: string;
+  /** 0-1 per block; one pip each. */
+  progress?: number[];
+  /** Shown as a badge, e.g. "GYAKORLÁS". */
+  badge?: string;
+  onExit?: () => void;
+}
+
 export interface MobileControlSpec {
   /** Buttons along the bottom, in thumb reach. */
   buttons?: MobileButtonSpec[];
@@ -109,6 +121,7 @@ export class MobileControls {
   private reticleEl: HTMLElement;
   private sliderWrap: HTMLElement;
   private dialEl: HTMLElement;
+  private topEl: HTMLElement;
   private stickEl: HTMLElement;
   private stickKnob: HTMLElement;
   private stickPointer: number | null = null;
@@ -146,6 +159,18 @@ export class MobileControls {
     this.dialEl.className = 'mc-dial';
     this.dialEl.hidden = true;
 
+    // A strip along the top, in the DOM rather than in the scene.
+    //
+    // The runner's 3D HUD lives 29 degrees below the horizon, which is fine in
+    // a headset and simply off the bottom of a phone: with a 42 degree
+    // viewport and a control bar cropping it further, the block name and the
+    // exit button were not on screen at all. There is no room to move it into
+    // either - the modules already use most of the vertical band - so on a
+    // phone it becomes a DOM strip that costs no world space.
+    this.topEl = document.createElement('div');
+    this.topEl.className = 'mc-top';
+    this.topEl.hidden = true;
+
     this.stickEl = document.createElement('div');
     this.stickEl.className = 'mc-stick';
     this.stickEl.hidden = true;
@@ -157,7 +182,7 @@ export class MobileControls {
     this.bar = document.createElement('div');
     this.bar.className = 'mc-bar';
 
-    this.root.append(this.reticleEl, this.hintEl, this.dialEl, this.stickEl, this.sliderWrap, this.bar);
+    this.root.append(this.topEl, this.reticleEl, this.hintEl, this.dialEl, this.stickEl, this.sliderWrap, this.bar);
     document.body.appendChild(this.root);
   }
 
@@ -237,6 +262,62 @@ export class MobileControls {
     this.stickVec = { x: 0, y: 0 };
     this.stickKnob.style.transform = 'translate(-50%, -50%)';
     this.spec.stick?.onChange?.(0, 0);
+  }
+
+  /**
+   * The top strip: which module and block is running, and the way out.
+   * Independent of `set()`, because it survives across blocks and states while
+   * the control set below it is replaced constantly.
+   */
+  setTopBar(spec: MobileTopBarSpec | null): void {
+    if (this.disposed) return;
+    this.topEl.replaceChildren();
+    this.topEl.hidden = !spec;
+    // The strip itself never takes a touch - only the exit chip does. A bar
+    // that swallows taps over the scene is the same bug the bottom controls
+    // had, where it covered the button that started the block.
+    this.topEl.style.pointerEvents = 'none';
+    if (!spec) return;
+
+    const left = document.createElement('div');
+    left.className = 'mc-top-left';
+    const title = document.createElement('strong');
+    title.textContent = spec.title;
+    left.appendChild(title);
+    if (spec.subtitle) {
+      const sub = document.createElement('span');
+      sub.className = 'mc-top-sub';
+      sub.textContent = spec.subtitle;
+      left.appendChild(sub);
+    }
+
+    const pips = document.createElement('div');
+    pips.className = 'mc-top-pips';
+    for (const v of spec.progress ?? []) {
+      const pip = document.createElement('i');
+      pip.className = v >= 1 ? 'is-done' : v > 0 ? 'is-active' : '';
+      pips.appendChild(pip);
+    }
+
+    this.topEl.append(left, pips);
+    if (spec.badge) {
+      const badge = document.createElement('span');
+      badge.className = 'mc-top-badge';
+      badge.textContent = spec.badge;
+      this.topEl.appendChild(badge);
+    }
+    if (spec.onExit) {
+      const exit = document.createElement('button');
+      exit.type = 'button';
+      exit.className = 'mc-top-exit';
+      exit.textContent = 'KILÉPÉS';
+      exit.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        spec.onExit?.();
+      });
+      this.topEl.appendChild(exit);
+    }
   }
 
   /** Update one button's disabled state without rebuilding the bar. */

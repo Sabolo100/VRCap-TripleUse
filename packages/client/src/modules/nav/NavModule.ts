@@ -7,6 +7,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, makeLabel, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { fitAngles } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import type { PanelClickEvent } from '../../engine/ui/PanelManager.js';
@@ -1219,8 +1220,15 @@ export class NavModule implements AssessmentModule {
     // task. 'comfort' is the read-only landmark caption.
     const interactive = this.promptMode !== 'comfort';
     const dist = this.ctx.platform === 'vr' ? (interactive ? 1.15 : 1.7) : 1.5;
-    this.promptPanel.group.position.copy(p).addScaledVector(fwd, dist);
-    this.promptPanel.group.position.y = EYE - (interactive ? 0.30 : 0.42);
+    const drop = interactive ? 0.30 : 0.42;
+    const fit = fitAngles(this.ctx, {
+      elDeg: (Math.atan2(-drop, dist) * 180) / Math.PI, distanceM: dist,
+      widthM: this.promptPanel.width, heightM: this.promptPanel.height,
+    });
+    const rad = (fit.elDeg * Math.PI) / 180;
+    this.promptPanel.group.position.copy(p)
+      .addScaledVector(fwd, fit.distanceM * Math.cos(rad));
+    this.promptPanel.group.position.y = p.y + fit.distanceM * Math.sin(rad);
     this.promptPanel.group.lookAt(p);
   }
 
@@ -1233,9 +1241,19 @@ export class NavModule implements AssessmentModule {
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
     fwd.y = 0;
     fwd.normalize();
-    const dist = this.ctx.platform === 'vr' ? 1.5 : 1.3;
-    this.mapPanel.group.position.copy(p).addScaledVector(fwd, dist);
-    this.mapPanel.group.position.y = EYE - 0.15;
+    // The map is the largest panel in the platform, and on a phone it is
+    // wider and taller than the viewport at the reading distance the headset
+    // uses. fitAngles pushes it back rather than shrinking the drawing, so the
+    // layout is unchanged and the whole map is on screen.
+    const fit = fitAngles(this.ctx, {
+      elDeg: -6.6, distanceM: this.ctx.platform === 'vr' ? 1.5 : 1.3,
+      widthM: this.mapPanel.width, heightM: this.mapPanel.height,
+      maxDistanceFactor: 2.2,
+    });
+    const rad = (fit.elDeg * Math.PI) / 180;
+    this.mapPanel.group.position.copy(p)
+      .addScaledVector(fwd, fit.distanceM * Math.cos(rad));
+    this.mapPanel.group.position.y = p.y + fit.distanceM * Math.sin(rad);
     this.mapPanel.group.lookAt(p);
   }
 
