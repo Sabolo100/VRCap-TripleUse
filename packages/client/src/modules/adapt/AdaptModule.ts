@@ -85,12 +85,24 @@ export class AdaptModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.ADAPT!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'baseline',
       title: 'ALAPVONAL',
-      instruction:
-        'Egy pontot fogsz látni a kezed helyén — A KEZEDET MAGÁT NEM LÁTOD. Vidd a pontot a célgömbhöz ' +
-        'egy gyors, egyenes mozdulattal. Ne javítgasd útközben: célozz, és mozdulj.',
+      instruction: {
+        vr:
+          'A kezed helyén egy pontot fogsz látni — A KEZEDET MAGÁT NEM LÁTOD. Nyúlj a kontrollerrel a ' +
+          'célgömbhöz egy gyors, egyenes mozdulattal, hogy a pont odaérjen. Ne javítgasd útközben: célozz, ' +
+          'és mozdulj. Minden próba után térj vissza a kiindulópontra.',
+        desktop:
+          'Az egérkurzor helyén egy pontot fogsz látni. Vidd a pontot a középső kiindulópontból a célgömbhöz ' +
+          'egy gyors, egyenes egérmozdulattal. Ne javítgasd útközben: célozz, és mozdulj. Minden próba után ' +
+          'térj vissza a kiindulópontra.',
+        mobile:
+          'Az ujjad alatt egy pontot fogsz látni. Húzd az ujjad a középső kiindulópontból a célgömbhöz egy ' +
+          'gyors, egyenes, határozott mozdulattal. Ne javítgasd útközben: célozz, és mozdulj. Minden próba ' +
+          'után térj vissza a kiindulópontra.',
+      },
       controlHint: '',
       trials: 32,
       practiceTrials: 8,
@@ -110,7 +122,7 @@ export class AdaptModule implements AssessmentModule {
       id: 'probe',
       title: 'PRÓBAPONTOK',
       instruction:
-        'A következő néhány próbában nem fogod látni, hova ért a pont. Csak célozz úgy, ahogy eddig.',
+        'A következő néhány próbában nem fogod látni, hova ért a pont. Csak célozz ugyanúgy, ahogy eddig.',
       controlHint: '',
       trials: 18,
       practiceTrials: 0,
@@ -235,11 +247,12 @@ export class AdaptModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'Nyúlj a célhoz — a kezed nem látod, csak a pontot';
-      case 'desktop': return 'EGÉR: mozgatás · a kurzor nem ott lesz, ahol az egér';
-      default: return 'HÚZD az ujjad a középső pontból a cél felé';
+      case 'vr': return 'Nyúlj a célgömbhöz a kontrollerrel — a kezedet nem látod, csak a pontot.';
+      case 'desktop': return 'Vidd az egeret a kiindulópontból a célgömbhöz — a pont nem pontosan ott lesz, ahol az egér.';
+      default: return 'Húzd az ujjad a kiindulópontból a célgömbhöz — egy határozott mozdulattal.';
     }
   }
 

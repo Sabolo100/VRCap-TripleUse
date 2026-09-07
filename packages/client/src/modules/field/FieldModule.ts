@@ -89,13 +89,27 @@ export class FieldModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.FIELD!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'threshold',
       title: 'MEZŐ',
-      instruction:
-        'Középen egy gyűrű lesz — VÉGIG AZT NÉZD. A közepén egy pillanatra megjelenik egy KOCKA vagy egy GÖMB: ' +
-        'ezt kell először megmondanod. Ugyanabban a pillanatban oldalt is felvillan valami — utána azt jelöld meg, ' +
-        'merre volt. Ne fordítsd oda a fejed: a lényeg épp az, mennyit veszel észre odanézés nélkül.',
+      instruction: {
+        vr:
+          'Középen egy gyűrű lesz — VÉGIG AZT NÉZD, ne fordítsd el a fejed. A közepén egy pillanatra egy KOCKA ' +
+          'vagy egy GÖMB jelenik meg: ezt mondd meg először (kocka → ravasz, gömb → markolatgomb). Ugyanabban a ' +
+          'pillanatban oldalt is felvillan valami: utána a tárcsán mutasd meg, merre volt. A lényeg épp az, ' +
+          'mennyit veszel észre odanézés nélkül.',
+        desktop:
+          'Középen egy gyűrű lesz — VÉGIG AZT NÉZD, ne vidd el a tekinteted. A közepén egy pillanatra egy KOCKA ' +
+          'vagy egy GÖMB jelenik meg: ezt mondd meg először (kocka → SZÓKÖZ vagy bal kattintás, gömb → jobb ' +
+          'kattintás). Ugyanabban a pillanatban oldalt is felvillan valami: utána a tárcsán kattints arra az ' +
+          'irányra, ahol volt. A lényeg épp az, mennyit veszel észre odanézés nélkül.',
+        mobile:
+          'Középen egy gyűrű lesz — VÉGIG AZT NÉZD, ne vidd el a tekinteted. A közepén egy pillanatra egy KOCKA ' +
+          'vagy egy GÖMB jelenik meg: ezt mondd meg először a képernyő alján a KOCKA vagy a GÖMB gombbal. ' +
+          'Ugyanabban a pillanatban oldalt is felvillan valami: utána a képernyőn megjelenő körből koppintsd ' +
+          'ki, merre volt. A lényeg épp az, mennyit veszel észre odanézés nélkül.',
+      },
       controlHint: '',
       trials: 48,
       practiceTrials: 6,
@@ -104,8 +118,8 @@ export class FieldModule implements AssessmentModule {
       id: 'cluttered',
       title: 'ZSÚFOLT MEZŐ',
       instruction:
-        'Ugyanaz a feladat, de most sok hasonló gyűrű is látszik körben. A felvillanás ezek között történik. ' +
-        'A központi alakzat továbbra is elsőbbséget élvez.',
+        'Ugyanaz a feladat, de most sok hasonló gyűrű látszik körben, és a felvillanás ezek között történik. ' +
+        'A középső alakzat továbbra is az első válasz.',
       controlHint: '',
       trials: 36,
       practiceTrials: 4,
@@ -114,8 +128,8 @@ export class FieldModule implements AssessmentModule {
       id: 'depthfield',
       title: 'MÉLYSÉGI MEZŐ',
       instruction:
-        'Most a felvillanás néha ugyanolyan távol van, mint a gyűrű, néha viszont jóval TÁVOLABB. ' +
-        'Ugyanakkorának látszik — csak messzebb van. Ugyanaz a feladat.',
+        'Most a felvillanás hol ugyanolyan távol van, mint a gyűrű, hol jóval TÁVOLABB — ugyanakkorának ' +
+        'látszik, csak messzebb van. A feladat és a válaszok ugyanazok.',
       controlHint: '',
       trials: 32,
       practiceTrials: 4,
@@ -123,9 +137,20 @@ export class FieldModule implements AssessmentModule {
     {
       id: 'dva',
       title: 'MOZGÓ CÉL',
-      instruction:
-        'Egy gyűrű repül feléd, és van rajta egy RÉS. Mondd meg, merre néz a rés: fent, lent, balra vagy jobbra. ' +
-        'Minél gyorsabban jön, annál nehezebb — addig gyorsítok, amíg meg nem találom a határodat.',
+      instruction: {
+        vr:
+          'Egy gyűrű repül feléd, és van rajta egy RÉS. Mondd meg, merre néz a rés: fent → ravasz, jobbra → ' +
+          'jobb ravasz, lent → markolatgomb, balra → bal ravasz. Minél gyorsabban jön, annál nehezebb — addig ' +
+          'gyorsítom, amíg meg nem találom a határodat.',
+        desktop:
+          'Egy gyűrű repül feléd, és van rajta egy RÉS. Mondd meg, merre néz a rés: fent → SZÓKÖZ, jobbra → J ' +
+          '(vagy →), lent → jobb kattintás, balra → F (vagy ←). Minél gyorsabban jön, annál nehezebb — addig ' +
+          'gyorsítom, amíg meg nem találom a határodat.',
+        mobile:
+          'Egy gyűrű repül feléd, és van rajta egy RÉS. Mondd meg, merre néz a rés: a képernyőn megjelenő ' +
+          'körben koppints a FENT, JOBB, LENT vagy BAL gombra. Minél gyorsabban jön, annál nehezebb — addig ' +
+          'gyorsítom, amíg meg nem találom a határodat.',
+      },
       controlHint: '',
       trials: 28,
       practiceTrials: 4,
@@ -265,7 +290,7 @@ export class FieldModule implements AssessmentModule {
     this.offAction = ctx.engine.input.on((e: ActionEvent) => this.onAction(e));
     this.offPanel = ctx.panels.onClick((e) => this.onPanelClick(e.widget.id, e.t));
 
-    for (const b of this.blocks) b.controlHint = this.controlHint();
+    for (const b of this.blocks) b.controlHint = this.controlHint(b.id as BlockId);
 
     ctx.recorder.event('field_geometry', {
       platform: ctx.platform,
@@ -354,12 +379,17 @@ export class FieldModule implements AssessmentModule {
     l.resolve();
   }
 
-  private controlHint(): string {
-    switch (this.ctx.platform) {
-      case 'vr': return 'RAVASZ: kocka · GRIP: gömb · majd a TÁRCSÁN az irány';
-      case 'desktop': return 'Z: kocka · M: gömb · NYILAK: irány · ENTER: rögzít';
-      default: return 'KOCKA / GÖMB gomb, majd a körből az irány';
+
+  private controlHint(block: BlockId): string {
+    const p = this.ctx.platform;
+    if (block === 'dva') {
+      return p === 'vr' ? 'FENT → RAVASZ · JOBB → JOBB ravasz · LENT → MARKOLATGOMB · BAL → BAL ravasz'
+        : p === 'mobile' ? 'A körben: FENT · JOBB · LENT · BAL'
+        : 'FENT → SZÓKÖZ · JOBB → J vagy → · LENT → jobb kattintás · BAL → F vagy ←';
     }
+    return p === 'vr' ? 'KOCKA → RAVASZ · GÖMB → MARKOLATGOMB (grip) · majd a tárcsán az irány'
+      : p === 'mobile' ? 'KOCKA / GÖMB gomb · majd a körben az irány'
+      : 'KOCKA → SZÓKÖZ vagy bal kattintás · GÖMB → jobb kattintás · majd a tárcsán az irány';
   }
 
   /* ------------------------------------------------------- calibration */
@@ -367,7 +397,11 @@ export class FieldModule implements AssessmentModule {
   async calibrate(ctx: ModuleContext): Promise<void> {
     this.fixation.visible = true;
     this.feedbackPanel.group.visible = true;
-    this.setFeedback('Nézz a gyűrűre, és nyomd meg a gombot.', 'neutral');
+    this.setFeedback(
+      ctx.platform === 'vr' ? 'Nézz a gyűrűre, és húzd meg a ravaszt.'
+        : ctx.platform === 'mobile' ? 'Nézz a gyűrűre, és koppints.'
+        : 'Nézz a gyűrűre, és nyomd meg a SZÓKÖZT.',
+      'neutral');
 
     await new Promise<void>((resolve) => {
       const off = ctx.engine.input.on((e: ActionEvent) => {

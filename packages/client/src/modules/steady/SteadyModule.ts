@@ -72,12 +72,14 @@ export class SteadyModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.STEADY!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'stance',
       title: 'NYITOTT SZEM',
       instruction:
-        'Csak állj. Harminc másodperc. Lábak vállszélességben, karok lazán, nézz előre a gyűrűre. ' +
-        'Semmit nem kell csinálnod — a headset méri, hogyan mozdul a fejed.',
+        'Csak állj, harminc másodpercig. Lábak vállszélességben, karok lazán a test mellett, és nézz előre ' +
+        'a gyűrűre. Semmit nem kell megnyomnod: a headset azt méri, hogyan mozdul a fejed, miközben ' +
+        'mozdulatlanul próbálsz állni.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -87,8 +89,8 @@ export class SteadyModule implements AssessmentModule {
       id: 'dark',
       title: 'ELSÖTÉTÍTVE',
       instruction:
-        'Most elsötétül a kijelző. Ne mozdulj, állj ugyanígy tovább. Ha bizonytalan vagy, ' +
-        'nyisd ki a szemed vagy fogódzz meg — a MENÜ gombbal bármikor kiléphetsz.',
+        'Most elsötétül a kijelző. Állj tovább ugyanígy, ne mozdulj. Ha bizonytalannak érzed magad, nyisd ' +
+        'ki a szemed vagy fogódzz meg — a bal kontroller MENÜ gombjával bármikor kiléphetsz.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -98,8 +100,8 @@ export class SteadyModule implements AssessmentModule {
       id: 'sway',
       title: 'MOZGÓ TÉR',
       instruction:
-        'Körülötted egy pontokból álló tér lesz. Csak állj, és nézz előre. ' +
-        'Ha a tér mozogni kezd, ne kövesd — maradj, ahol vagy.',
+        'Körülötted egy pontokból álló tér lesz. Csak állj, és nézz előre. A tér időnként mozogni kezd ' +
+        'körülötted — ne kövesd, ne dőlj vele: maradj ott, ahol vagy.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -109,8 +111,9 @@ export class SteadyModule implements AssessmentModule {
       id: 'oneleg',
       title: 'EGY LÁBON',
       instruction:
-        'Van körülötted legalább másfél méter szabad hely, és van valaki a közelben? ' +
-        'Ha nincs, nyugodtan hagyd ki ezt a részt — a többi eredmény enélkül is érvényes.',
+        'Ehhez a részhez legalább másfél méter szabad hely kell körülötted, és jó, ha van valaki a ' +
+        'közelben. Ha ez nincs meg, nyugodtan hagyd ki — a többi eredmény enélkül is érvényes. Ha vállalod: ' +
+        'állj egy lábon, előbb az egyiken, aztán a másikon.',
       controlHint: '',
       trials: 2,
       practiceTrials: 0,
@@ -120,8 +123,8 @@ export class SteadyModule implements AssessmentModule {
       id: 'hand',
       title: 'CÉLON TARTÁS',
       instruction:
-        'Nyújtsd ki a karod, és tartsd a gömböt a gyűrű közepén, harminc másodpercig. ' +
-        'A karodat ne támaszd meg semmihez. Előbb az egyik, aztán a másik kéz.',
+        'Nyújtsd ki a karod, és a kontrollerrel tartsd a gömböt a gyűrű közepén harminc másodpercig. A ' +
+        'karodat ne támaszd meg semmihez. Előbb az egyik, aztán a másik kézzel.',
       controlHint: '',
       trials: 2,
       practiceTrials: 1,
@@ -166,6 +169,7 @@ export class SteadyModule implements AssessmentModule {
     this.ctx = ctx;
     this.root = ctx.root;
     const t = ctx.theme;
+    for (const b of this.blocks) b.controlHint = this.controlHint(b.id);
 
     // The measurement IS the motion trace, so it gets the display rate and a
     // cap large enough for the whole run rather than the usual sampling.
@@ -243,6 +247,14 @@ export class SteadyModule implements AssessmentModule {
   }
 
   /* ------------------------------------------------------- calibration */
+
+  private controlHint(block: string): string {
+    switch (block) {
+      case 'hand': return 'Kinyújtott kar, a kontroller a gömböt a gyűrű közepén tartja · gombot nem kell nyomni';
+      case 'oneleg': return 'Egy lábon · a bal kontroller MENÜ gombjával bármikor kiléphetsz';
+      default: return 'Csak állj mozdulatlanul, és nézz előre · gombot nem kell nyomni';
+    }
+  }
 
   async calibrate(ctx: ModuleContext): Promise<void> {
     this.floorRing.visible = true;

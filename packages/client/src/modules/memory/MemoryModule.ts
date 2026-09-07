@@ -61,13 +61,25 @@ export class MemoryModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.MEMORY!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'span',
       title: 'TÉRBELI SOROZAT',
-      instruction:
-        'A körülötted lévő kockák közül néhány sorban felvillan és megfordul. Jegyezd meg a sorrendet, ' +
-        'majd mutass rájuk ugyanabban a sorrendben. A kockák három különböző távolságban vannak — ' +
-        'a mélység is a helyük része. A sorozat egyre hosszabb lesz.',
+      instruction: {
+        vr:
+          'Kockák lebegnek előtted, három különböző távolságban. Néhány közülük sorban felvillan és megfordul: ' +
+          'jegyezd meg a sorrendet. Utána mutass rájuk a kontroller sugarával ugyanabban a sorrendben, és ' +
+          'mindegyiknél húzd meg a ravaszt. A mélység is a hely része — egy közelebbi és egy távolabbi kocka ' +
+          'két különböző hely. A sorozat egyre hosszabb lesz.',
+        desktop:
+          'Kockák lebegnek előtted, három különböző távolságban. Néhány közülük sorban felvillan és megfordul: ' +
+          'jegyezd meg a sorrendet. Utána kattints rájuk ugyanabban a sorrendben. A mélység is a hely része — ' +
+          'egy közelebbi és egy távolabbi kocka két különböző hely. A sorozat egyre hosszabb lesz.',
+        mobile:
+          'Kockák lebegnek előtted, három különböző távolságban. Néhány közülük sorban felvillan és megfordul: ' +
+          'jegyezd meg a sorrendet. Utána koppints rájuk ugyanabban a sorrendben. A mélység is a hely része — ' +
+          'egy közelebbi és egy távolabbi kocka két különböző hely. A sorozat egyre hosszabb lesz.',
+      },
       controlHint: '',
       trials: 14,
       practiceTrials: 2,
@@ -75,10 +87,20 @@ export class MemoryModule implements AssessmentModule {
     {
       id: 'rotate',
       title: 'ELFORDULT TÉR',
-      instruction:
-        'Ugyanaz, négy elemmel — de a sorozat után elsötétül a kép, és a kockatömb ELFORDULHAT. ' +
-        'Nem fogod látni a fordulást. Amikor visszatér a kép, az ÚJ helyzetben kell megmutatnod ' +
-        'ugyanazt a sorozatot. Néha nem fordul el semmi.',
+      instruction: {
+        vr:
+          'Ugyanaz, négy kockával — de a sorozat után elsötétül a kép, és a kockatömb közben ELFORDULHAT. ' +
+          'A fordulást nem látod. Amikor visszatér a kép, az ÚJ helyzetben mutasd meg ugyanazt a sorozatot ' +
+          'a sugárral és a ravasszal. Néha nem fordul el semmi.',
+        desktop:
+          'Ugyanaz, négy kockával — de a sorozat után elsötétül a kép, és a kockatömb közben ELFORDULHAT. ' +
+          'A fordulást nem látod. Amikor visszatér a kép, az ÚJ helyzetben kattints végig ugyanazon a ' +
+          'sorozaton. Néha nem fordul el semmi.',
+        mobile:
+          'Ugyanaz, négy kockával — de a sorozat után elsötétül a kép, és a kockatömb közben ELFORDULHAT. ' +
+          'A fordulást nem látod. Amikor visszatér a kép, az ÚJ helyzetben koppints végig ugyanazon a ' +
+          'sorozaton. Néha nem fordul el semmi.',
+      },
       controlHint: '',
       trials: 10,
       practiceTrials: 2,
@@ -86,9 +108,17 @@ export class MemoryModule implements AssessmentModule {
     {
       id: 'bind',
       title: 'MI — HOL',
-      instruction:
-        'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. ' +
-        'Ezután eltűnnek, és egyet megmutatok közelről: mutass oda, ahol AZ AZ alakzat volt.',
+      instruction: {
+        vr:
+          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. Aztán eltűnnek, és ' +
+          'egyet közelről megmutatok: mutass a sugárral arra a helyre, ahol AZ AZ alakzat volt, és húzd meg a ravaszt.',
+        desktop:
+          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. Aztán eltűnnek, és ' +
+          'egyet közelről megmutatok: kattints arra a helyre, ahol AZ AZ alakzat volt.',
+        mobile:
+          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. Aztán eltűnnek, és ' +
+          'egyet közelről megmutatok: koppints arra a helyre, ahol AZ AZ alakzat volt.',
+      },
       controlHint: '',
       trials: 12,
       practiceTrials: 2,
@@ -96,9 +126,20 @@ export class MemoryModule implements AssessmentModule {
     {
       id: 'nback',
       title: 'FOLYAMATOS',
-      instruction:
-        'Egy gömb ugrál a helyek között. NYOMD MEG A RAVASZT, valahányszor ugyanoda kerül, ahol KÉT lépéssel ' +
-        'korábban volt. Nem az előzőre — a kettővel korábbira. Ez folyamatos frissítést kíván.',
+      instruction: {
+        vr:
+          'Egy gömb ugrál a helyek között. Húzd meg a ravaszt, valahányszor UGYANODA kerül, ahol KÉT lépéssel ' +
+          'korábban volt — nem az előző helyre, a kettővel korábbira. Ha nem egyezik, ne csinálj semmit. ' +
+          'Ehhez folyamatosan fejben kell tartanod az utolsó két helyet.',
+        desktop:
+          'Egy gömb ugrál a helyek között. Nyomd meg a SZÓKÖZT, valahányszor UGYANODA kerül, ahol KÉT lépéssel ' +
+          'korábban volt — nem az előző helyre, a kettővel korábbira. Ha nem egyezik, ne csinálj semmit. ' +
+          'Ehhez folyamatosan fejben kell tartanod az utolsó két helyet.',
+        mobile:
+          'Egy gömb ugrál a helyek között. Nyomd meg a képernyő alján az UGYANOTT gombot, valahányszor ' +
+          'UGYANODA kerül, ahol KÉT lépéssel korábban volt — nem az előző helyre, a kettővel korábbira. Ha nem ' +
+          'egyezik, ne csinálj semmit. Ehhez folyamatosan fejben kell tartanod az utolsó két helyet.',
+      },
       controlHint: '',
       trials: 40,
       practiceTrials: 3,
@@ -106,9 +147,20 @@ export class MemoryModule implements AssessmentModule {
     {
       id: 'interfere',
       title: 'ZAVARÁS UTÁN',
-      instruction:
-        'Négy elemű sorozat, majd nyolc másodperc várakozás. A várakozás alatt néha egy mozgó gömböt ' +
-        'kell követned a mutatóval. Utána jön a felidézés — a sorozat közben is meg kell maradnia.',
+      instruction: {
+        vr:
+          'Négy kockás sorozat, utána nyolc másodperc várakozás. A várakozás alatt néha egy mozgó gömb ' +
+          'jelenik meg: tartsd rajta a kontroller sugarát, amíg el nem tűnik. Csak utána jön a felidézés — ' +
+          'a sorozatnak a zavarás alatt is meg kell maradnia a fejedben.',
+        desktop:
+          'Négy kockás sorozat, utána nyolc másodperc várakozás. A várakozás alatt néha egy mozgó gömb ' +
+          'jelenik meg: kövesd az egérkurzorral, amíg el nem tűnik. Csak utána jön a felidézés — a sorozatnak ' +
+          'a zavarás alatt is meg kell maradnia a fejedben.',
+        mobile:
+          'Négy kockás sorozat, utána nyolc másodperc várakozás. A várakozás alatt néha egy mozgó gömb ' +
+          'jelenik meg: tartsd rajta az ujjad, amíg el nem tűnik. Csak utána jön a felidézés — a sorozatnak ' +
+          'a zavarás alatt is meg kell maradnia a fejedben.',
+      },
       controlHint: '',
       trials: 8,
       practiceTrials: 1,
@@ -228,7 +280,7 @@ export class MemoryModule implements AssessmentModule {
     if (!mc) return;
     if (this.currentBlock === 'nback') {
       mc.set({
-        hint: 'Nyomd meg a gombot, valahányszor a gömb ugyanoda kerül, ahol két lépéssel korábban volt.',
+        hint: 'UGYANOTT, valahányszor a gömb oda kerül, ahol két lépéssel korábban volt.',
         buttons: [{
           id: 'match', label: 'UGYANOTT', variant: 'primary', wide: true, action: 'PRIMARY',
         }],
@@ -242,20 +294,26 @@ export class MemoryModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(block: BlockId): string {
     const p = this.ctx.platform;
-    const press = p === 'vr' ? 'a ravasszal' : p === 'mobile' ? 'koppintással' : 'kattintással';
     switch (block) {
       case 'nback':
-        return p === 'vr'
-          ? 'Húzd meg a ravaszt, ha a gömb ugyanott van, mint két lépéssel korábban.'
-          : p === 'mobile'
-            ? 'Koppints, ha a gömb ugyanott van, mint két lépéssel korábban.'
-            : 'Nyomj SZÓKÖZT, ha a gömb ugyanott van, mint két lépéssel korábban.';
+        return p === 'vr' ? 'RAVASZ, ha a gömb ugyanott van, mint két lépéssel korábban.'
+          : p === 'mobile' ? 'UGYANOTT gomb, ha a gömb ugyanott van, mint két lépéssel korábban.'
+          : 'SZÓKÖZ, ha a gömb ugyanott van, mint két lépéssel korábban.';
       case 'bind':
-        return `Mutass ${press} arra a helyre, ahol a megmutatott alakzat volt.`;
+        return p === 'vr' ? 'Sugár a helyre + RAVASZ, ahol a megmutatott alakzat volt.'
+          : p === 'mobile' ? 'Koppints a helyre, ahol a megmutatott alakzat volt.'
+          : 'Kattints a helyre, ahol a megmutatott alakzat volt.';
+      case 'interfere':
+        return p === 'vr' ? 'Sugár a kockákra + RAVASZ, sorrendben · a mozgó gömbön tartsd a sugarat.'
+          : p === 'mobile' ? 'Koppints a kockákra sorrendben · a mozgó gömbön tartsd az ujjad.'
+          : 'Kattints a kockákra sorrendben · a mozgó gömböt kövesd az egérrel.';
       default:
-        return `Mutass ${press} a kockákra abban a sorrendben, ahogy felvillantak.`;
+        return p === 'vr' ? 'Sugár a kockákra + RAVASZ, abban a sorrendben, ahogy felvillantak.'
+          : p === 'mobile' ? 'Koppints a kockákra abban a sorrendben, ahogy felvillantak.'
+          : 'Kattints a kockákra abban a sorrendben, ahogy felvillantak.';
     }
   }
 

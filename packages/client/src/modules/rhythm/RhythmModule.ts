@@ -74,13 +74,24 @@ export class RhythmModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.RHYTHM!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'tone',
       title: 'HANGRA',
-      instruction:
-        'Hallani fogsz egy egyenletes ütemet. Nyomd meg a ravaszt MINDEN ÜTEMRE, pontosan akkor, ' +
-        'amikor megszólal. Aztán a hang elhallgat — te viszont ugyanabban a tempóban kopogj tovább, ' +
-        'amíg meg nem állítalak.',
+      instruction: {
+        vr:
+          'Egyenletes ütemet fogsz hallani. Húzd meg a ravaszt MINDEN ütemre, pontosan akkor, amikor ' +
+          'megszólal. Egy idő után a hang elhallgat — te viszont ugyanabban a tempóban húzd tovább, amíg ' +
+          'meg nem állítalak.',
+        desktop:
+          'Egyenletes ütemet fogsz hallani. Nyomd meg a SZÓKÖZT MINDEN ütemre, pontosan akkor, amikor ' +
+          'megszólal. Egy idő után a hang elhallgat — te viszont ugyanabban a tempóban nyomd tovább, amíg ' +
+          'meg nem állítalak.',
+        mobile:
+          'Egyenletes ütemet fogsz hallani. Koppints a képernyőre MINDEN ütemre, pontosan akkor, amikor ' +
+          'megszólal. Egy idő után a hang elhallgat — te viszont ugyanabban a tempóban koppints tovább, amíg ' +
+          'meg nem állítalak.',
+      },
       controlHint: '',
       trials: 3,
       practiceTrials: 1,
@@ -89,9 +100,17 @@ export class RhythmModule implements AssessmentModule {
     {
       id: 'visual',
       title: 'LÁTVÁNYRA',
-      instruction:
-        'Most nincs hang. Az ütemet LÁTNI fogod: egy gömb érkezik a gyűrűhöz. Akkor nyomj, amikor a gömb ' +
-        'a gyűrűben van. Néha csak felvillan, néha áthalad, néha feléd jön, néha oldalt.',
+      instruction: {
+        vr:
+          'Most nincs hang: az ütemet LÁTNI fogod. Egy gömb érkezik a gyűrűhöz — húzd meg a ravaszt akkor, ' +
+          'amikor a gömb pontosan a gyűrűben van. Hol csak felvillan, hol áthalad, hol feléd jön, hol oldalt.',
+        desktop:
+          'Most nincs hang: az ütemet LÁTNI fogod. Egy gömb érkezik a gyűrűhöz — nyomd meg a SZÓKÖZT akkor, ' +
+          'amikor a gömb pontosan a gyűrűben van. Hol csak felvillan, hol áthalad.',
+        mobile:
+          'Most nincs hang: az ütemet LÁTNI fogod. Egy gömb érkezik a gyűrűhöz — koppints akkor, amikor a ' +
+          'gömb pontosan a gyűrűben van. Hol csak felvillan, hol áthalad.',
+      },
       controlHint: '',
       trials: 4,
       practiceTrials: 1,
@@ -101,8 +120,8 @@ export class RhythmModule implements AssessmentModule {
       id: 'tempo',
       title: 'TEMPÓVÁLTÁS',
       instruction:
-        'Ugyanaz, hanggal — de a tempó menet közben megváltozik, bejelentés nélkül. ' +
-        'Amint észreveszed, igazodj hozzá.',
+        'Ugyanaz, hanggal — de a tempó menet közben, bejelentés nélkül megváltozik. Amint észreveszed, ' +
+        'igazodj az új tempóhoz.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -111,9 +130,20 @@ export class RhythmModule implements AssessmentModule {
     {
       id: 'poly',
       title: 'KÉT KÉZ',
-      instruction:
-        'Két gömb kering, különböző sebességgel. A BAL kezed a KÖZELEBBIHEZ, a JOBB a TÁVOLABBIHOZ ' +
-        'tartozik. Mindkettőre nyomj, amikor a saját gyűrűjébe ér. Ez nehéz — nem baj, ha nem tökéletes.',
+      instruction: {
+        vr:
+          'Két gömb kering, különböző sebességgel. A BAL kezed a KÖZELEBBI gömbhöz tartozik, a JOBB a ' +
+          'TÁVOLABBIHOZ. Húzd meg a megfelelő ravaszt, amikor a gömb a saját gyűrűjébe ér — mindkét kézzel, ' +
+          'ki-ki a sajátjára. Ez nehéz; nem baj, ha nem tökéletes.',
+        desktop:
+          'Két gömb kering, különböző sebességgel. A BAL gömbhöz az F billentyű tartozik, a JOBBHOZ a J. ' +
+          'Nyomd meg a megfelelőt, amikor a gömb a saját gyűrűjébe ér — mindkét kézzel, ki-ki a sajátjára. ' +
+          'Ez nehéz; nem baj, ha nem tökéletes.',
+        mobile:
+          'Két gömb kering, különböző sebességgel. A BAL gömbhöz a képernyő bal fele tartozik, a JOBBHOZ a ' +
+          'jobb fele. Koppints a megfelelő oldalon, amikor a gömb a saját gyűrűjébe ér — mindkét hüvelykkel, ' +
+          'ki-ki a sajátjára. Ez nehéz; nem baj, ha nem tökéletes.',
+      },
       controlHint: '',
       trials: 2,
       practiceTrials: 1,
@@ -209,11 +239,12 @@ export class RhythmModule implements AssessmentModule {
     void ang;
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'RAVASZ: ütem · BAL/JOBB RAVASZ: keresztritmus';
-      case 'desktop': return 'SZÓKÖZ: ütem · F / J: keresztritmus';
-      default: return 'KOPPINTÁS: ütem · bal/jobb oldal: keresztritmus';
+      case 'vr': return 'RAVASZ minden ütemre · két kéznél: BAL ravasz → közelebbi, JOBB ravasz → távolabbi';
+      case 'desktop': return 'SZÓKÖZ minden ütemre · két kéznél: F → bal gömb, J → jobb gömb';
+      default: return 'Koppints minden ütemre · két kéznél: bal képernyőfél → bal gömb, jobb fél → jobb gömb';
     }
   }
 

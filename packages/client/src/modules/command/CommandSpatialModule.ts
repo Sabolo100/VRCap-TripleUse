@@ -45,13 +45,25 @@ export class CommandSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.COMMAND!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'roundA',
       title: '1. KÖR — VEZETŐ NÉLKÜL',
-      instruction:
-        'Egy térbeli szerkezet lebeg köztetek. A blokkok TAKARJÁK EGYMÁST, ezért mindenki mást lát — ' +
-        'és senki nem látja az összeset. Állapodjatok meg, hány darab van minden színből. ' +
-        'Vigyázzatok: amit ketten láttok, azt csak egyszer szabad számolni.',
+      instruction: {
+        vr:
+          'Egy térbeli szerkezet lebeg köztetek, színes blokkokból. A blokkok TAKARJÁK EGYMÁST, ezért ' +
+          'mindenki mást lát a saját helyéről — és senki nem látja az összeset. Fordulj, nézd meg, amit ' +
+          'onnan látsz, és beszéljétek meg, hány blokk van minden színből. A számokat a táblán állítjátok be. ' +
+          'Vigyázzatok: amit ketten láttok, azt csak egyszer szabad számolni.',
+        desktop:
+          'Egy térbeli szerkezet lebeg köztetek, színes blokkokból. A blokkok TAKARJÁK EGYMÁST, ezért ' +
+          'mindenki mást lát a saját helyéről — és senki nem látja az összeset. A te nézőpontod rögzített: ' +
+          'nézd meg, amit onnan látsz, és beszéljétek meg, hány blokk van minden színből. A számokat a táblán ' +
+          'állítjátok be, kattintással. Vigyázzatok: amit ketten láttok, azt csak egyszer szabad számolni.',
+        mobile:
+          'Egy térbeli szerkezet lebeg köztetek, színes blokkokból. A blokkok takarják egymást, ezért ' +
+          'mindenki mást lát. Beszéljétek meg, hány blokk van minden színből, és állítsátok be a táblán.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -60,8 +72,8 @@ export class CommandSpatialModule implements AssessmentModule {
       id: 'roundB',
       title: '2. KÖR — KIJELÖLT PARANCSNOK',
       instruction:
-        'Új szerkezet, és most kijelölt parancsnok vezeti a leltárt. A többiek jelentik, amit látnak. ' +
-        'A nézőpontok is változtak — amit az előbb láttál, most lehet, hogy takarásban van.',
+        'Új szerkezet, és most kijelölt parancsnok vezeti a leltárt: a többiek jelentik, amit látnak, ő ' +
+        'állítja be a számokat. A nézőpontok is változtak — amit az előbb láttál, most lehet, hogy takarásban van.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -145,10 +157,11 @@ export class CommandSpatialModule implements AssessmentModule {
     }));
   }
 
+
   private controlHint(): string {
     return this.ctx.platform === 'vr'
-      ? 'Fordulj körbe és nézd meg a szerkezetet minden irányból, amit elérsz. A számokat a táblán állítod.'
-      : 'Nézd meg a szerkezetet. A számokat a táblán állítod. A nézőpontod rögzített — ez a lényeg.';
+      ? 'Fordulj, és nézd meg a szerkezetet, amerre csak látod · a számokat a táblán állítod, sugár + RAVASZ'
+      : 'A nézőpontod rögzített — ez a lényeg · a számokat a táblán állítod, kattintással';
   }
 
   /* ---------------------------------------------------------- lobby */

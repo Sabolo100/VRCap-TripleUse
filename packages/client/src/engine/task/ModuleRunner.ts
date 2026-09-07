@@ -4,6 +4,7 @@ import type { DomainCode, RunMode, RunPayload, RunHeader, VariantId } from '@vrc
 import type { Engine } from '../core/Engine.js';
 import { Panel } from '../ui/Panel.js';
 import { FLAT_HUD } from '../ui/viewport.js';
+import { resolveText } from './text.js';
 import type { PanelManager, PanelClickEvent } from '../ui/PanelManager.js';
 import { Recorder } from '../data/Recorder.js';
 import { MobileControls } from '../ui/MobileControls.js';
@@ -560,15 +561,28 @@ export class ModuleRunner {
         ui.label(
           this.tryOut
             ? `KIPRÓBÁLÁS · ${this.blockIndex + 1}. RÉSZ`
-            : `BLOKK ${this.blockIndex + 1} / ${this.opts.module.blocks.length}`,
+            : `${this.blockIndex + 1}. RÉSZ / ${this.opts.module.blocks.length}`,
           pad, 52, this.tryOut ? t.accent2 : t.accent
         );
         ui.title(b.title, pad, 108, 52);
-        let y = ui.paragraph(b.instruction, pad, 164, ui.w - pad * 2, { size: 29, lineHeight: 44, color: t.text });
+        // The instruction has to fit above the control box, the practice note
+        // and the button. A four-station briefing is three times the length of
+        // "press when it flashes", so the size steps down until it fits rather
+        // than running off the bottom of the panel under the button.
+        const text = resolveText(b.instruction, this.ctx.platform);
+        const budget = ui.h - 104 - 12 - 66 - 130 - 22 - 164;
+        const steps: [number, number][] = [[29, 44], [26, 39], [24, 35], [22, 31], [20, 28]];
+        let [size, lineHeight] = steps[steps.length - 1]!;
+        for (const [sz, lh] of steps) {
+          if (ui.measureParagraph(text, ui.w - pad * 2, sz) * lh <= budget) { size = sz; lineHeight = lh; break; }
+        }
+        let y = ui.paragraph(text, pad, 164, ui.w - pad * 2, { size, lineHeight, color: t.text });
         y += 22;
         ui.roundRect(pad, y, ui.w - pad * 2, 104, 12, withAlpha(t.accent, 0.1), withAlpha(t.accent, 0.4), 2);
         ui.label('IRÁNYÍTÁS', pad + 22, y + 26, t.accent, 17);
-        ui.paragraph(b.controlHint, pad + 22, y + 44, ui.w - pad * 2 - 44, { size: 24, color: t.text, maxLines: 2 });
+        const hintSize = ui.measureParagraph(b.controlHint, ui.w - pad * 2 - 44, 24) > 2 ? 21 : 24;
+        ui.paragraph(b.controlHint, pad + 22, y + 44, ui.w - pad * 2 - 44,
+          { size: hintSize, color: t.text, maxLines: 2 });
         y += 130;
         const practiceNote = this.tryOut
           ? 'Kipróbálás: ez a rész magában fut le, visszajelzéssel. Nem számít bele az eredménybe, ' +
@@ -576,7 +590,7 @@ export class ModuleRunner {
           : b.practiceTrials > 0
           ? `${b.practiceTrials} gyakorló próba következik visszajelzéssel, utána ${b.trials} mért próba.`
           : `${b.trials} mért próba, visszajelzés nélkül.`;
-        ui.paragraph(practiceNote, pad, y, ui.w - pad * 2, { size: 23 });
+        ui.paragraph(practiceNote, pad, y, ui.w - pad * 2, { size: 23, maxLines: 2 });
         ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, {
           label: this.tryOut ? 'KIPRÓBÁLOM' : b.practiceTrials > 0 ? 'GYAKORLÁS' : 'INDÍTÁS',
           variant: 'primary',

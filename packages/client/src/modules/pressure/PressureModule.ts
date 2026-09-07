@@ -65,13 +65,24 @@ export class PressureModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.PRESSURE!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'baseline',
       title: 'ALAPVONAL',
-      instruction:
-        'Egy alakzat jelenik meg. Most csak a SZÍNE számít: CIÁN → bal, MAGENTA → jobb. ' +
-        'Van bőven időd. Ez a blokk azt méri, mire vagy képes nyugodt körülmények között — ' +
-        'minden későbbi eredményt ehhez viszonyítunk.',
+      instruction: {
+        vr:
+          'Egy alakzat jelenik meg előtted. Most csak a SZÍNE számít: ha CIÁN, húzd meg a BAL ravaszt; ha ' +
+          'MAGENTA, a JOBB ravaszt. Van bőven időd. Ez a rész azt méri, mire vagy képes nyugodt körülmények ' +
+          'között — minden későbbi eredményt ehhez viszonyítunk.',
+        desktop:
+          'Egy alakzat jelenik meg előtted. Most csak a SZÍNE számít: ha CIÁN, nyomd meg az F billentyűt ' +
+          '(vagy a balra nyilat); ha MAGENTA, a J billentyűt (vagy a jobbra nyilat). Van bőven időd. Ez a rész ' +
+          'azt méri, mire vagy képes nyugodt körülmények között — minden későbbi eredményt ehhez viszonyítunk.',
+        mobile:
+          'Egy alakzat jelenik meg előtted. Most csak a SZÍNE számít: ha CIÁN, nyomd meg a képernyő alján ' +
+          'a BAL gombot; ha MAGENTA, a JOBB gombot. Van bőven időd. Ez a rész azt méri, mire vagy képes ' +
+          'nyugodt körülmények között — minden későbbi eredményt ehhez viszonyítunk.',
+      },
       controlHint: '',
       trials: 28,
       practiceTrials: 6,
@@ -79,10 +90,20 @@ export class PressureModule implements AssessmentModule {
     {
       id: 'interference',
       title: 'INTERFERENCIA',
-      instruction:
-        'A jelzés megmondja, melyik dimenzió számít: SZÍN vagy ALAK. ' +
-        'A másik dimenzió szándékosan az ellenkező oldalra fog húzni. Hagyd figyelmen kívül. ' +
-        'CIÁN vagy KOCKA → bal. MAGENTA vagy GÖMB → jobb.',
+      instruction: {
+        vr:
+          'Minden próba elején egy felirat megmondja, mi számít: a SZÍN vagy az ALAK. A másik tulajdonság ' +
+          'szándékosan az ellenkező oldalra fog húzni — hagyd figyelmen kívül. CIÁN vagy KOCKA → BAL ravasz. ' +
+          'MAGENTA vagy GÖMB → JOBB ravasz.',
+        desktop:
+          'Minden próba elején egy felirat megmondja, mi számít: a SZÍN vagy az ALAK. A másik tulajdonság ' +
+          'szándékosan az ellenkező oldalra fog húzni — hagyd figyelmen kívül. CIÁN vagy KOCKA → F billentyű. ' +
+          'MAGENTA vagy GÖMB → J billentyű.',
+        mobile:
+          'Minden próba elején egy felirat megmondja, mi számít: a SZÍN vagy az ALAK. A másik tulajdonság ' +
+          'szándékosan az ellenkező oldalra fog húzni — hagyd figyelmen kívül. CIÁN vagy KOCKA → BAL gomb. ' +
+          'MAGENTA vagy GÖMB → JOBB gomb.',
+      },
       controlHint: '',
       trials: 36,
       practiceTrials: 6,
@@ -91,8 +112,8 @@ export class PressureModule implements AssessmentModule {
       id: 'switching',
       title: 'VÁLTÁS',
       instruction:
-        'Most próbáról próbára változhat, hogy melyik dimenzió számít. ' +
-        'A jelzés mindig megmondja — de csak röviden. Figyelj rá minden alkalommal.',
+        'Most próbáról próbára változhat, hogy a SZÍN vagy az ALAK számít. A felirat minden alkalommal ' +
+        'megmondja — de csak röviden, ezért minden próbán olvasd el. A válaszok ugyanazok, mint eddig.',
       controlHint: '',
       trials: 40,
       practiceTrials: 6,
@@ -101,9 +122,8 @@ export class PressureModule implements AssessmentModule {
       id: 'pressure',
       title: 'NYOMÁS',
       instruction:
-        'Ugyanaz a feladat, de az idő fogyni fog, zavaró hangok szólnak, és látod a sorozatodat. ' +
-        'A blokk közepén a szabály MEG FOG FORDULNI — figyelj a jelzésre. ' +
-        'Nincs benne semmi ijesztő; csak kevesebb idő.',
+        'Ugyanaz a feladat, de mostantól fogy az idő, zavaró hangok szólnak, és látod a saját sorozatodat. ' +
+        'A sorozat közepén a szabály MEGFORDUL — figyelj a jelzésre. Nincs benne semmi ijesztő; csak kevesebb az idő.',
       controlHint: '',
       trials: 44,
       practiceTrials: 4,
@@ -112,8 +132,8 @@ export class PressureModule implements AssessmentModule {
       id: 'recovery',
       title: 'HELYREÁLLÁS',
       instruction:
-        'Vissza az első blokk feltételeihez: csak a SZÍN számít, és újra van bőven idő. ' +
-        'Nincs hang, nincs számláló. Ez azt méri, elmúlt-e a nyomás hatása.',
+        'Vissza az első rész feltételeihez: csak a SZÍN számít, és újra van bőven idő. Nincs hang, nincs ' +
+        'számláló. Ez azt méri, elmúlt-e a nyomás hatása.',
       controlHint: '',
       trials: 24,
       practiceTrials: 0,
@@ -220,14 +240,15 @@ export class PressureModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr':
-        return 'CIÁN vagy KOCKA → bal ravasz. MAGENTA vagy GÖMB → jobb ravasz.';
+        return 'CIÁN vagy KOCKA → BAL ravasz · MAGENTA vagy GÖMB → JOBB ravasz';
       case 'mobile':
-        return 'CIÁN vagy KOCKA → a képernyő alján a BAL gomb. MAGENTA vagy GÖMB → a JOBB gomb.';
+        return 'CIÁN vagy KOCKA → BAL gomb · MAGENTA vagy GÖMB → JOBB gomb';
       default:
-        return 'CIÁN vagy KOCKA → F billentyű (vagy balra nyíl). MAGENTA vagy GÖMB → J billentyű (vagy jobbra nyíl).';
+        return 'CIÁN vagy KOCKA → F (vagy ←) · MAGENTA vagy GÖMB → J (vagy →)';
     }
   }
 

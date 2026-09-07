@@ -76,13 +76,30 @@ export class IntentModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.INTENT!;
 
   blocks: BlockDescriptor[] = [
+
     {
       id: 'frontal',
       title: 'MERRE INDUL',
-      instruction:
-        'Az alak elindul bal vagy jobb felé, és menet közben eltűnik — néha korábban, néha később. ' +
-        'Válaszolj nyugodtan, nincs időlimit. Figyelem: néha becsapnak, mert az alak elindul egy ' +
-        'irányba, aztán mégis a másikba megy. Ez a feladat része.',
+      instruction: {
+        vr:
+          'Egy fénypontokból álló alak áll előtted. Elindul balra vagy jobbra, de menet közben eltűnik — ' +
+          'hol korábban, hol később. Mondd meg, merre indult: balra → BAL ravasz, jobbra → JOBB ravasz. ' +
+          'Nincs időlimit, válaszolj nyugodtan. Utána megkérdezem, mennyire voltál biztos benne: a panelen ' +
+          'válaszd a TIPP, TALÁN vagy BIZTOS gombot. Figyelem: az alak néha becsap — elindul az egyik ' +
+          'irányba, aztán mégis a másikba megy. Ez a feladat része.',
+        desktop:
+          'Egy fénypontokból álló alak áll előtted. Elindul balra vagy jobbra, de menet közben eltűnik — ' +
+          'hol korábban, hol később. Mondd meg, merre indult: balra → F billentyű (vagy ←), jobbra → J ' +
+          'billentyű (vagy →). Nincs időlimit, válaszolj nyugodtan. Utána megkérdezem, mennyire voltál ' +
+          'biztos benne: kattints a TIPP, TALÁN vagy BIZTOS gombra. Figyelem: az alak néha becsap — elindul ' +
+          'az egyik irányba, aztán mégis a másikba megy. Ez a feladat része.',
+        mobile:
+          'Egy fénypontokból álló alak áll előtted. Elindul balra vagy jobbra, de menet közben eltűnik — ' +
+          'hol korábban, hol később. Mondd meg, merre indult: a képernyő alján a BAL vagy a JOBB gombbal. ' +
+          'Nincs időlimit, válaszolj nyugodtan. Utána megkérdezem, mennyire voltál biztos benne: TIPP, TALÁN ' +
+          'vagy BIZTOS. Figyelem: az alak néha becsap — elindul az egyik irányba, aztán mégis a másikba megy. ' +
+          'Ez a feladat része.',
+      },
       controlHint: '',
       trials: OCCLUSIONS.length * 2 * FRONTAL_PER_CELL,
       practiceTrials: PRACTICE_TRIALS,
@@ -92,8 +109,9 @@ export class IntentModule implements AssessmentModule {
       id: 'depth',
       title: 'FELÉM VAGY EL',
       instruction:
-        'Most nem oldalra indul, hanem feléd vagy tőled el. Akkorának látszik végig, amekkora — ' +
-        'a távolságát nem a mérete árulja el.',
+        'Az alak most nem oldalra indul, hanem FELÉD vagy TŐLED EL. Végig akkorának látszik, amekkora — a ' +
+        'távolságát nem a mérete árulja el. Ha feléd jött → BAL ravasz, ha tőled el → JOBB ravasz. Utána ' +
+        'ugyanúgy a magabiztosság.',
       controlHint: '',
       trials: DEPTH_TRIALS,
       practiceTrials: 4,
@@ -103,8 +121,8 @@ export class IntentModule implements AssessmentModule {
       id: 'peripheral',
       title: 'OLDALRÓL',
       instruction:
-        'Ugyanaz a feladat, de az alak jóval oldalt jelenik meg. Fordulj felé, ha kell — ' +
-        'a mozdulat akkor is elindul.',
+        'Ugyanaz a feladat, de az alak jóval oldalt jelenik meg, a látómeződ szélén. Fordulj felé, ha kell — ' +
+        'a mozdulat akkor is elindul. Balra → BAL ravasz, jobbra → JOBB ravasz, utána a magabiztosság.',
       controlHint: '',
       trials: PERIPHERAL_TRIALS,
       practiceTrials: 4,
@@ -231,11 +249,12 @@ export class IntentModule implements AssessmentModule {
     this.promptPanel.group.lookAt(this.anchor.origin);
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'BAL / JOBB RAVASZ: az irány · utána a magabiztosság';
-      case 'desktop': return 'F vagy ← : bal · J vagy → : jobb';
-      default: return 'BAL / JOBB gomb, utána a magabiztosság';
+      case 'vr': return 'Balra → BAL ravasz · jobbra → JOBB ravasz · utána TIPP / TALÁN / BIZTOS a panelen';
+      case 'desktop': return 'Balra → F vagy ← · jobbra → J vagy → · utána TIPP / TALÁN / BIZTOS kattintással';
+      default: return 'BAL / JOBB gomb · utána TIPP / TALÁN / BIZTOS gomb';
     }
   }
 

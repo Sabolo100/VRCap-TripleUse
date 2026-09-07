@@ -60,13 +60,24 @@ export class AnticipateSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.ANTICIPATE!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'approach',
       title: 'KÖZELEDÉS',
-      instruction:
-        'Egy gömb indul feléd a távolból, és pontosan akkor kell reagálnod, amikor elérné a fejedet. ' +
-        'Nem oldalra mozog, hanem RÁD jön — a tágulásából tudod megítélni, mikor ér ide. ' +
-        'Nem gyorsnak kell lenned, hanem pontosnak.',
+      instruction: {
+        vr:
+          'Egy gömb indul feléd a távolból — nem oldalra mozog, hanem RÁD jön. Húzd meg a ravaszt pontosan ' +
+          'abban a pillanatban, amikor elérné a fejedet. Azt, hogy mikor ér ide, a tágulásából tudod ' +
+          'megítélni. Nem gyorsnak kell lenned, hanem pontosnak.',
+        desktop:
+          'Egy gömb indul feléd a távolból — nem oldalra mozog, hanem RÁD jön. Nyomd meg a SZÓKÖZT (vagy ' +
+          'kattints) pontosan abban a pillanatban, amikor elérne. Azt, hogy mikor ér ide, a tágulásából tudod ' +
+          'megítélni. Nem gyorsnak kell lenned, hanem pontosnak.',
+        mobile:
+          'Egy gömb indul feléd a távolból — nem oldalra mozog, hanem RÁD jön. Koppints pontosan abban a ' +
+          'pillanatban, amikor elérne. Azt, hogy mikor ér ide, a tágulásából tudod megítélni. Nem gyorsnak ' +
+          'kell lenned, hanem pontosnak.',
+      },
       controlHint: '',
       trials: 18,
       practiceTrials: 5,
@@ -75,8 +86,8 @@ export class AnticipateSpatialModule implements AssessmentModule {
       id: 'occluded',
       title: 'TAKART KÖZELEDÉS',
       instruction:
-        'Ugyanaz, de a gömb az út utolsó szakaszán eltűnik. Neked kell fejben továbbvinned, ' +
-        'és akkor válaszolnod, amikor odaérne. Két különböző takarási hossz lesz.',
+        'Ugyanaz, de a gömb az út utolsó szakaszán eltűnik. Neked kell fejben továbbvinned, és ugyanúgy ' +
+        'jelezned, amikor ideérne. Két különböző takarási hossz lesz.',
       controlHint: '',
       trials: 24,
       practiceTrials: 4,
@@ -85,8 +96,8 @@ export class AnticipateSpatialModule implements AssessmentModule {
       id: 'size',
       title: 'MÉRET',
       instruction:
-        'Most különböző MÉRETŰ gömbök jönnek. A méret nem árulja el, mikor érkeznek — ' +
-        'ugyanúgy kell időzítened mindegyiknél. Figyelj, nehogy a nagyobb korábbinak tűnjön.',
+        'Most különböző MÉRETŰ gömbök jönnek. A méret nem árulja el, mikor érkeznek — ugyanúgy kell időzítened ' +
+        'mindegyiknél. Vigyázz: a nagyobb könnyen tűnik közelebbinek, mint amilyen.',
       controlHint: '',
       trials: 27,
       practiceTrials: 4,
@@ -94,9 +105,17 @@ export class AnticipateSpatialModule implements AssessmentModule {
     {
       id: 'angle',
       title: 'IRÁNY',
-      instruction:
-        'Az utolsó blokk: a gömbök most különböző irányokból érkeznek, nem szemből. ' +
-        'Néha oldalról vagy felülről. Ugyanaz a feladat: nyomd meg a ravaszt akkor, amikor elérné a fejedet.',
+      instruction: {
+        vr:
+          'Az utolsó rész: a gömbök most nem szemből, hanem különböző irányokból érkeznek — hol oldalról, hol ' +
+          'felülről. A feladat ugyanaz: húzd meg a ravaszt akkor, amikor a gömb elérné a fejedet.',
+        desktop:
+          'Az utolsó rész: a gömbök most nem szemből, hanem különböző irányokból érkeznek — hol oldalról, hol ' +
+          'felülről. A feladat ugyanaz: SZÓKÖZ vagy kattintás akkor, amikor a gömb elérne.',
+        mobile:
+          'Az utolsó rész: a gömbök most nem szemből, hanem különböző irányokból érkeznek — hol oldalról, hol ' +
+          'felülről. A feladat ugyanaz: koppints akkor, amikor a gömb elérne.',
+      },
       controlHint: '',
       trials: 20,
       practiceTrials: 4,
@@ -165,12 +184,13 @@ export class AnticipateSpatialModule implements AssessmentModule {
     this.offInput = ctx.engine.input.on((e) => this.onAction(e));
   }
 
+
   private controlHint(): string {
-    const tail = ' Nem kell gyorsnak lenned — pontosnak kell lenned.';
+    const tail = ' Nem gyorsnak kell lenned — pontosnak.';
     switch (this.ctx.platform) {
-      case 'vr': return 'Húzd meg a ravaszt PONTOSAN akkor, amikor a gömb elérné a fejedet.' + tail;
-      case 'mobile': return 'Koppints PONTOSAN akkor, amikor a gömb elérne.' + tail;
-      default: return 'Kattints vagy nyomj SZÓKÖZT PONTOSAN akkor, amikor a gömb elérne.' + tail;
+      case 'vr': return 'RAVASZ pontosan akkor, amikor a gömb elérné a fejedet.' + tail;
+      case 'mobile': return 'Koppints pontosan akkor, amikor a gömb elérne.' + tail;
+      default: return 'SZÓKÖZ vagy kattintás pontosan akkor, amikor a gömb elérne.' + tail;
     }
   }
 

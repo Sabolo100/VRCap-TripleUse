@@ -97,12 +97,33 @@ export class MultiModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.MULTI!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'baseline',
       title: 'EGYESÉVEL',
-      instruction:
-        'Négy állomás van. Most mindegyiket külön kapod meg, hogy kiderüljön, mire vagy képes, ' +
-        'amikor csak egy dolgod van. Ez lesz az összehasonlítási alap.',
+      instruction: {
+        vr:
+          'Négy állomás vesz körül. KÖVETÉS: egy korong sodródik — a BAL kar mozgatásával tartsd a gyűrű ' +
+          'közepén. RENDSZER: két jelzőfény és négy skála — amelyik eltér a normálistól, arra mutass a jobb ' +
+          'kontrollerrel, és húzd meg a ravaszt. TARTÁLYOK: két tartály szintjét tartsd a zöld sávban a ' +
+          'szivattyúk ki-bekapcsolásával (mutass rá, ravasz). RÁDIÓ: hívások érkeznek — csak a SAJÁT ' +
+          'hívójeledre válaszolj, a mondott csatorna kiválasztásával. Most mindegyiket külön kapod, egyenként ' +
+          '50 másodpercre: ez lesz az összehasonlítási alap.',
+        desktop:
+          'Négy állomás lesz előtted. KÖVETÉS: egy korong sodródik — a WASD vagy a nyíl billentyűkkel tartsd ' +
+          'a gyűrű közepén. RENDSZER: két jelzőfény és négy skála — amelyik eltér a normálistól, arra ' +
+          'kattints. TARTÁLYOK: két tartály szintjét tartsd a zöld sávban a szivattyúk ki-bekapcsolásával ' +
+          '(kattints a szivattyúra). RÁDIÓ: hívások érkeznek — csak a SAJÁT hívójeledre válaszolj, a mondott ' +
+          'csatornára kattintva. Most mindegyiket külön kapod, egyenként 50 másodpercre: ez lesz az ' +
+          'összehasonlítási alap.',
+        mobile:
+          'Négy állomás lesz előtted. KÖVETÉS: egy korong sodródik — a bal alsó sarokban lévő karral, a bal ' +
+          'hüvelykujjaddal tartsd a gyűrű közepén. RENDSZER: két jelzőfény és négy skála — amelyik eltér a ' +
+          'normálistól, arra koppints. TARTÁLYOK: két tartály szintjét tartsd a zöld sávban a szivattyúk ' +
+          'ki-bekapcsolásával (koppints a szivattyúra). RÁDIÓ: hívások érkeznek — csak a SAJÁT hívójeledre ' +
+          'válaszolj, a mondott csatornára koppintva. Most mindegyiket külön kapod, egyenként 50 másodpercre: ' +
+          'ez lesz az összehasonlítási alap.',
+      },
       controlHint: '',
       trials: 4,
       practiceTrials: 4,
@@ -111,9 +132,20 @@ export class MultiModule implements AssessmentModule {
     {
       id: 'dual',
       title: 'KETTŐ EGYSZERRE',
-      instruction:
-        'Most a KÖVETÉS és a RENDSZER megy egyszerre. A kar a bal kezedben marad, ' +
-        'a válasz a jobbal megy.',
+      instruction: {
+        vr:
+          'Most a KÖVETÉS és a RENDSZER megy egyszerre. A bal kezed a karon marad és tartja a korongot ' +
+          'középen; a jobb kezeddel közben mutatsz és válaszolsz a rendszerállomáson. Nem lehet mindkettőt ' +
+          'tökéletesen — az a kérdés, hogyan osztod meg a figyelmed.',
+        desktop:
+          'Most a KÖVETÉS és a RENDSZER megy egyszerre. A bal kezed a WASD-n marad és tartja a korongot ' +
+          'középen; a jobb kezeddel közben az egérrel kattintasz a rendszerállomáson. Nem lehet mindkettőt ' +
+          'tökéletesen — az a kérdés, hogyan osztod meg a figyelmed.',
+        mobile:
+          'Most a KÖVETÉS és a RENDSZER megy egyszerre. A bal hüvelykujjad a karon marad és tartja a korongot ' +
+          'középen; a jobb hüvelykujjaddal közben koppintasz a rendszerállomáson. Nem lehet mindkettőt ' +
+          'tökéletesen — az a kérdés, hogyan osztod meg a figyelmed.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -122,9 +154,18 @@ export class MultiModule implements AssessmentModule {
     {
       id: 'load',
       title: 'MIND A NÉGY',
-      instruction:
-        'Mind a négy állomás egyszerre, két szakaszban. A második szakaszban sűrűbben történnek ' +
-        'a dolgok. Nem lehet mindent tökéletesen csinálni — az a kérdés, mit engedsz el.',
+      instruction: {
+        vr:
+          'Mind a négy állomás egyszerre, két szakaszban. Az állomások körülötted vannak, ezért egyszerre ' +
+          'legfeljebb kettőt látsz — fordulj oda, amelyikre figyelni akarsz. A második szakaszban sűrűbben ' +
+          'történnek a dolgok. Nem lehet mindent tökéletesen csinálni: az a kérdés, mit engedsz el.',
+        desktop:
+          'Mind a négy állomás egyszerre, két szakaszban — mind a négy a képernyőn van. A második szakaszban ' +
+          'sűrűbben történnek a dolgok. Nem lehet mindent tökéletesen csinálni: az a kérdés, mit engedsz el.',
+        mobile:
+          'Mind a négy állomás egyszerre, két szakaszban — mind a négy a képernyőn van. A második szakaszban ' +
+          'sűrűbben történnek a dolgok. Nem lehet mindent tökéletesen csinálni: az a kérdés, mit engedsz el.',
+      },
       controlHint: '',
       trials: 2,
       practiceTrials: 1,
@@ -305,11 +346,12 @@ export class MultiModule implements AssessmentModule {
     this.statusPanel.group.lookAt(origin);
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'BAL KAR: követés · JOBB RAVASZ: válasz az állomásokon';
-      case 'desktop': return 'WASD vagy nyilak: követés · KATTINTÁS: válasz az állomásokon';
-      default: return 'BAL HÜVELYK: kar · KOPPINTÁS: válasz az állomásokon';
+      case 'vr': return 'BAL kar: követés · JOBB kontroller sugara + RAVASZ: válasz az állomásokon';
+      case 'desktop': return 'WASD vagy nyilak: követés · kattintás: válasz az állomásokon';
+      default: return 'Bal hüvelyk a karon: követés · koppintás: válasz az állomásokon';
     }
   }
 
@@ -339,8 +381,10 @@ export class MultiModule implements AssessmentModule {
 
     this.setStatus(
       ctx.platform === 'vr'
-        ? 'Fordulj körbe egyszer, hogy lásd mind a négy állomást. Ha kész vagy, nyomd meg a ravaszt.'
-        : 'Ha kész vagy, nyomd meg a gombot.'
+        ? 'Fordulj körbe egyszer, hogy lásd mind a négy állomást. Ha kész vagy, húzd meg a ravaszt.'
+        : ctx.platform === 'mobile'
+          ? 'Ha kész vagy, nyomd meg a KÉSZ VAGYOK gombot.'
+          : 'Ha kész vagy, nyomd meg a SZÓKÖZT vagy kattints.'
     );
     this.ctx.mobileControls?.set({
       hint: `A hívójeled: ${sign}`,
@@ -446,7 +490,11 @@ export class MultiModule implements AssessmentModule {
     for (const id of active) this.lastSeen.set(id, t0);
     this.facing = null;
 
-    this.setStatus(active.map((id) => STATION_LABEL[id]).join(' · '));
+    // A single station gets its own one-line instruction; several get the
+    // names, because there is no room to explain four things at once.
+    this.setStatus(active.length === 1
+      ? `${STATION_LABEL[active[0]!]} — ${this.stationHints()[active[0]!]}`
+      : active.map((id) => STATION_LABEL[id]).join(' · '));
     this.setControls(active);
 
     this.ctx.recorder.event('phase_start', {
@@ -499,16 +547,38 @@ export class MultiModule implements AssessmentModule {
     return out.sort((a, b) => a.t - b.t);
   }
 
+  /** One line per station, naming the control this device actually has. */
+  private stationHints(): Record<StationId, string> {
+    switch (this.ctx.platform) {
+      case 'vr':
+        return {
+          track: 'Tartsd a korongot a gyűrű közepén a bal karral.',
+          monitor: 'Mutass arra az elemre, ami eltér, és húzd meg a ravaszt.',
+          resource: 'Tartsd mindkét tartályt a zöld sávban — a szivattyúra mutatva kapcsolod.',
+          comm: 'Csak a saját hívójeledre válaszolj: mutass a mondott csatornára, ravasz.',
+        };
+      case 'desktop':
+        return {
+          track: 'Tartsd a korongot a gyűrű közepén a WASD-vel vagy a nyilakkal.',
+          monitor: 'Kattints arra az elemre, ami eltér.',
+          resource: 'Tartsd mindkét tartályt a zöld sávban — a szivattyúra kattintva kapcsolod.',
+          comm: 'Csak a saját hívójeledre válaszolj: kattints a mondott csatornára.',
+        };
+      default:
+        return {
+          track: 'Tartsd a korongot a gyűrű közepén a bal alsó karral.',
+          monitor: 'Koppints arra az elemre, ami eltér.',
+          resource: 'Tartsd mindkét tartályt a zöld sávban — a szivattyúra koppintva kapcsolod.',
+          comm: 'Csak a saját hívójeledre válaszolj: koppints a mondott csatornára.',
+        };
+    }
+  }
+
   private setControls(active: StationId[]): void {
     const mc = this.ctx.mobileControls;
     if (!mc) return;
     const hasTrack = active.includes('track');
-    const hints: Record<StationId, string> = {
-      track: 'Tartsd a korongot a gyűrű közepén.',
-      monitor: 'Koppints arra az elemre, ami eltér.',
-      resource: 'Tartsd mindkét tartályt a zöld sávban.',
-      comm: 'Csak a saját hívójeledre válaszolj.',
-    };
+    const hints = this.stationHints();
     mc.set({
       // Never `look` here: this module times every response, and drag-to-turn
       // defers PRIMARY to pointerup. There is also nothing to turn towards -

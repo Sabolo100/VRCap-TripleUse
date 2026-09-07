@@ -96,12 +96,25 @@ export class ProtocolModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.PROTOCOL!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'learn',
       title: 'TANULÁS',
-      instruction:
-        'Hat állomás vesz körül. Háromszor végigvezetlek az eljáráson: mindig a kivilágított ' +
-        'kezelőszervet működtesd. Negyedszerre már magadtól — jegyezd meg a sorrendet.',
+      instruction: {
+        vr:
+          'Hat sorszámozott állomás vesz körül, mindegyiken három kezelőszerv: kapcsoló, szelep és ' +
+          'visszaigazoló gomb. Az eljárás tíz lépés, meghatározott sorrendben. Háromszor végigvezetlek rajta: ' +
+          'mindig a kivilágított kezelőszerv felé fordulj, mutass rá a sugárral, és húzd meg a ravaszt. ' +
+          'Negyedszerre már magadtól kell — jegyezd meg a sorrendet.',
+        desktop:
+          'Hat sorszámozott állomás lesz előtted, mindegyiken három kezelőszerv: kapcsoló, szelep és ' +
+          'visszaigazoló gomb. Az eljárás tíz lépés, meghatározott sorrendben. Háromszor végigvezetlek rajta: ' +
+          'mindig a kivilágított kezelőszervre kattints. Negyedszerre már magadtól kell — jegyezd meg a sorrendet.',
+        mobile:
+          'Hat sorszámozott állomás lesz előtted, mindegyiken három kezelőszerv: kapcsoló, szelep és ' +
+          'visszaigazoló gomb. Az eljárás tíz lépés, meghatározott sorrendben. Háromszor végigvezetlek rajta: ' +
+          'mindig a kivilágított kezelőszervre koppints. Negyedszerre már magadtól kell — jegyezd meg a sorrendet.',
+      },
       controlHint: '',
       trials: GUIDED_PASSES + 1,
       practiceTrials: 0,
@@ -110,7 +123,10 @@ export class ProtocolModule implements AssessmentModule {
     {
       id: 'baseline',
       title: 'ALAPVONAL',
-      instruction: 'Most kivilágítás nélkül, ugyanabban a sorrendben. Kétszer, nyugodt tempóban.',
+      instruction:
+        'Most kivilágítás nélkül hajtsd végre az eljárást, ugyanabban a sorrendben. Kétszer, nyugodt ' +
+        'tempóban. Ha eltévesztesz egy lépést, az eljárás nem lép tovább: a következő helyes lépés ' +
+        'ugyanaz marad.',
       controlHint: '',
       trials: 2,
       practiceTrials: 0,
@@ -119,9 +135,20 @@ export class ProtocolModule implements AssessmentModule {
     {
       id: 'interrupted',
       title: 'MEGSZAKÍTÁS',
-      instruction:
-        'Ugyanez, de közben kétszer félbeszakítalak egy rövid másik feladattal. ' +
-        'Utána onnan folytasd, ahol abbahagytad.',
+      instruction: {
+        vr:
+          'Ugyanez, de közben kétszer félbeszakítalak egy rövid másik feladattal: egy panel jelenik meg négy ' +
+          'alakzattal, és azt kell megmutatnod, melyik nem illik a többihez. Ha végeztél vele, fordulj vissza ' +
+          'az eljáráshoz, és folytasd pontosan onnan, ahol abbahagytad.',
+        desktop:
+          'Ugyanez, de közben kétszer félbeszakítalak egy rövid másik feladattal: egy panel jelenik meg négy ' +
+          'alakzattal, és arra kell kattintanod, amelyik nem illik a többihez. Ha végeztél vele, folytasd az ' +
+          'eljárást pontosan onnan, ahol abbahagytad.',
+        mobile:
+          'Ugyanez, de közben kétszer félbeszakítalak egy rövid másik feladattal: egy panel jelenik meg négy ' +
+          'alakzattal, és arra kell koppintanod, amelyik nem illik a többihez. Ha végeztél vele, folytasd az ' +
+          'eljárást pontosan onnan, ahol abbahagytad.',
+      },
       controlHint: '',
       trials: 2,
       practiceTrials: 0,
@@ -131,8 +158,9 @@ export class ProtocolModule implements AssessmentModule {
       id: 'revised',
       title: 'NYOMÁS ÉS VÁLTOZÁS',
       instruction:
-        'Két menet. Az elsőben fogy az idő. A második előtt megváltoztatom az eljárás egy lépését — ' +
-        'egyszer mondom el.',
+        'Két menet. Az elsőben fogy az idő — egy számláló mutatja —, de a sorrend fontosabb, mint a ' +
+        'sebesség. A második előtt megváltoztatom az eljárás egy lépését, és ezt csak egyszer mondom el; ' +
+        'utána az új lépés szerint hajtsd végre.',
       controlHint: '',
       trials: 2,
       practiceTrials: 0,
@@ -300,11 +328,12 @@ export class ProtocolModule implements AssessmentModule {
     this.statusPanel.group.lookAt(this.anchor.origin);
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'RAVASZ a kezelőszerven · fordulj az állomás felé';
-      case 'desktop': return 'KATTINTÁS a kezelőszerven';
-      default: return 'KOPPINTS a kezelőszervre';
+      case 'vr': return 'Fordulj az állomás felé · sugár a kezelőszervre + RAVASZ';
+      case 'desktop': return 'Kattints a kezelőszervre';
+      default: return 'Koppints a kezelőszervre';
     }
   }
 

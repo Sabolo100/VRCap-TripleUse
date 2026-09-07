@@ -66,12 +66,14 @@ export class PressureSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.PRESSURE!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'baseline',
       title: 'ALAPVONAL',
       instruction:
-        'Színes gömbök jelennek meg körülötted. Csak a SZÍN számít: CIÁN → bal, MAGENTA → jobb. ' +
-        'Az, hogy hol jelenik meg, teljesen lényegtelen. Van bőven időd.',
+        'Színes gömbök jelennek meg körülötted, hol itt, hol ott. Csak a SZÍN számít: ha CIÁN, húzd meg a ' +
+        'BAL ravaszt; ha MAGENTA, a JOBB ravaszt. Az, hogy hol jelenik meg a gömb, teljesen lényegtelen. ' +
+        'Van bőven időd.',
       controlHint: '',
       trials: 28,
       practiceTrials: 6,
@@ -80,9 +82,9 @@ export class PressureSpatialModule implements AssessmentModule {
       id: 'simon',
       title: 'HELY–VÁLASZ ÜTKÖZÉS',
       instruction:
-        'Ugyanaz a szabály, de most a gömbök gyakran a válasszal ELLENTÉTES oldalon jelennek meg: ' +
-        'a bal oldalon felvillanó magenta gömbre is jobbal kell válaszolnod. A helyét hagyd figyelmen kívül — ' +
-        'nehezebb lesz, mint hangzik.',
+        'Ugyanaz a szabály, de a gömbök most gyakran a válasszal ELLENTÉTES oldalon jelennek meg: a bal ' +
+        'oldalon felvillanó magenta gömbre is a JOBB ravasz a helyes. A helyét hagyd figyelmen kívül — ' +
+        'nehezebb, mint hangzik.',
       controlHint: '',
       trials: 40,
       practiceTrials: 6,
@@ -91,8 +93,9 @@ export class PressureSpatialModule implements AssessmentModule {
       id: 'depthsimon',
       title: 'MÉLYSÉGI ÜTKÖZÉS',
       instruction:
-        'Most a válasz iránya előre-hátra: TOLD ELŐRE a kontrollert a távoli válaszhoz, HÚZD VISSZA a közelihez. ' +
-        'A gömb hol közel, hol távol jelenik meg — és ez is ütközhet a helyes válasszal.',
+        'Most a válasz iránya előre-hátra. Ha a szín a TÁVOLI (narancssárga) gyűrűt kéri, TOLD ELŐRE a ' +
+        'kontrollert odáig; ha a KÖZELIT (kék), HÚZD VISSZA. A gömb hol közel, hol távol jelenik meg — és ' +
+        'a helye itt is ütközhet a helyes válasszal.',
       controlHint: '',
       trials: 36,
       practiceTrials: 6,
@@ -101,9 +104,9 @@ export class PressureSpatialModule implements AssessmentModule {
       id: 'squeeze',
       title: 'NYOMÁS',
       instruction:
-        'Fogyni fog az idő, zavaró hangok szólnak, és látod a sorozatodat. Közben a látómeződ szélén ' +
-        'is felvillannak fehér gömbök — azokra nyomd meg a MARKOLATGOMBOT (grip), bármelyik kézzel. ' +
-        'Figyeld, meddig veszed észre őket, ahogy nő a nyomás.',
+        'Fogy az idő, zavaró hangok szólnak, és látod a saját sorozatodat. Közben a látómeződ szélén fehér ' +
+        'gömbök villannak fel — azokra a MARKOLATGOMBOT (grip) nyomd meg, bármelyik kézzel. Azt mérjük, ' +
+        'meddig veszed őket észre, ahogy nő a nyomás.',
       controlHint: '',
       trials: 48,
       practiceTrials: 5,
@@ -112,8 +115,8 @@ export class PressureSpatialModule implements AssessmentModule {
       id: 'recovery',
       title: 'HELYREÁLLÁS',
       instruction:
-        'Vissza az első blokk feltételeihez. Nincs hang, nincs számláló, van idő. ' +
-        'Ez azt méri, elmúlt-e a nyomás hatása.',
+        'Vissza az első rész feltételeihez. Nincs hang, nincs számláló, van idő. Ez azt méri, elmúlt-e a ' +
+        'nyomás hatása.',
       controlHint: '',
       trials: 24,
       practiceTrials: 0,
@@ -203,14 +206,15 @@ export class PressureSpatialModule implements AssessmentModule {
     this.offInput = ctx.engine.input.on((e) => this.onAction(e));
   }
 
+
   private controlHint(block: BlockId): string {
     if (block === 'depthsimon') {
-      return 'TOLD ELŐRE a kontrollert a távoli (narancs) gyűrűig, vagy HÚZD VISSZA a közeliig (kék). A szín mondja meg, melyik kell.';
+      return 'TÁVOLI (narancs) gyűrű → told előre a kontrollert · KÖZELI (kék) → húzd vissza. A szín mondja, melyik.';
     }
     if (block === 'squeeze') {
-      return 'CIÁN → bal ravasz, MAGENTA → jobb ravasz. A periférián felvillanó fehér gömbre bármelyik markolattal (grip) reagálj.';
+      return 'CIÁN → BAL ravasz · MAGENTA → JOBB ravasz · fehér villanás a szélén → MARKOLATGOMB (grip)';
     }
-    return 'CIÁN → bal ravasz, MAGENTA → jobb ravasz. Az inger helye lényegtelen.';
+    return 'CIÁN → BAL ravasz · MAGENTA → JOBB ravasz · a gömb helye lényegtelen';
   }
 
   /* -------------------------------------------------- trial generation */

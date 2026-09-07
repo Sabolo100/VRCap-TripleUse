@@ -74,14 +74,27 @@ export class NavModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.NAV!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'tour',
       title: 'BEJÁRÁS',
-      instruction:
-        'A rendszer végigvisz egy útvonalon, megállókkal. Nem kell irányítanod semmit, és nem kell ' +
-        'gombot nyomnod: a dolgod annyi, hogy MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE, és jegyezd meg, melyik ' +
-        'tereptárgy merre van. A nevüket ki is írom. Ezt az útvonalat kell majd egyedül megtenned, ' +
-        'utána pedig irányokat megbecsülnöd — szóval most a körülnézés a feladat.',
+      instruction: {
+        vr:
+          'A rendszer végigvisz egy útvonalon, több megállóval. Nem kell irányítanod semmit és gombot sem ' +
+          'kell nyomnod: a dolgod az, hogy MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE, és jegyezd meg, melyik tereptárgy ' +
+          'merre van — a nevüket ki is írom. Ezt az útvonalat kell majd egyedül végigjárnod, utána pedig ' +
+          'irányokat becsülnöd, ezért most a körülnézés a feladat.',
+        desktop:
+          'A rendszer végigvisz egy útvonalon, több megállóval. A haladás automatikus; a dolgod az, hogy ' +
+          'MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE — az egér húzásával fordulhatsz —, és jegyezd meg, melyik tereptárgy ' +
+          'merre van. A nevüket ki is írom. Ezt az útvonalat kell majd egyedül végigjárnod, utána pedig ' +
+          'irányokat becsülnöd, ezért most a körülnézés a feladat.',
+        mobile:
+          'A rendszer végigvisz egy útvonalon, több megállóval. A haladás automatikus; a dolgod az, hogy ' +
+          'MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE — az ujjad húzásával fordulhatsz —, és jegyezd meg, melyik tereptárgy ' +
+          'merre van. A nevüket ki is írom. Ezt az útvonalat kell majd egyedül végigjárnod, utána pedig ' +
+          'irányokat becsülnöd, ezért most a körülnézés a feladat.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -89,9 +102,20 @@ export class NavModule implements AssessmentModule {
     {
       id: 'retrace',
       title: 'ÚJRAJÁRÁS',
-      instruction:
-        'Most magadnak kell végigmenned ugyanazon az útvonalon. Minden állomáson nyilak mutatják, ' +
-        'merre lehet továbbmenni — válaszd azt, amerre az útvonal vezetett. Másodszor visszafelé is meg kell tenned.',
+      instruction: {
+        vr:
+          'Most neked kell végigmenned ugyanazon az útvonalon. Minden megállónál nyilak mutatják, merre lehet ' +
+          'továbbmenni: mutass a sugárral arra, amerre az útvonal vezetett, és húzd meg a ravaszt. Másodszor ' +
+          'visszafelé is meg kell tenned.',
+        desktop:
+          'Most neked kell végigmenned ugyanazon az útvonalon. Minden megállónál nyilak mutatják, merre lehet ' +
+          'továbbmenni: nézz körül az egér húzásával, és kattints arra a nyílra, amerre az útvonal vezetett. ' +
+          'Másodszor visszafelé is meg kell tenned.',
+        mobile:
+          'Most neked kell végigmenned ugyanazon az útvonalon. Minden megállónál nyilak mutatják, merre lehet ' +
+          'továbbmenni: nézz körül az ujjad húzásával, és koppints arra a nyílra, amerre az útvonal vezetett. ' +
+          'Másodszor visszafelé is meg kell tenned.',
+      },
       controlHint: '',
       trials: 2,
       practiceTrials: 0,
@@ -99,9 +123,21 @@ export class NavModule implements AssessmentModule {
     {
       id: 'jrd',
       title: 'IRÁNYBECSLÉS',
-      instruction:
-        'Sűrű köd ereszkedik le: nem látsz semmit. A rendszer megmondja, hol állsz és merre nézel, ' +
-        'neked pedig meg kell mutatnod, merre van egy harmadik tereptárgy. Csak a fejedben lévő térképre támaszkodhatsz.',
+      instruction: {
+        vr:
+          'Sűrű köd ereszkedik le, nem látsz semmit. Egy felirat megmondja, hol állsz és melyik tereptárgy ' +
+          'felé nézel, neked pedig meg kell mutatnod, merre van egy HARMADIK tereptárgy: fordulj arra, ' +
+          'irányítsd oda a kontroller sugarát, és húzd meg a ravaszt. Csak a fejedben lévő térképre támaszkodhatsz.',
+        desktop:
+          'Sűrű köd ereszkedik le, nem látsz semmit. Egy felirat megmondja, hol állsz és melyik tereptárgy ' +
+          'felé nézel, neked pedig meg kell mutatnod, merre van egy HARMADIK tereptárgy: fordulj arra az egér ' +
+          'húzásával, és kattints abba az irányba. Csak a fejedben lévő térképre támaszkodhatsz.',
+        mobile:
+          'Sűrű köd ereszkedik le, nem látsz semmit. Egy felirat megmondja, hol állsz és melyik tereptárgy ' +
+          'felé nézel, neked pedig meg kell mutatnod, merre van egy HARMADIK tereptárgy: fordulj arra az ujjad ' +
+          'húzásával, úgy, hogy a célkereszt oda mutasson, majd nyomd meg az ERRE VAN gombot. Csak a fejedben ' +
+          'lévő térképre támaszkodhatsz.',
+      },
       controlHint: '',
       trials: 12,
       practiceTrials: 2,
@@ -109,9 +145,20 @@ export class NavModule implements AssessmentModule {
     {
       id: 'triangle',
       title: 'ÚTVONAL-INTEGRÁCIÓ',
-      instruction:
-        'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, ' +
-        'te pedig megmutatod, merre van a kiindulópont, és megbecsülöd, milyen messze.',
+      instruction: {
+        vr:
+          'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, egy kanyarral. ' +
+          'A végén mutasd meg, merre van a KIINDULÓPONT — fordulj arra, sugár és ravasz —, majd a csúszkán ' +
+          'állítsd be, milyen messze lehet, és erősítsd meg.',
+        desktop:
+          'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, egy kanyarral. ' +
+          'A végén mutasd meg, merre van a KIINDULÓPONT — fordulj arra az egér húzásával, és kattints abba az ' +
+          'irányba —, majd a csúszkán állítsd be, milyen messze lehet, és kattints a MEHET gombra.',
+        mobile:
+          'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, egy kanyarral. ' +
+          'A végén mutasd meg, merre van a KIINDULÓPONT — fordulj arra az ujjad húzásával, és nyomd meg az ERRE ' +
+          'VAN gombot —, majd a csúszkán állítsd be, milyen messze lehet, és erősítsd meg.',
+      },
       controlHint: '',
       trials: 8,
       practiceTrials: 1,
@@ -119,9 +166,18 @@ export class NavModule implements AssessmentModule {
     {
       id: 'map',
       title: 'TÉRKÉP',
-      instruction:
-        'Kapsz egy felülnézeti térképet, amelyen az állomások látszanak. Hol vagy rajta, és merre nézel? ' +
-        'A térkép mindig északra van tájolva — te nem feltétlenül.',
+      instruction: {
+        vr:
+          'Kapsz egy felülnézeti térképet, amelyen a megállók látszanak. A kérdés: hol vagy rajta, és merre ' +
+          'nézel? Mutass a sugárral a térkép helyes pontjára, és húzd meg a ravaszt. A térkép mindig északra ' +
+          'van tájolva — te nem feltétlenül.',
+        desktop:
+          'Kapsz egy felülnézeti térképet, amelyen a megállók látszanak. A kérdés: hol vagy rajta, és merre ' +
+          'nézel? Kattints a térkép helyes pontjára. A térkép mindig északra van tájolva — te nem feltétlenül.',
+        mobile:
+          'Kapsz egy felülnézeti térképet, amelyen a megállók látszanak. A kérdés: hol vagy rajta, és merre ' +
+          'nézel? Koppints a térkép helyes pontjára. A térkép mindig északra van tájolva — te nem feltétlenül.',
+      },
       controlHint: '',
       trials: 8,
       practiceTrials: 1,
@@ -240,32 +296,30 @@ export class NavModule implements AssessmentModule {
     this.offPanel = ctx.panels.onClick((e) => this.onPanelClick(e));
   }
 
+
   private controlHint(block: BlockId): string {
-    const vr = this.ctx.platform === 'vr';
+    const p = this.ctx.platform;
     switch (block) {
       case 'tour':
-        return vr ? 'Nézz körül szabadon. A haladás automatikus.'
-          : this.ctx.platform === 'mobile'
-            ? 'Húzd az ujjad a képernyőn, hogy körülnézz. A haladás automatikus.'
-            : 'Nézz körül az egeret húzva. A haladás automatikus.';
+        return p === 'vr' ? 'Nézz körül szabadon. A haladás automatikus.'
+          : p === 'mobile' ? 'Húzd az ujjad a képernyőn a körülnézéshez. A haladás automatikus.'
+          : 'Húzd az egeret a körülnézéshez. A haladás automatikus.';
       case 'retrace':
-        return vr ? 'Mutass a ravasszal arra a nyílra, amerre menni akarsz.'
-          : this.ctx.platform === 'mobile'
-            ? 'Húzással nézz körül, majd koppints arra a nyílra, amerre menni akarsz.'
-            : 'Kattints arra a nyílra, amerre menni akarsz.';
+        return p === 'vr' ? 'Sugár a nyílra + RAVASZ, amerre az útvonal vezetett.'
+          : p === 'mobile' ? 'Húzással nézz körül, majd koppints a nyílra, amerre az útvonal vezetett.'
+          : 'Húzással nézz körül, majd kattints a nyílra, amerre az útvonal vezetett.';
       case 'jrd':
-        return vr ? 'Fordulj a becsült irányba, és húzd meg a ravaszt.'
-          : this.ctx.platform === 'mobile'
-            ? 'Húzással fordulj a becsült irány felé, majd nyomd meg az ERRE VAN gombot.'
-            : 'Fordítsd a kurzort a becsült irányba és kattints.';
+        return p === 'vr' ? 'Fordulj a becsült irányba, sugár arra + RAVASZ.'
+          : p === 'mobile' ? 'Húzással fordulj a becsült irányba (célkereszt), majd ERRE VAN gomb.'
+          : 'Húzással fordulj a becsült irányba, majd kattints abba az irányba.';
       case 'triangle':
-        return vr ? 'Mutass a kiindulópont felé és húzd meg a ravaszt, majd állítsd be a távolságot.'
-          : this.ctx.platform === 'mobile'
-            ? 'Fordulj a kiindulópont felé, nyomd meg az ERRE VAN gombot, majd állítsd be a távolságot a csúszkán.'
-            : 'Kattints a becsült irányba, majd állítsd be a távolságot.';
+        return p === 'vr' ? 'Fordulj a kiindulópont felé, sugár + RAVASZ · majd csúszka és MEHET.'
+          : p === 'mobile' ? 'Fordulj a kiindulópont felé, ERRE VAN gomb · majd csúszka és erősítsd meg.'
+          : 'Fordulj a kiindulópont felé, kattints arra · majd csúszka és MEHET.';
       case 'map':
-        return vr ? 'Mutass a térképen a helyes pontra és húzd meg a ravaszt.'
-          : 'Kattints a térképen a helyes pontra.';
+        return p === 'vr' ? 'Sugár a térkép helyes pontjára + RAVASZ.'
+          : p === 'mobile' ? 'Koppints a térkép helyes pontjára.'
+          : 'Kattints a térkép helyes pontjára.';
     }
   }
 
@@ -518,6 +572,7 @@ export class NavModule implements AssessmentModule {
       case 'triangle': await this.runTriangle(count); break;
       case 'map': await this.runMap(count); break;
     }
+    if (this.ctx.platform === 'desktop') this.ctx.engine.input.setTouchLook('off');
   }
 
   /* ---------------------------------------------------------- 1: tour */
@@ -850,7 +905,11 @@ export class NavModule implements AssessmentModule {
       const trueDistance = Math.hypot(end.x - start.x, end.z - start.z);
 
       this.promptText = 'Merre van a kiindulópont?';
-      this.promptSub = 'Fordulj a becsült irányba és erősítsd meg.';
+      this.promptSub = this.ctx.platform === 'vr'
+        ? 'Fordulj a becsült irányba, mutass oda, és húzd meg a ravaszt.'
+        : this.ctx.platform === 'mobile'
+          ? 'Fordulj a becsült irányba, és nyomd meg az ERRE VAN gombot.'
+          : 'Fordulj a becsült irányba, és kattints arra.';
       this.promptMode = 'point';
       this.positionPrompt();
       this.promptPanel.group.visible = true;
@@ -862,7 +921,7 @@ export class NavModule implements AssessmentModule {
       if (this.aborted) return;
 
       this.promptText = 'Milyen messze van?';
-      this.promptSub = 'Állítsd be a csúszkán, majd erősítsd meg.';
+      this.promptSub = 'Állítsd be a csúszkán, majd nyomd meg a MEHET gombot.';
       this.promptMode = 'distance';
       this.distanceValue = 12;
       this.positionPrompt();
@@ -1043,6 +1102,14 @@ export class NavModule implements AssessmentModule {
    * phone user tries first.
    */
   private setupTouchControls(block: BlockId): void {
+    // A laptop has no thumbstick and no head to turn, and until now no way to
+    // look round at all - the tour said "drag the mouse to look around" and
+    // dragging did nothing. The drag-to-look the phone uses is a pointer
+    // gesture, so it works for a mouse too; the map is the one block that
+    // must not turn, because the map itself is what gets clicked.
+    if (this.ctx.platform === 'desktop') {
+      this.ctx.engine.input.setTouchLook(block === 'map' ? 'off' : 'yaw');
+    }
     const mc = this.ctx.mobileControls;
     if (!mc) return;
     switch (block) {
@@ -1511,6 +1578,7 @@ export class NavModule implements AssessmentModule {
   }
 
   dispose(ctx: ModuleContext): void {
+    if (ctx.platform === 'desktop') ctx.engine.input.setTouchLook('off');
     this.offInput?.();
     this.offPanel?.();
     this.hideEdgeArrows();

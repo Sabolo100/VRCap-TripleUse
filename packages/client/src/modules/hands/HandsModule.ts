@@ -116,12 +116,14 @@ export class HandsModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.HANDS!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'pegs',
       title: 'PÁLCIKÁK',
       instruction:
-        'A tálcáról vedd fel a pálcikát, és engedd el a kivilágított furat fölött. ' +
-        'Előbb az egyik kezeddel, aztán a másikkal, végül mindkettővel egyszerre. ' +
+        'Előtted egy döntött tábla: két oldalán tálcák pálcikákkal, középen furatok. Vedd fel a pálcikát a ' +
+        'tálcáról — nyúlj oda a kontrollerrel, és tartsd lenyomva a ravaszt —, vidd a kivilágított furat fölé, ' +
+        'és ott engedd el a ravaszt. Előbb az egyik kezeddel, aztán a másikkal, végül mindkettővel egyszerre. ' +
         'Ne siess jobban, mint amennyire pontos tudsz maradni.',
       controlHint: '',
       trials: 3,
@@ -132,8 +134,8 @@ export class HandsModule implements AssessmentModule {
       id: 'grooved',
       title: 'KULCSOS PÁLCIKÁK',
       instruction:
-        'Ugyanez, de a pálcika oldalán bordázat van, a furatban pedig horony. ' +
-        'El kell forgatnod a csuklóddal, hogy beférjen.',
+        'Ugyanez, de a pálcika oldalán bordázat van, a furatban pedig horony. Forgasd el a csuklóddal úgy, ' +
+        'hogy a bordázat a horonyba illeszkedjen — másképp nem fér be.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -143,8 +145,9 @@ export class HandsModule implements AssessmentModule {
       id: 'wire',
       title: 'PÁLYA',
       instruction:
-        'Fogd meg a gyűrűt, és vidd végig a dróton úgy, hogy ne érjen hozzá. ' +
-        'Ha hozzáér, hangot ad — nem kell újrakezdened, csak menj tovább.',
+        'Egy hajlított drót lebeg előtted, a bal végén egy gyűrűvel. Fogd meg a gyűrűt (ravasz lenyomva), és ' +
+        'vidd végig a dróton a jobb végéig úgy, hogy a gyűrű ne érjen a dróthoz. Ha hozzáér, hangot ad — nem ' +
+        'kell újrakezdened, csak menj tovább.',
       controlHint: '',
       trials: WIRE_PATHS,
       practiceTrials: 1,
@@ -154,8 +157,9 @@ export class HandsModule implements AssessmentModule {
       id: 'assembly',
       title: 'ÖSSZESZERELÉS',
       instruction:
-        'Tengely, alátét, gallér, alátét — ebben a sorrendben, váltott kézzel. ' +
-        'A két kezed párhuzamosan dolgozhat: amíg az egyik letesz, a másik már veheti a következőt.',
+        'Négy alkatrészt kell egymásra tenned a középső tengelyen: tengely, alátét, gallér, alátét — ebben ' +
+        'a sorrendben, mindig váltott kézzel (tengely jobb, alátét bal, gallér jobb, alátét bal). A két kezed ' +
+        'párhuzamosan dolgozhat: amíg az egyik letesz, a másik már veheti a következőt.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -268,8 +272,9 @@ export class HandsModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(): string {
-    return 'RAVASZ: fogás · engedd el a furat fölött';
+    return 'RAVASZ lenyomva: fogás · engedd el a furat (vagy a tengely) fölött';
   }
 
   /** A direction in the participant's own frame, in world space. */

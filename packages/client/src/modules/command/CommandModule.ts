@@ -42,13 +42,27 @@ export class CommandModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.COMMAND!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'roundA',
       title: '1. KÖR — VEZETŐ NÉLKÜL',
-      instruction:
-        'Nincs kijelölt vezető. A táblán látható adatok egy része hibás, és a javításokat a csapat tagjai ' +
-        'külön-külön ismerik. Osszátok meg, amit tudtok, rendeljetek minden egységet feladathoz, és zárjátok le a tervet. ' +
-        'Csak akkor indul a kiértékelés, ha mindenki készre jelentkezett.',
+      instruction: {
+        vr:
+          'Egy közös tábla körül álltok. A táblán látható adatok egy része hibás, és a javításokat a csapat ' +
+          'tagjai külön-külön tudják — beszéljétek meg. Rendeljetek minden egységet egy feladathoz: mutass ' +
+          'az egységre a sugárral, húzd meg a ravaszt, majd ugyanígy a feladat gyűrűjére. A markolatgombbal ' +
+          'jelölhetsz a táblán. Nincs kijelölt vezető. A kiértékelés akkor indul, ha mindenki készre jelentkezett.',
+        desktop:
+          'Egy közös tábla körül ültök. A táblán látható adatok egy része hibás, és a javításokat a csapat ' +
+          'tagjai külön-külön tudják — beszéljétek meg. Rendeljetek minden egységet egy feladathoz: kattints ' +
+          'az egységre, majd a feladat gyűrűjére. Jobb kattintással jelölhetsz a táblán. Nincs kijelölt ' +
+          'vezető. A kiértékelés akkor indul, ha mindenki készre jelentkezett.',
+        mobile:
+          'Egy közös tábla körül ültök. A táblán látható adatok egy része hibás, és a javításokat a csapat ' +
+          'tagjai külön-külön tudják — beszéljétek meg. Rendeljetek minden egységet egy feladathoz: koppints ' +
+          'az egységre, majd a feladat gyűrűjére. A JELÖLÉS gombbal jelölhetsz a táblán. Nincs kijelölt ' +
+          'vezető. A kiértékelés akkor indul, ha mindenki készre jelentkezett.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -57,8 +71,9 @@ export class CommandModule implements AssessmentModule {
       id: 'roundB',
       title: '2. KÖR — KIJELÖLT PARANCSNOK',
       instruction:
-        'Ebben a körben egy kijelölt parancsnok dönt. A többiek javaslatot tehetnek és információt oszthatnak meg, ' +
-        'de a tervet és a lezárást a parancsnok kezeli. A kör közben új információ érkezik — figyeljétek.',
+        'Ebben a körben egy kijelölt parancsnok dönt. A többiek javaslatot tehetnek és információt ' +
+        'oszthatnak meg, de a tervet és a lezárást a parancsnok kezeli. A kör közben új információ érkezik — ' +
+        'figyeljétek. A kezelés ugyanaz, mint az előbb.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -192,13 +207,13 @@ export class CommandModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(): string {
-    const p = this.ctx.platform;
-    if (p === 'vr')
-      return 'Mutass egy egységre a ravasszal, majd a cél gyűrűjére — ezzel kiosztod. Markolat gomb: jelölés a táblán.';
-    if (p === 'mobile')
-      return 'Koppints egy egységre, majd a cél gyűrűjére. A JELÖLÉS gombbal jelölhetsz a táblán.';
-    return 'Kattints egy egységre, majd a cél gyűrűjére. Jobb gomb: jelölés a táblán.';
+    switch (this.ctx.platform) {
+      case 'vr': return 'Sugár az egységre + RAVASZ, majd a feladat gyűrűjére + RAVASZ · MARKOLATGOMB: jelölés a táblán';
+      case 'mobile': return 'Koppints az egységre, majd a feladat gyűrűjére · JELÖLÉS gomb: jelölés a táblán';
+      default: return 'Kattints az egységre, majd a feladat gyűrűjére · jobb kattintás: jelölés a táblán';
+    }
   }
 
   /* ---------------------------------------------------------- lobby */

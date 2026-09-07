@@ -9,6 +9,7 @@ import type { UITheme } from '../ui/UITheme.js';
 import type { Rng } from '@vrcap/shared';
 import type { AudioSystem } from '../audio/AudioSystem.js';
 import type { MobileControls } from '../ui/MobileControls.js';
+import type { PlatformText } from './text.js';
 
 /**
  * STANDARD MODULE CONTRACT.
@@ -52,8 +53,13 @@ export interface ModuleContext {
 export interface BlockDescriptor {
   id: string;
   title: string;
-  /** One or two sentences shown before the block starts. */
-  instruction: string;
+  /**
+   * What the participant sees before the block starts: what will appear, what
+   * to do about it and with which control, and what counts. Per platform where
+   * the control differs - a trigger, a key and a button are not the same
+   * sentence - or one string where the task honestly reads the same.
+   */
+  instruction: PlatformText;
   /** Platform-specific control hint, filled in by the module. */
   controlHint: string;
   trials: number;

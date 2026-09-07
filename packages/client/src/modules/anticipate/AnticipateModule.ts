@@ -59,12 +59,24 @@ export class AnticipateModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.ANTICIPATE!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'visible',
       title: 'LÁTHATÓ PÁLYA',
-      instruction:
-        'Egy gömb indul el a sínen a fehér cél felé. NYOMD MEG A RAVASZT pontosan akkor, amikor a gömb elérné a célt. ' +
-        'Ez nem reakcióteszt: nem gyorsnak kell lenned, hanem pontosnak. Nyugodtan válaszolhatsz korábban is.',
+      instruction: {
+        vr:
+          'Egy gömb indul el egy sínen, egy fehér cél felé. Húzd meg a ravaszt PONTOSAN abban a pillanatban, ' +
+          'amikor a gömb elérné a célt. Ez nem gyorsasági feladat: nem gyorsnak kell lenned, hanem pontosnak, ' +
+          'ezért nyugodtan indulhat előbb a mozdulatod.',
+        desktop:
+          'Egy gömb indul el egy sínen, egy fehér cél felé. Nyomd meg a SZÓKÖZT (vagy kattints) PONTOSAN ' +
+          'abban a pillanatban, amikor a gömb elérné a célt. Ez nem gyorsasági feladat: nem gyorsnak kell ' +
+          'lenned, hanem pontosnak, ezért nyugodtan indulhat előbb a mozdulatod.',
+        mobile:
+          'Egy gömb indul el egy sínen, egy fehér cél felé. Nyomd meg a képernyő alján a MOST gombot PONTOSAN ' +
+          'abban a pillanatban, amikor a gömb elérné a célt. Ez nem gyorsasági feladat: nem gyorsnak kell ' +
+          'lenned, hanem pontosnak.',
+      },
       controlHint: '',
       trials: 16,
       practiceTrials: 5,
@@ -73,8 +85,8 @@ export class AnticipateModule implements AssessmentModule {
       id: 'short',
       title: 'RÖVID TAKARÁS',
       instruction:
-        'Ugyanaz a feladat, de a gömb az út utolsó harmadában ELTŰNIK. ' +
-        'Neked kell fejben továbbvinned, és akkor válaszolnod, amikor odaérne.',
+        'Ugyanaz a feladat, de a gömb az út utolsó harmadában ELTŰNIK. Neked kell fejben továbbvinned, ' +
+        'és ugyanúgy jelezned, amikor odaérne a célhoz.',
       controlHint: '',
       trials: 20,
       practiceTrials: 3,
@@ -83,8 +95,8 @@ export class AnticipateModule implements AssessmentModule {
       id: 'long',
       title: 'HOSSZÚ TAKARÁS',
       instruction:
-        'Most a gömb már az út közepe előtt eltűnik: az utolsó 60%-ot vakon kell megbecsülnöd. ' +
-        'Ez nehéz — a szórás a normális.',
+        'Most a gömb már az út közepe előtt eltűnik: az út utolsó 60%-át vakon kell megbecsülnöd. ' +
+        'Ez nehéz — az ingadozás természetes.',
       controlHint: '',
       trials: 20,
       practiceTrials: 3,
@@ -93,8 +105,8 @@ export class AnticipateModule implements AssessmentModule {
       id: 'speed',
       title: 'SEBESSÉG',
       instruction:
-        'A gömb néha gyorsan, néha lassan indul. Figyeld meg a sebességét, mielőtt eltűnik — ' +
-        'ehhez kell igazítanod a becslést. Ugyanaz a válasz nem lesz jó minden sebességnél.',
+        'A gömb hol gyorsan, hol lassan indul. Figyeld meg a sebességét, mielőtt eltűnik, és ehhez igazítsd ' +
+        'a becslést — ugyanaz az időzítés nem lesz jó minden sebességnél.',
       controlHint: '',
       trials: 24,
       practiceTrials: 3,
@@ -103,8 +115,8 @@ export class AnticipateModule implements AssessmentModule {
       id: 'change',
       title: 'VÁLTOZÓ SEBESSÉG',
       instruction:
-        'Az utolsó blokk. Itt a gömb a takarás alatt megváltoztathatja a sebességét — ' +
-        'gyorsulhat vagy lassulhat. Nem fogod látni. Próbáld úgy időzíteni, ahogy a legjobbnak érzed.',
+        'Az utolsó rész. Itt a gömb a takarás alatt meg is változtathatja a sebességét — gyorsulhat vagy ' +
+        'lassulhat, és ezt nem látod. Időzíts úgy, ahogy a legjobbnak érzed.',
       controlHint: '',
       trials: 16,
       practiceTrials: 3,
@@ -211,22 +223,20 @@ export class AnticipateModule implements AssessmentModule {
    */
   private setupTouchControls(): void {
     this.ctx.mobileControls?.set({
-      hint: 'Nyomd meg pontosan akkor, amikor a gömb elérné a fehér célt.',
+      hint: 'MOST — pontosan akkor, amikor a gömb elérné a fehér célt.',
       buttons: [{
         id: 'now', label: 'MOST', variant: 'primary', wide: true, action: 'PRIMARY',
       }],
     });
   }
 
+
   private controlHint(): string {
-    const base = ' Nem kell gyorsnak lenned — pontosnak kell lenned.';
+    const base = ' Nem gyorsnak kell lenned — pontosnak.';
     switch (this.ctx.platform) {
-      case 'vr':
-        return 'Húzd meg a ravaszt PONTOSAN akkor, amikor a gömb elérné a fehér célt.' + base;
-      case 'mobile':
-        return 'Nyomd meg a MOST gombot pontosan akkor, amikor a gömb elérné a fehér célt.' + base;
-      default:
-        return 'Kattints vagy nyomj SZÓKÖZT PONTOSAN akkor, amikor a gömb elérné a fehér célt.' + base;
+      case 'vr': return 'RAVASZ pontosan akkor, amikor a gömb elérné a fehér célt.' + base;
+      case 'mobile': return 'MOST gomb pontosan akkor, amikor a gömb elérné a fehér célt.' + base;
+      default: return 'SZÓKÖZ vagy kattintás pontosan akkor, amikor a gömb elérné a fehér célt.' + base;
     }
   }
 

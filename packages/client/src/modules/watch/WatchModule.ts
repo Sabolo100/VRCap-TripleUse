@@ -109,13 +109,26 @@ export class WatchModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.WATCH!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'calibration',
       title: 'KALIBRÁCIÓ',
-      instruction:
-        'Körülötted fények pulzálnak, mind egyszerre. NYOMD MEG A RAVASZT, valahányszor BÁRMELYIK kilép a közös ütemből: ' +
-        'kihagy egy pulzust, duplán villan, színt vált, vagy elmozdul. Ebben a rövid blokkban sűrűn lesznek események — ' +
-        'ez méri, mit veszel észre pihenten.',
+      instruction: {
+        vr:
+          'Körülötted fények pulzálnak, mind ugyanabban az ütemben. Az a dolgod, hogy észrevedd, ha BÁRMELYIK ' +
+          'kilép a közös ütemből: kihagy egy pulzust, duplán villan, színt vált vagy elmozdul. Amint ilyet látsz, ' +
+          'húzd meg a ravaszt. Ebben a rövid részben sűrűn lesznek események — ez azt méri, mit veszel észre pihenten.',
+        desktop:
+          'Előtted fények pulzálnak, mind ugyanabban az ütemben. Az a dolgod, hogy észrevedd, ha BÁRMELYIK ' +
+          'kilép a közös ütemből: kihagy egy pulzust, duplán villan, színt vált vagy elmozdul. Amint ilyet látsz, ' +
+          'nyomd meg a SZÓKÖZT (vagy kattints). Ebben a rövid részben sűrűn lesznek események — ez azt méri, mit ' +
+          'veszel észre pihenten.',
+        mobile:
+          'Előtted fények pulzálnak, mind ugyanabban az ütemben. Az a dolgod, hogy észrevedd, ha BÁRMELYIK ' +
+          'kilép a közös ütemből: kihagy egy pulzust, duplán villan, színt vált vagy elmozdul. Amint ilyet látsz, ' +
+          'nyomd meg a képernyő alján az ELTÉRÉS gombot. Ebben a rövid részben sűrűn lesznek események — ez azt ' +
+          'méri, mit veszel észre pihenten.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -123,10 +136,19 @@ export class WatchModule implements AssessmentModule {
     {
       id: 'watchA',
       title: 'SZOLGÁLAT A',
-      instruction:
-        'Négy perc figyelés. Az események most jóval ritkábbak, és bárhol történhetnek — akár mögötted is. ' +
-        'Fordulj körbe folyamatosan: amit nem nézel, azt nem látod. A hátad mögött induló eltérés hosszabb ' +
-        'ideig marad, hogy legyen időd megfordulni és megtalálni. Nem kapsz visszajelzést; ez szándékos.',
+      instruction: {
+        vr:
+          'Négy perc figyelés. Az események most jóval ritkábbak, és bárhol történhetnek — akár a hátad ' +
+          'mögött is. Fordulj körbe folyamatosan: amit nem nézel, azt nem látod. A hátad mögött induló eltérés ' +
+          'tovább marad, hogy legyen időd megfordulni. Ugyanúgy a ravasszal jelezz. Visszajelzést nem kapsz — ' +
+          'ez szándékos.',
+        desktop:
+          'Négy perc figyelés. Az események most jóval ritkábbak, és a rács bármelyik pontján történhetnek, ' +
+          'a szélein is. Ugyanúgy a SZÓKÖZZEL (vagy kattintással) jelezz. Visszajelzést nem kapsz — ez szándékos.',
+        mobile:
+          'Négy perc figyelés. Az események most jóval ritkábbak, és a rács bármelyik pontján történhetnek, ' +
+          'a szélein is. Ugyanúgy az ELTÉRÉS gombbal jelezz. Visszajelzést nem kapsz — ez szándékos.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -134,9 +156,17 @@ export class WatchModule implements AssessmentModule {
     {
       id: 'watchB',
       title: 'SZOLGÁLAT B',
-      instruction:
-        'Még négy perc. A rács most lassan forogni fog körülötted, tehát a fények helye folyamatosan változik. ' +
-        'Néha hang is jelezhet eseményt — arról az irányból, ahol történt.',
+      instruction: {
+        vr:
+          'Még négy perc. A rács most lassan forog körülötted, tehát a fények helye folyamatosan változik. ' +
+          'Néha hang is jelezhet eseményt — abból az irányból, ahol történt. Ugyanúgy a ravasszal jelezz.',
+        desktop:
+          'Még négy perc. A rács most lassan forog, tehát a fények helye folyamatosan változik. Néha hang is ' +
+          'jelezhet eseményt. Ugyanúgy a SZÓKÖZZEL (vagy kattintással) jelezz.',
+        mobile:
+          'Még négy perc. A rács most lassan forog, tehát a fények helye folyamatosan változik. Néha hang is ' +
+          'jelezhet eseményt. Ugyanúgy az ELTÉRÉS gombbal jelezz.',
+      },
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -219,15 +249,16 @@ export class WatchModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr':
-        return 'Fordulj körbe nyugodtan — az események bárhol történhetnek, akár mögötted is. ' +
-          'Húzd meg a ravaszt, amint bármelyik fény kilép a közös ütemből.';
+        return 'Fordulj körbe nyugodtan — az események a hátad mögött is történhetnek. ' +
+          'RAVASZ, amint bármelyik fény kilép a közös ütemből.';
       case 'mobile':
-        return 'A képernyő alján az ELTÉRÉS gombra koppints, amint bármelyik fény kilép a közös ütemből.';
+        return 'ELTÉRÉS gomb a képernyő alján, amint bármelyik fény kilép a közös ütemből.';
       default:
-        return 'Kattints vagy nyomj SZÓKÖZT, amint bármelyik fény kilép a közös ütemből.';
+        return 'SZÓKÖZ vagy kattintás, amint bármelyik fény kilép a közös ütemből.';
     }
   }
 

@@ -60,12 +60,24 @@ export class ReactModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.REACT!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'simple',
       title: 'EGYSZERŰ REAKCIÓ',
-      instruction:
-        'Egyetlen gömb van előtted. Amikor felvillan, NYOMD MEG A RAVASZT a lehető leggyorsabban. ' +
-        'Ne találgass: a korai válasz hibának számít. A várakozási idő szándékosan kiszámíthatatlan.',
+      instruction: {
+        vr:
+          'Előtted egyetlen gömb lebeg. Amint felvillan, húzd meg a ravaszt — bármelyik kézzel — a lehető ' +
+          'leggyorsabban. Ne találgass: ha a villanás előtt húzod meg, az hibának számít. A várakozás ' +
+          'szándékosan kiszámíthatatlan, hol rövid, hol hosszú.',
+        desktop:
+          'Előtted egyetlen gömb lebeg. Amint felvillan, nyomd meg a SZÓKÖZT (vagy kattints) a lehető ' +
+          'leggyorsabban. Ne találgass: ha a villanás előtt nyomsz, az hibának számít. A várakozás ' +
+          'szándékosan kiszámíthatatlan, hol rövid, hol hosszú.',
+        mobile:
+          'Előtted egyetlen gömb lebeg. Amint felvillan, koppints bárhol a képernyőn a lehető ' +
+          'leggyorsabban. Ne találgass: ha a villanás előtt koppintasz, az hibának számít. A várakozás ' +
+          'szándékosan kiszámíthatatlan, hol rövid, hol hosszú.',
+      },
       controlHint: '',
       trials: 24,
       practiceTrials: 5,
@@ -73,9 +85,18 @@ export class ReactModule implements AssessmentModule {
     {
       id: 'choice',
       title: 'VÁLASZTÁSOS REAKCIÓ',
-      instruction:
-        'A gömb két szín egyikében villan fel. PIROS esetén a bal, KÉK esetén a jobb oldali válasz kell. ' +
-        'A pontosság fontosabb, mint a sebesség — de mindkettőt mérjük.',
+      instruction: {
+        vr:
+          'A gömb PIROS vagy KÉK színben villan fel. Ha PIROS, húzd meg a BAL ravaszt; ha KÉK, a JOBB ' +
+          'ravaszt. A jó válasz fontosabb, mint a gyors — de mindkettőt mérjük.',
+        desktop:
+          'A gömb PIROS vagy KÉK színben villan fel. Ha PIROS, nyomd meg az F billentyűt (vagy a balra ' +
+          'nyilat); ha KÉK, a J billentyűt (vagy a jobbra nyilat). Tartsd a két mutatóujjad az F-en és a ' +
+          'J-n. A jó válasz fontosabb, mint a gyors — de mindkettőt mérjük.',
+        mobile:
+          'A gömb PIROS vagy KÉK színben villan fel. Ha PIROS, nyomd meg a képernyő alján a BAL gombot; ' +
+          'ha KÉK, a JOBB gombot. A jó válasz fontosabb, mint a gyors — de mindkettőt mérjük.',
+      },
       controlHint: '',
       trials: 28,
       practiceTrials: 6,
@@ -83,9 +104,18 @@ export class ReactModule implements AssessmentModule {
     {
       id: 'point',
       title: 'CÉLRA MUTATÁS',
-      instruction:
-        'A célgyűrű véletlenszerű helyen jelenik meg körülötted. Vidd rá a mutatót, és erősítsd meg. ' +
-        'Külön mérjük, mikor indult meg a mozdulat, meddig tartott, és mennyire pontosan ért célba.',
+      instruction: {
+        vr:
+          'Egy célgyűrű jelenik meg, minden alkalommal máshol. Irányítsd rá a kontroller sugarát, és a ' +
+          'gyűrű közepén húzd meg a ravaszt. Külön mérjük, milyen gyorsan indul a mozdulatod, meddig tart, ' +
+          'és milyen pontosan ér célba.',
+        desktop:
+          'Egy célgyűrű jelenik meg, minden alkalommal máshol. Vidd rá az egérkurzort, és a gyűrű közepén ' +
+          'kattints. Külön mérjük, milyen gyorsan indul a mozdulatod, meddig tart, és milyen pontosan ér célba.',
+        mobile:
+          'Egy célgyűrű jelenik meg, minden alkalommal máshol. Koppints a gyűrű közepére — egy koppintás, ' +
+          'egy próba. Azt mérjük, milyen gyorsan és milyen pontosan találod el.',
+      },
       controlHint: '',
       trials: 20,
       practiceTrials: 4,
@@ -93,9 +123,18 @@ export class ReactModule implements AssessmentModule {
     {
       id: 'track',
       title: 'FOLYAMATOS KÖVETÉS',
-      instruction:
-        'A gömb folyamatosan mozog. Tartsd rajta a mutatót, amíg csak tudod. ' +
-        'Nem kell semmit megnyomni — a mérés folyamatos, a célon töltött idő és az eltérés számít.',
+      instruction: {
+        vr:
+          'A gömb folyamatosan mozog. Tartsd rajta a kontroller sugarát, amíg csak tudod — gombot nem kell ' +
+          'nyomnod. Azt mérjük, az idő mekkora részében vagy a célon, és mennyire térsz el tőle.',
+        desktop:
+          'A gömb folyamatosan mozog. Kövesd az egérkurzorral, amíg csak tudod — kattintani nem kell. ' +
+          'Azt mérjük, az idő mekkora részében vagy a célon, és mennyire térsz el tőle.',
+        mobile:
+          'A gömb folyamatosan mozog. Tedd rá az ujjad, és kövesd vele, amíg csak tudod. Ha felemeled az ' +
+          'ujjad, a mérés addig szünetel. Azt mérjük, az idő mekkora részében vagy a célon, és mennyire ' +
+          'térsz el tőle.',
+      },
       controlHint: '',
       trials: 3,
       practiceTrials: 1,
@@ -103,9 +142,19 @@ export class ReactModule implements AssessmentModule {
     {
       id: 'twohand',
       title: 'KÉT KÉZ',
-      instruction:
-        'Két gömb: bal és jobb. Amelyik felvillan, AZON AZ OLDALON húzd meg a ravaszt. ' +
-        'Néha mindkettő egyszerre villan — ilyenkor mindkét ravaszt húzd meg.',
+      instruction: {
+        vr:
+          'Két gömb: egy bal és egy jobb. Amelyik felvillan, azon az oldalon húzd meg a ravaszt — a bal ' +
+          'gömbre a bal kézzel, a jobbra a jobbal. Néha mindkettő egyszerre villan: akkor mindkét ravaszt ' +
+          'húzd meg egyszerre.',
+        desktop:
+          'Két gömb: egy bal és egy jobb. Amelyik felvillan, annak az oldalán nyomj: a bal gömbre az ' +
+          'F billentyűt, a jobbra a J-t. Néha mindkettő egyszerre villan: akkor mindkettőt nyomd meg egyszerre.',
+        mobile:
+          'Két gömb: egy bal és egy jobb. Amelyik felvillan, annak az oldalán nyomd meg a képernyő alján a ' +
+          'gombot: a bal gömbre a BAL, a jobbra a JOBB gombot. Néha mindkettő egyszerre villan: akkor ' +
+          'mindkettőt nyomd meg egyszerre.',
+      },
       controlHint: '',
       trials: 26,
       practiceTrials: 6,
@@ -222,39 +271,30 @@ export class ReactModule implements AssessmentModule {
   }
 
   /** The single place where "how do I respond" is translated per platform. */
+
   private controlHint(block: BlockId): string {
     const p = this.ctx.platform;
     switch (block) {
       case 'simple':
-        return p === 'vr'
-          ? 'Húzd meg bármelyik ravaszt, amint a gömb felvillan.'
-          : p === 'mobile'
-            ? 'Koppints bárhol a képernyőn, amint a gömb felvillan.'
-            : 'Kattints vagy nyomd meg a SZÓKÖZT, amint a gömb felvillan.';
+        return p === 'vr' ? 'Bármelyik RAVASZ, amint a gömb felvillan.'
+          : p === 'mobile' ? 'Koppints bárhol a képernyőn, amint a gömb felvillan.'
+          : 'SZÓKÖZ vagy kattintás, amint a gömb felvillan.';
       case 'choice':
-        return p === 'vr'
-          ? 'PIROS → bal ravasz, KÉK → jobb ravasz.'
-          : p === 'mobile'
-            ? 'PIROS → a képernyő alján a BAL gomb, KÉK → a JOBB gomb.'
-            : 'PIROS → F billentyű vagy balra nyíl, KÉK → J billentyű vagy jobbra nyíl.';
+        return p === 'vr' ? 'PIROS → BAL ravasz · KÉK → JOBB ravasz'
+          : p === 'mobile' ? 'PIROS → BAL gomb · KÉK → JOBB gomb'
+          : 'PIROS → F (vagy ←) · KÉK → J (vagy →)';
       case 'point':
-        return p === 'vr'
-          ? 'Irányítsd a kontroller sugarát a gyűrű közepére, majd húzd meg a ravaszt.'
-          : p === 'mobile'
-            ? 'Koppints közvetlenül a gyűrű közepére. Egy koppintás, egy próba.'
-            : 'Vidd az egeret a gyűrű közepére és kattints.';
+        return p === 'vr' ? 'Sugár a gyűrű közepére, majd RAVASZ.'
+          : p === 'mobile' ? 'Koppints a gyűrű közepére.'
+          : 'Egérkurzor a gyűrű közepére, majd kattintás.';
       case 'track':
-        return p === 'vr'
-          ? 'Tartsd a kontroller sugarát a mozgó gömbön. Nem kell gombot nyomni.'
-          : p === 'mobile'
-            ? 'Tartsd az ujjad a képernyőn és kövesd a gömböt. Ha felemeled, a mérés szünetel.'
-            : 'Kövesd a gömböt az egérrel. Nem kell kattintani.';
+        return p === 'vr' ? 'Tartsd a sugarat a gömbön. Gombot nem kell nyomni.'
+          : p === 'mobile' ? 'Tartsd rajta az ujjad. Ha felemeled, a mérés szünetel.'
+          : 'Kövesd az egérrel. Kattintani nem kell.';
       case 'twohand':
-        return p === 'vr'
-          ? 'Bal gömb → bal ravasz, jobb gömb → jobb ravasz. Ha mindkettő villan, mindkettőt.'
-          : p === 'mobile'
-            ? 'Bal gömb → BAL gomb, jobb gömb → JOBB gomb. Ha mindkettő villan, nyomd meg mindkettőt.'
-            : 'Bal gömb → F billentyű, jobb gömb → J billentyű. Ha mindkettő villan, mindkettőt.';
+        return p === 'vr' ? 'Bal gömb → BAL ravasz · jobb gömb → JOBB ravasz · mindkettő → mindkettő'
+          : p === 'mobile' ? 'Bal gömb → BAL gomb · jobb gömb → JOBB gomb · mindkettő → mindkettő'
+          : 'Bal gömb → F · jobb gömb → J · mindkettő → F és J együtt';
     }
   }
 

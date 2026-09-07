@@ -77,13 +77,24 @@ export class HoldModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.HOLD!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'gonogo',
       title: 'GO / NO-GO',
-      instruction:
-        'Testek repülnek feléd. HÚZD MEG A RAVASZT arra, amelyik PIROS ÉS PULZÁL — még mielőtt ideérne. ' +
-        'A piros, de nem pulzáló testre, és minden kék testre NE nyomj semmit: hagyd elrepülni. ' +
-        'A legtöbb test go lesz — ettől lesz nehéz visszatartani a választ, amikor kell.',
+      instruction: {
+        vr:
+          'Testek repülnek feléd. Húzd meg a ravaszt arra, amelyik PIROS ÉS PULZÁL — még mielőtt ideérne. ' +
+          'A piros, de nem pulzáló testre, és minden kék testre NE csinálj semmit: hagyd elrepülni. A testek ' +
+          'többségére nyomni kell — épp ettől nehéz visszatartani a mozdulatot, amikor nem szabad.',
+        desktop:
+          'Testek repülnek feléd. Nyomd meg a SZÓKÖZT (vagy kattints) arra, amelyik PIROS ÉS PULZÁL — még ' +
+          'mielőtt ideérne. A piros, de nem pulzáló testre, és minden kék testre NE csinálj semmit: hagyd ' +
+          'elrepülni. A testek többségére nyomni kell — épp ettől nehéz visszatartani a mozdulatot, amikor nem szabad.',
+        mobile:
+          'Testek repülnek feléd. Nyomd meg a képernyő alján a MOST gombot arra, amelyik PIROS ÉS PULZÁL — ' +
+          'még mielőtt ideérne. A piros, de nem pulzáló testre, és minden kék testre NE csinálj semmit: hagyd ' +
+          'elrepülni. A testek többségére nyomni kell — épp ettől nehéz visszatartani a mozdulatot, amikor nem szabad.',
+      },
       controlHint: '',
       trials: 60,
       practiceTrials: 8,
@@ -91,10 +102,20 @@ export class HoldModule implements AssessmentModule {
     {
       id: 'stop',
       title: 'STOP-JEL',
-      instruction:
-        'Most MINDEN testre reagálnod kell — kivéve, ha repülés közben FEHÉRRE VÁLT és megszólal egy hang. ' +
-        'Akkor tartsd vissza a választ. A jel néha korán jön, néha az utolsó pillanatban. ' +
-        'Ha egyszer sem sikerül megállnod, az azt jelenti, hogy túl korán kötelezed el magad.',
+      instruction: {
+        vr:
+          'Most MINDEN testre húzd meg a ravaszt — kivéve, ha repülés közben FEHÉRRE VÁLT és megszólal egy ' +
+          'hang. Akkor tartsd vissza a mozdulatot. A jel hol korán jön, hol az utolsó pillanatban. Ha egyszer ' +
+          'sem sikerül megállnod, az azt jelenti, hogy túl korán kötelezed el magad.',
+        desktop:
+          'Most MINDEN testre nyomd meg a SZÓKÖZT (vagy kattints) — kivéve, ha repülés közben FEHÉRRE VÁLT ' +
+          'és megszólal egy hang. Akkor tartsd vissza a mozdulatot. A jel hol korán jön, hol az utolsó ' +
+          'pillanatban. Ha egyszer sem sikerül megállnod, az azt jelenti, hogy túl korán kötelezed el magad.',
+        mobile:
+          'Most MINDEN testre nyomd meg a MOST gombot — kivéve, ha repülés közben FEHÉRRE VÁLT és megszólal ' +
+          'egy hang. Akkor tartsd vissza a mozdulatot. A jel hol korán jön, hol az utolsó pillanatban. Ha egyszer ' +
+          'sem sikerül megállnod, az azt jelenti, hogy túl korán kötelezed el magad.',
+      },
       controlHint: '',
       trials: 56,
       practiceTrials: 8,
@@ -102,9 +123,17 @@ export class HoldModule implements AssessmentModule {
     {
       id: 'trajectory',
       title: 'PÁLYA',
-      instruction:
-        'A szín most nem számít — minden test szürke. Csak arra húzd meg a ravaszt, amelyik ELTALÁLNA. ' +
-        'Amelyik elmegy melletted, arra ne. Ehhez meg kell ítélned, merre tart a test a térben.',
+      instruction: {
+        vr:
+          'A szín most nem számít — minden test szürke. Csak arra húzd meg a ravaszt, amelyik ELTALÁLNA. ' +
+          'Amelyik elmegy melletted, arra ne. Ehhez meg kell ítélned a röppályából, merre tart a test a térben.',
+        desktop:
+          'A szín most nem számít — minden test szürke. Csak arra nyomd meg a SZÓKÖZT (vagy kattints), ' +
+          'amelyik ELTALÁLNA. Amelyik elmegy melletted, arra ne. Ehhez meg kell ítélned a röppályából, merre tart a test.',
+        mobile:
+          'A szín most nem számít — minden test szürke. Csak arra nyomd meg a MOST gombot, amelyik ELTALÁLNA. ' +
+          'Amelyik elmegy melletted, arra ne. Ehhez meg kell ítélned a röppályából, merre tart a test.',
+      },
       controlHint: '',
       trials: 36,
       practiceTrials: 6,
@@ -112,10 +141,20 @@ export class HoldModule implements AssessmentModule {
     {
       id: 'reversal',
       title: 'SZABÁLYVÁLTÁS',
-      instruction:
-        'Ugyanaz a szabály, mint az első blokkban: piros + pulzáló → ravasz. ' +
-        'De a blokk közepén a szabály MEG FOG FORDULNI. Figyelj a jelzésre, mert onnantól ' +
-        'pont az ellenkezője lesz igaz.',
+      instruction: {
+        vr:
+          'Ugyanaz a szabály, mint az első részben: piros ÉS pulzáló → ravasz, minden más → semmi. ' +
+          'De a sorozat közepén a szabály MEGFORDUL, és onnantól pont az ellenkezője lesz igaz. Figyelj a ' +
+          'jelzésre, amikor átfordul.',
+        desktop:
+          'Ugyanaz a szabály, mint az első részben: piros ÉS pulzáló → SZÓKÖZ, minden más → semmi. ' +
+          'De a sorozat közepén a szabály MEGFORDUL, és onnantól pont az ellenkezője lesz igaz. Figyelj a ' +
+          'jelzésre, amikor átfordul.',
+        mobile:
+          'Ugyanaz a szabály, mint az első részben: piros ÉS pulzáló → MOST gomb, minden más → semmi. ' +
+          'De a sorozat közepén a szabály MEGFORDUL, és onnantól pont az ellenkezője lesz igaz. Figyelj a ' +
+          'jelzésre, amikor átfordul.',
+      },
       controlHint: '',
       trials: 40,
       practiceTrials: 4,
@@ -228,17 +267,18 @@ export class HoldModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(block: BlockId): string {
     const p = this.ctx.platform;
-    const press = p === 'vr' ? 'Húzd meg a ravaszt' : p === 'mobile' ? 'Nyomd meg a MOST gombot' : 'Kattints vagy nyomj SZÓKÖZT';
+    const press = p === 'vr' ? 'RAVASZ' : p === 'mobile' ? 'MOST gomb' : 'SZÓKÖZ vagy kattintás';
     switch (block) {
       case 'gonogo':
       case 'reversal':
-        return `${press}, ha a test PIROS ÉS PULZÁL. Minden másra ne nyomj semmit — hagyd elrepülni.`;
+        return `${press}, ha a test PIROS ÉS PULZÁL · minden másra semmi — hagyd elrepülni.`;
       case 'stop':
         return `${press} minden testre — kivéve, ha közben FEHÉRRE VÁLT és megszólal a hang.`;
       case 'trajectory':
-        return `${press} arra, ami ELTALÁLNA. Ami elmegy melletted, arra ne.`;
+        return `${press} arra, ami ELTALÁLNA · ami elmegy melletted, arra semmi.`;
     }
   }
 

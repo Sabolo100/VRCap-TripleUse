@@ -55,13 +55,14 @@ export class ReactSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.REACT!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'reach',
       title: 'NYÚLÁS',
       instruction:
-        'A célgömb karnyújtásnyira jelenik meg — néha közel, néha messzebb, néha oldalt. ' +
-        'Nyúlj oda a kontrollerrel és ÉRINTSD MEG. Nem sugárral kell mutatni: tényleg oda kell nyúlni. ' +
-        'Gyorsan, de pontosan.',
+        'Karnyújtásnyira egy célgömb jelenik meg — hol közel, hol távolabb, hol oldalt. Nyúlj oda a ' +
+        'kontrollerrel, és érintsd meg vele a gömböt; utána térj vissza a kiinduló gyűrűhöz. Itt nem a ' +
+        'sugárral kell mutatni: tényleg oda kell nyúlni. Gyorsan, de pontosan.',
       controlHint: '',
       trials: 27,
       practiceTrials: 6,
@@ -70,8 +71,8 @@ export class ReactSpatialModule implements AssessmentModule {
       id: 'intercept',
       title: 'ELFOGÁS',
       instruction:
-        'Gömbök repülnek feléd. Fogd el őket a kontrollerrel, mielőtt elérnék a fejedet. ' +
-        'Nem elég a jó helyen lenni — a jó pillanatban is ott kell lenned.',
+        'Gömbök repülnek feléd. Üsd el őket a kontrollerrel, mielőtt elérnék a fejedet. Nem elég a jó ' +
+        'helyen lenned — a jó pillanatban is ott kell lenned.',
       controlHint: '',
       trials: 24,
       practiceTrials: 5,
@@ -80,8 +81,8 @@ export class ReactSpatialModule implements AssessmentModule {
       id: 'track3d',
       title: 'TÉRBELI KÖVETÉS',
       instruction:
-        'A gömb most nem csak jobbra-balra mozog, hanem KÖZELEDIK és TÁVOLODIK is. ' +
-        'Tartsd rajta a kontroller hegyét, ameddig csak tudod.',
+        'A gömb most nemcsak jobbra-balra mozog, hanem KÖZELEDIK és TÁVOLODIK is. Tartsd rajta a ' +
+        'kontroller hegyét, ameddig csak tudod — gombot nem kell nyomnod.',
       controlHint: '',
       trials: 3,
       practiceTrials: 1,
@@ -90,8 +91,9 @@ export class ReactSpatialModule implements AssessmentModule {
       id: 'bimanual',
       title: 'KÉT KÉZ, KÉT TÁVOLSÁG',
       instruction:
-        'Két cél jelenik meg egyszerre — az egyik közel, a másik messzebb. A bal kéz a bal célt, ' +
-        'a jobb a jobbat érinti meg. A nehéz rész, hogy a két kéz különböző távolságra nyúl.',
+        'Két cél jelenik meg egyszerre: az egyik közel, a másik távolabb. A bal kezeddel a bal célt, a ' +
+        'jobbal a jobbat érintsd meg — egyszerre. A nehézség az, hogy a két kéznek különböző távolságra ' +
+        'kell nyúlnia.',
       controlHint: '',
       trials: 18,
       practiceTrials: 4,
@@ -182,12 +184,13 @@ export class ReactSpatialModule implements AssessmentModule {
     this.offInput = ctx.engine.input.on((e) => this.onAction(e));
   }
 
+
   private controlHint(block: BlockId): string {
     switch (block) {
-      case 'reach': return 'Nyúlj oda a kontrollerrel és érintsd meg a gömböt. Utána térj vissza a gyűrűhöz.';
+      case 'reach': return 'Érintsd meg a gömböt a kontrollerrel, majd térj vissza a gyűrűhöz.';
       case 'intercept': return 'Üsd el a közeledő gömböt a kontrollerrel, mielőtt elérné a fejedet.';
-      case 'track3d': return 'Tartsd a kontroller hegyét a mozgó gömbön. Nem kell gombot nyomni.';
-      case 'bimanual': return 'Bal kéz a bal célt, jobb kéz a jobbat — egyszerre, két különböző távolságra.';
+      case 'track3d': return 'Tartsd a kontroller hegyét a mozgó gömbön. Gombot nem kell nyomni.';
+      case 'bimanual': return 'Bal kéz → bal cél · jobb kéz → jobb cél · egyszerre.';
     }
   }
 

@@ -352,6 +352,32 @@ export class UI {
     return cy;
   }
 
+  /**
+   * How many lines `paragraph()` would need, without drawing anything.
+   *
+   * Same wrap rule as paragraph(), so a caller can pick a font size that
+   * fits a fixed box before committing ink to the canvas.
+   */
+  measureParagraph(s: string, maxWidth: number, size: number, font?: string, weight = '400'): number {
+    const c = this.ctx;
+    c.save();
+    c.font = `${weight} ${size}px ${font ?? this.t.fontBody}`;
+    let line = '';
+    let lines = 0;
+    for (const word of s.split(/\s+/)) {
+      const probe = line ? `${line} ${word}` : word;
+      if (c.measureText(probe).width > maxWidth && line) {
+        lines++;
+        line = word;
+      } else {
+        line = probe;
+      }
+    }
+    if (line) lines++;
+    c.restore();
+    return lines;
+  }
+
   title(s: string, x: number, y: number, size = 40, color?: string, align: CanvasTextAlign = 'left'): void {
     this.text(s, x, y, {
       size,

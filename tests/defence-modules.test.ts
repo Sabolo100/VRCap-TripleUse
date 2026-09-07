@@ -13,6 +13,7 @@ import {
   configVersionFor, modulesForDomain,
 } from '@vrcap/shared';
 import { createModule, implementedModules } from '../packages/client/src/modules/registry.js';
+import { resolveText } from '../packages/client/src/engine/task/text.js';
 import type { ModuleContext } from '../packages/client/src/engine/task/Module.js';
 import * as THREE from 'three';
 import { MultiModule } from '../packages/client/src/modules/multi/MultiModule.js';
@@ -1523,14 +1524,16 @@ console.log('\nKATALÓGUS  (a teljes modullista)');
       mod.blocks.length > 0 && mod.blocks.every((b) => b.trials > 0),
       mod.blocks.map((b) => `${b.id}:${b.trials}`));
     check(`${m.code}: every block has an instruction and a unique id`,
-      mod.blocks.every((b) => b.instruction.trim().length > 0)
+      mod.blocks.every((b) => (['vr', 'desktop', 'mobile'] as const)
+        .every((p) => resolveText(b.instruction, p).trim().length > 0))
       && new Set(mod.blocks.map((b) => b.id)).size === mod.blocks.length,
       mod.blocks.map((b) => b.id));
     // Only the FIRST block has to explain the task in full. Later ones are
     // deliberately terse in some modules - ADAPT's "carry on the same way" is
     // short on purpose, because saying more would leak the hidden rotation.
     check(`${m.code}: the opening block explains the task`,
-      (mod.blocks[0]?.instruction.length ?? 0) > 40, mod.blocks[0]?.instruction.length);
+      (['vr', 'desktop', 'mobile'] as const)
+        .every((p) => resolveText(mod.blocks[0]!.instruction, p).length > 40));
     check(`${m.code}: supports at least one platform, and says which`,
       m.supports.length > 0 && m.supports.every((p) => ['vr', 'desktop', 'mobile'].includes(p)),
       m.supports);

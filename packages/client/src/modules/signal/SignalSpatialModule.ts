@@ -86,13 +86,26 @@ export class SignalSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.SIGNAL!;
 
   readonly blocks: BlockDescriptor[] = [
+
     {
       id: 'depth',
       title: 'MÉLYSÉGI KERESÉS',
-      instruction:
-        'A cél a NARANCSSÁRGA KOCKA, narancssárga gömbök és kék kockák között. Az objektumok most ' +
-        'három különböző TÁVOLSÁGBAN vannak. A próbák felében megmondom, melyik rétegben van a cél — ' +
-        'ilyenkor elég ott keresned.',
+      instruction: {
+        vr:
+          'A cél a NARANCSSÁRGA KOCKA, narancssárga gömbök és kék kockák között. Az objektumok most három ' +
+          'különböző TÁVOLSÁGBAN lebegnek. Ha megtaláltad a célt, mutass rá a sugárral, és húzd meg a ravaszt; ' +
+          'ha nincs cél, nyomd meg a MARKOLATGOMBOT (grip). A próbák felében a felső felirat megmondja, melyik ' +
+          'rétegben van a cél — ilyenkor elég ott keresned.',
+        desktop:
+          'A cél a NARANCSSÁRGA KOCKA, narancssárga gömbök és kék kockák között. Az objektumok most három ' +
+          'különböző TÁVOLSÁGBAN lebegnek. Ha megtaláltad a célt, kattints rá; ha nincs cél, kattints a NINCS ' +
+          'CÉL gombra. A próbák felében a felső felirat megmondja, melyik rétegben van a cél — ilyenkor elég ' +
+          'ott keresned.',
+        mobile:
+          'A cél a NARANCSSÁRGA KOCKA, narancssárga gömbök és kék kockák között. Az objektumok most három ' +
+          'különböző TÁVOLSÁGBAN lebegnek. Ha megtaláltad a célt, koppints rá; ha nincs cél, koppints a NINCS ' +
+          'CÉL gombra. A próbák felében a felső felirat megmondja, melyik rétegben van a cél.',
+      },
       controlHint: '',
       trials: 30,
       practiceTrials: 4,
@@ -100,9 +113,18 @@ export class SignalSpatialModule implements AssessmentModule {
     {
       id: 'surround',
       title: 'KÖRKÖRÖS KERESÉS',
-      instruction:
-        'Most körülötted vannak az objektumok — teljes körben, akár mögötted is. ' +
-        'Ugyanaz a cél. Fordulj nyugodtan: amit nem nézel, azt nem találod meg.',
+      instruction: {
+        vr:
+          'Ugyanaz a cél, de az objektumok most KÖRÜLÖTTED vannak — teljes körben, akár a hátad mögött is. ' +
+          'Fordulj meg nyugodtan, amerre kell: amit nem nézel, azt nem találod meg. Ha megvan a cél, sugár ' +
+          'rá és ravasz; ha nincs, markolatgomb.',
+        desktop:
+          'Ugyanaz a cél, ugyanolyan három rétegben. Ha megtaláltad, kattints rá; ha nincs cél, kattints a ' +
+          'NINCS CÉL gombra. Ez a rész a headsetben teljes körben zajlik — képernyőn a tömb előtted marad.',
+        mobile:
+          'Ugyanaz a cél, ugyanolyan három rétegben. Ha megtaláltad, koppints rá; ha nincs cél, koppints a ' +
+          'NINCS CÉL gombra.',
+      },
       controlHint: '',
       trials: 24,
       practiceTrials: 4,
@@ -110,9 +132,20 @@ export class SignalSpatialModule implements AssessmentModule {
     {
       id: 'occlusion',
       title: 'KÖVETÉS TAKARÁSSAL',
-      instruction:
-        'Néhány gömb felvillan — ezeket kell követned. Mozgás közben a gömbök MÉLYSÉGBEN is mozognak, ' +
-        'tehát néha eltűnnek egymás mögött. Attól még kövesd őket tovább.',
+      instruction: {
+        vr:
+          'Néhány gömb felvillan — ezeket jegyezd meg és kövesd szemmel. Mozgás közben a gömbök MÉLYSÉGBEN is ' +
+          'mozognak, ezért néha eltűnnek egymás mögött; attól még kövesd őket. Amikor megállnak, mutass rájuk ' +
+          'a sugárral és húzd meg a ravaszt, majd KÉSZ.',
+        desktop:
+          'Néhány gömb felvillan — ezeket jegyezd meg és kövesd szemmel. Mozgás közben a gömbök MÉLYSÉGBEN is ' +
+          'mozognak, ezért néha eltűnnek egymás mögött; attól még kövesd őket. Amikor megállnak, kattints ' +
+          'rájuk egyenként, majd a KÉSZ gombra.',
+        mobile:
+          'Néhány gömb felvillan — ezeket jegyezd meg és kövesd szemmel. Mozgás közben a gömbök MÉLYSÉGBEN is ' +
+          'mozognak, ezért néha eltűnnek egymás mögött; attól még kövesd őket. Amikor megállnak, koppints ' +
+          'rájuk egyenként, majd a KÉSZ gombra.',
+      },
       controlHint: '',
       trials: 12,
       practiceTrials: 2,
@@ -120,9 +153,18 @@ export class SignalSpatialModule implements AssessmentModule {
     {
       id: 'depthchange',
       title: 'MÉLYSÉGI VÁLTOZÁS',
-      instruction:
-        'A jelenet villogni fog, és egy objektum folyamatosan változik. Most a változás lehet az is, ' +
-        'hogy KÖZELEBB vagy TÁVOLABB kerül — nem csak a színe vagy a mérete.',
+      instruction: {
+        vr:
+          'A kép villogni fog, és közben egyetlen objektum folyamatosan változik. Most a változás az is ' +
+          'lehet, hogy KÖZELEBB vagy TÁVOLABB kerül — nem csak a színe vagy a mérete. Találd meg, mutass rá a ' +
+          'sugárral, és húzd meg a ravaszt.',
+        desktop:
+          'A kép villogni fog, és közben egyetlen objektum folyamatosan változik. Most a változás az is ' +
+          'lehet, hogy KÖZELEBB vagy TÁVOLABB kerül — nem csak a színe vagy a mérete. Találd meg, és kattints rá.',
+        mobile:
+          'A kép villogni fog, és közben egyetlen objektum folyamatosan változik. Most a változás az is ' +
+          'lehet, hogy KÖZELEBB vagy TÁVOLABB kerül — nem csak a színe vagy a mérete. Találd meg, és koppints rá.',
+      },
       controlHint: '',
       trials: 18,
       practiceTrials: 3,
@@ -235,18 +277,26 @@ export class SignalSpatialModule implements AssessmentModule {
     });
   }
 
+
   private controlHint(block: BlockId): string {
     const p = this.ctx.platform;
-    const press = p === 'vr' ? 'a ravasszal' : p === 'mobile' ? 'koppintással' : 'kattintással';
     switch (block) {
       case 'depth': return p === 'vr'
-        ? 'RAVASZ: célra mutatva kijelölöd · GRIP: nincs cél. A felső felirat megmondja, ha ismert a réteg.'
-        : `Jelöld meg a célt ${press}. Ha nincs cél, a NINCS CÉL gombot használd.`;
+        ? 'Sugár a célra + RAVASZ · nincs cél → MARKOLATGOMB (grip) · a felső felirat mondja a réteget'
+        : p === 'mobile'
+          ? 'Koppints a célra · nincs cél → NINCS CÉL gomb'
+          : 'Kattints a célra · nincs cél → NINCS CÉL gomb';
       case 'surround': return p === 'vr'
-        ? 'Fordulj körbe. RAVASZ: célra mutatva kijelölöd · GRIP: nincs cél.'
-        : `Fordulj körbe, és jelöld meg a célt ${press}. Ha nincs cél, a NINCS CÉL gombot használd.`;
-      case 'occlusion': return `Jelöld ki ${press} a felvillant gömböket, majd KÉSZ.`;
-      case 'depthchange': return `Mutass ${press} arra az objektumra, amelyik változik.`;
+        ? 'Fordulj meg, amerre kell · sugár a célra + RAVASZ · nincs cél → MARKOLATGOMB'
+        : p === 'mobile'
+          ? 'Koppints a célra · nincs cél → NINCS CÉL gomb'
+          : 'Kattints a célra · nincs cél → NINCS CÉL gomb';
+      case 'occlusion': return p === 'vr'
+        ? 'Sugár + RAVASZ a felvillant gömbökre, majd KÉSZ.'
+        : p === 'mobile' ? 'Koppints a felvillant gömbökre, majd KÉSZ.' : 'Kattints a felvillant gömbökre, majd KÉSZ.';
+      case 'depthchange': return p === 'vr'
+        ? 'Sugár a változó objektumra + RAVASZ.'
+        : p === 'mobile' ? 'Koppints a változó objektumra.' : 'Kattints a változó objektumra.';
     }
   }
 
@@ -842,8 +892,9 @@ export class SignalSpatialModule implements AssessmentModule {
     ui.roundRect(0, 0, ui.w, ui.h, 14, withAlpha('#000000', 0.5));
     if (this.controlMode === 'absent') {
       ui.button('ctl:absent', 12, 12, ui.w - 24, ui.h - 40, { label: 'NINCS CÉL', variant: 'ghost', fontSize: 32 });
-      ui.text('vagy nyomd meg a GRIP gombot', ui.w / 2, ui.h - 16,
-        { size: 18, color: ui.t.textMuted, align: 'center' });
+      ui.text(
+        this.ctx.platform === 'vr' ? 'vagy nyomd meg a markolatgombot (grip)' : 'ha nincs narancssárga kocka',
+        ui.w / 2, ui.h - 16, { size: 18, color: ui.t.textMuted, align: 'center' });
     } else if (this.controlMode === 'submit') {
       const targets = this.motItems.filter((m) => m.isTarget).length;
       const selected = this.motItems.filter((m) => m.selected).length;

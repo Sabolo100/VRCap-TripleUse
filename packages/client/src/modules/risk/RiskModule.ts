@@ -100,13 +100,26 @@ export class RiskModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.RISK!;
 
   blocks: BlockDescriptor[] = [
+
     {
       id: 'bart_size',
       title: 'LÉGGÖMB',
-      instruction:
-        'Minden pumpa 5 pontot ér, de a léggömb ki is durranhat — és akkor az addigi pontok elvesznek. ' +
-        'Bármikor beválthatod, amit összegyűjtöttél. Nem mondjuk meg, mikor durran ki, és nincs ' +
-        '„helyes” megállási pont.',
+      instruction: {
+        vr:
+          'Előtted egy léggömb és két cél: PUMPA és BEVÁLTÁS. Minden pumpálás 5 pontot tesz a tétre, de a ' +
+          'léggömb bármikor kidurranhat — akkor az addigi tét elvész. A pumpáláshoz mutass a PUMPA célra a ' +
+          'sugárral, és húzd meg a ravaszt; a beváltáshoz ugyanígy a BEVÁLTÁS célra, és a tét a bankba kerül. ' +
+          'Nem mondjuk meg, mikor durran ki, és nincs „helyes” megállási pont.',
+        desktop:
+          'Előtted egy léggömb és két cél: PUMPA és BEVÁLTÁS. Minden pumpálás 5 pontot tesz a tétre, de a ' +
+          'léggömb bármikor kidurranhat — akkor az addigi tét elvész. Pumpáláshoz kattints a PUMPA célra, ' +
+          'beváltáshoz a BEVÁLTÁS célra, és a tét a bankba kerül. Nem mondjuk meg, mikor durran ki, és nincs ' +
+          '„helyes” megállási pont.',
+        mobile:
+          'Előtted egy léggömb. Minden pumpálás 5 pontot tesz a tétre, de a léggömb bármikor kidurranhat — ' +
+          'akkor az addigi tét elvész. A képernyő alján a PUMPA gombbal pumpálsz, a BEVÁLTÁS gombbal a tét a ' +
+          'bankba kerül. Nem mondjuk meg, mikor durran ki, és nincs „helyes” megállási pont.',
+      },
       controlHint: '',
       trials: BALLOONS,
       practiceTrials: PRACTICE_BALLOONS,
@@ -116,8 +129,8 @@ export class RiskModule implements AssessmentModule {
       id: 'bart_approach',
       title: 'KÖZELEDŐ LÉGGÖMB',
       instruction:
-        'Ugyanaz a játék, ugyanazokkal az esélyekkel — de most a léggömb nem nő, hanem KÖZELEDIK. ' +
-        'Akkora marad, amekkorának látod; csak egyre közelebb kerül hozzád.',
+        'Ugyanaz a játék, ugyanazokkal az esélyekkel és ugyanazokkal a célokkal — de most a léggömb nem ' +
+        'nő, hanem KÖZELEDIK. Akkora marad, amekkorának látod; csak egyre közelebb kerül hozzád.',
       controlHint: '',
       trials: BALLOONS,
       practiceTrials: PRACTICE_BALLOONS,
@@ -126,9 +139,20 @@ export class RiskModule implements AssessmentModule {
     {
       id: 'cards',
       title: 'PAKLIK',
-      instruction:
-        'Négy pakli. Mindegyik ad pontot, és néha elvesz. Az eloszlásuk különbözik, de nem áruljuk ' +
-        'el, hogyan — ki lehet tapasztalni. Válassz annyiszor, ahányszor kérjük.',
+      instruction: {
+        vr:
+          'Négy pakli van előtted. Minden húzás pontot ad, és néha el is vesz. A paklik különböznek, de nem ' +
+          'áruljuk el, miben — ki kell tapasztalnod. Húzáshoz mutass a választott paklira a sugárral, és ' +
+          'húzd meg a ravaszt. Válassz annyiszor, ahányszor kérjük.',
+        desktop:
+          'Négy pakli van előtted. Minden húzás pontot ad, és néha el is vesz. A paklik különböznek, de nem ' +
+          'áruljuk el, miben — ki kell tapasztalnod. Húzáshoz kattints a választott paklira. Válassz ' +
+          'annyiszor, ahányszor kérjük.',
+        mobile:
+          'Négy pakli van előtted, 1-től 4-ig számozva. Minden húzás pontot ad, és néha el is vesz. A paklik ' +
+          'különböznek, de nem áruljuk el, miben — ki kell tapasztalnod. Húzáshoz nyomd meg a képernyő alján ' +
+          'a pakli számát. Válassz annyiszor, ahányszor kérjük.',
+      },
       controlHint: '',
       trials: CARD_TRIALS,
       practiceTrials: PRACTICE_CARDS,
@@ -283,11 +307,12 @@ export class RiskModule implements AssessmentModule {
     this.plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, this.pumpTarget.position);
   }
 
+
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'RAVASZ a célon: pumpa vagy beváltás';
-      case 'desktop': return 'KATTINTÁS a célon · a pakliknál a paklira';
-      default: return 'PUMPA / BEVÁLTÁS gomb · a pakliknál 1 2 3 4';
+      case 'vr': return 'Sugár a PUMPA vagy a BEVÁLTÁS célra + RAVASZ · a pakliknál sugár a paklira + RAVASZ';
+      case 'desktop': return 'Kattints a PUMPA vagy a BEVÁLTÁS célra · a pakliknál a paklira';
+      default: return 'PUMPA / BEVÁLTÁS gomb · a pakliknál az 1 · 2 · 3 · 4 gomb';
     }
   }
 

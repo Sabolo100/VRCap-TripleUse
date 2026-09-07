@@ -328,6 +328,10 @@ Egy modulspecifikáció addig nincs kész, amíg ezekre nincs válasz:
 - [ ] A `supports` mező őszinte: ha egy platformon a mérés értelmetlen, nincs benne.
 - [ ] Minden akció az absztrakt akciótáblából származik; nincs eszközspecifikus kód.
 - [ ] Az instrukciószöveg platformfüggő (`controlHint`), és a tényleges gombot nevezi meg.
+- [ ] **A blokk-instrukció maga is platformonként van megírva** (`PlatformText`:
+      `{ vr, desktop, mobile }`), ha a válaszmód különbözik — a futtató a tényleges
+      eszközre oldja fel (`engine/task/text.ts`). „Húzd meg a ravaszt” laptopon
+      értelmetlen. Szerkezet: mi jelenik meg → mit kell tenni, mivel → mi számít.
 - [ ] **A mobil vezérlőkészlet blokkonként meg van adva** (gomb / dial / slider / look),
       és teljesíti a 4/C ellenőrzőlistát.
 - [ ] A trial rekord tartalmazza a használt adaptációs paramétereket.

@@ -100,7 +100,12 @@ A `02-CROSSPLATFORM-INTERACTION.md` szerint:
 - minden feladatelem besorolása `equivalent` / `adapted` / `vr-only`,
 - az adaptált elemek platformonkénti paramétertáblája,
 - a platformonként kieső metrikák listája,
-- a `controlHint` szövege mind a három platformra, a tényleges gombot megnevezve.
+- a `controlHint` szövege mind a három platformra, a tényleges gombot megnevezve,
+- **és maga az instrukció is platformonként** (`instruction: { vr, desktop, mobile }`),
+  ha a válaszmód különbözik. „Húzd meg a ravaszt” laptopon értelmetlen, telefonon
+  félrevezető; az instrukció azt a vezérlőt nevezze meg, ami az adott eszközön
+  tényleg létezik. Egy string csak akkor elég, ha a feladat mindenhol ugyanúgy olvasható.
+  Az instrukció szerkezete: mi jelenik meg → mit kell tenni, mivel → mi számít.
 
 ### 5/B. Mobil vezérlőkészlet
 Kötelező fejezet, a `02-CROSSPLATFORM-INTERACTION.md` 4/B és 4/C alapján.
