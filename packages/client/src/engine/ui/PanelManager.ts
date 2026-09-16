@@ -35,10 +35,21 @@ export class PanelManager {
   private hoverOwner: PointerSource | null = null;
   private pressed: { panel: Panel; widget: WidgetRect } | null = null;
 
+  private offFonts: (() => void) | null = null;
+
   constructor(engine: Engine) {
     this.engine = engine;
     this.offInput = engine.input.on(this.onAction);
     this.offFrame = engine.onFrame(() => this.update());
+    // A canvas keeps whatever glyphs it was drawn with. When a web font (or
+    // one of its unicode-range subsets) arrives after a panel was drawn, the
+    // panel has to be redrawn or it keeps the fallback face forever.
+    const fs = typeof document !== 'undefined' ? document.fonts : undefined;
+    if (fs?.addEventListener) {
+      const onDone = () => this.invalidateAll();
+      fs.addEventListener('loadingdone', onDone);
+      this.offFonts = () => fs.removeEventListener('loadingdone', onDone);
+    }
   }
 
   add(panel: Panel): void {
@@ -178,6 +189,7 @@ export class PanelManager {
   dispose(): void {
     this.offInput();
     this.offFrame();
+    this.offFonts?.();
     this.listeners.clear();
     this.panels.clear();
   }

@@ -122,13 +122,16 @@ export class Panel {
     this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.colorSpace = THREE.SRGBColorSpace;
     this.texture.anisotropy = 16;
-    // No mipmaps. A panel is read head-on at a roughly fixed distance, where
-    // the texture is deliberately oversampled - and that is exactly the case
-    // where mipmapping picks a smaller level and softens the text it was meant
-    // to protect. Linear filtering on the full-resolution canvas is sharper.
-    this.texture.minFilter = THREE.LinearFilter;
+    // Trilinear + anisotropic. The canvas is deliberately oversampled (about
+    // twice the headset's pixels per degree at reading distance), and without
+    // mipmaps that oversampling is exactly what makes text shimmer: every
+    // micro-movement of the head resamples the texture at a new phase and the
+    // strokes crawl. Mipmaps average the extra detail away instead, and 16x
+    // anisotropy keeps the glyphs sharp on a panel viewed at an angle. The
+    // canvas is not a power of two; WebGL2 (every target here) does not care.
+    this.texture.minFilter = THREE.LinearMipmapLinearFilter;
     this.texture.magFilter = THREE.LinearFilter;
-    this.texture.generateMipmaps = false;
+    this.texture.generateMipmaps = true;
 
     const mat = new THREE.MeshBasicMaterial({
       map: this.texture,

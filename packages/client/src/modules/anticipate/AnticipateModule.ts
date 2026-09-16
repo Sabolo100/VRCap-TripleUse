@@ -65,17 +65,15 @@ export class AnticipateModule implements AssessmentModule {
       title: 'LÁTHATÓ PÁLYA',
       instruction: {
         vr:
-          'Egy gömb indul el egy sínen, egy fehér cél felé. Húzd meg a ravaszt PONTOSAN abban a pillanatban, ' +
-          'amikor a gömb elérné a célt. Ez nem gyorsasági feladat: nem gyorsnak kell lenned, hanem pontosnak, ' +
-          'ezért nyugodtan indulhat előbb a mozdulatod.',
+          'Egy gömb halad a sínen egy fehér cél felé. Húzd meg a ravaszt PONTOSAN abban a pillanatban, ' +
+          'amikor a gömb elérné a célt. Ez nem gyorsasági feladat: a pontos időzítés számít.',
         desktop:
-          'Egy gömb indul el egy sínen, egy fehér cél felé. Nyomd meg a SZÓKÖZT (vagy kattints) PONTOSAN ' +
-          'abban a pillanatban, amikor a gömb elérné a célt. Ez nem gyorsasági feladat: nem gyorsnak kell ' +
-          'lenned, hanem pontosnak, ezért nyugodtan indulhat előbb a mozdulatod.',
+          'Egy gömb halad a sínen egy fehér cél felé. Nyomd meg a SZÓKÖZT, vagy kattints PONTOSAN abban a ' +
+          'pillanatban, amikor a gömb elérné a célt. Ez nem gyorsasági feladat: a pontos időzítés számít.',
         mobile:
-          'Egy gömb indul el egy sínen, egy fehér cél felé. Nyomd meg a képernyő alján a MOST gombot PONTOSAN ' +
-          'abban a pillanatban, amikor a gömb elérné a célt. Ez nem gyorsasági feladat: nem gyorsnak kell ' +
-          'lenned, hanem pontosnak.',
+          'Egy gömb halad a sínen egy fehér cél felé. Nyomd meg a képernyő alján a MOST gombot PONTOSAN ' +
+          'abban a pillanatban, amikor a gömb elérné a célt. Ez nem gyorsasági feladat: a pontos időzítés ' +
+          'számít.',
       },
       controlHint: '',
       trials: 16,
@@ -157,6 +155,7 @@ export class AnticipateModule implements AssessmentModule {
     occluded: boolean;
     responded: boolean;
     resolve: (r: { signedErrorMs: number | null; outcome: 'ok' | 'early' | 'timeout'; fraction: number }) => void;
+    timer?: ReturnType<typeof setTimeout>;
   } | null = null;
 
   private headLeadSamples: number[] = [];
@@ -383,12 +382,16 @@ export class AnticipateModule implements AssessmentModule {
       quantisationMs: +ctx.engine.clock.frameInterval.toFixed(1),
     }, launchT);
 
-    // Watchdog: close the trial 1200 ms after the theoretical arrival.
+    // Watchdog: close the trial 1200 ms after the theoretical arrival. It is
+    // bound to THIS trial: a watchdog that tested whatever was live when it
+    // fired landed inside the next trial after every early response, hid
+    // the ball mid-flight and left that trial's promise unresolved - the
+    // "random freeze" that ended the block.
+    const mine = this.live;
     const timeoutMs = (arrivalT - launchT) + 1200;
-    setTimeout(() => {
-      const live = this.live;
-      if (!live || live.responded) return;
-      live.responded = true;
+    mine.timer = setTimeout(() => {
+      if (this.live !== mine || mine.responded) return;
+      mine.responded = true;
       this.ball.visible = false;
       this.live = null;
       ctx.recorder.event('timeout', { overshootMs: 1200 });
@@ -409,6 +412,7 @@ export class AnticipateModule implements AssessmentModule {
 
     if (fraction < 0.25) {
       live.responded = true;
+      if (live.timer) clearTimeout(live.timer);
       this.ball.visible = false;
       this.live = null;
       this.ctx.recorder.event('early_reject', { fractionTravelled: +fraction.toFixed(3) });
@@ -452,6 +456,7 @@ export class AnticipateModule implements AssessmentModule {
 
     this.commit(live.spec, signedError, Math.abs(signedError) <= 100 ? 'hit' : 'miss', fraction, 0, phase);
     const resolve = live.resolve;
+    if (live.timer) clearTimeout(live.timer);
     this.live = null;
     resolve({ signedErrorMs: signedError, outcome: 'ok', fraction });
   }

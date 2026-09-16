@@ -3,7 +3,7 @@ import { Rng, randomSeed, SCORING_VERSION, variantOf } from '@vrcap/shared';
 import type { DomainCode, RunMode, RunPayload, RunHeader, VariantId } from '@vrcap/shared';
 import type { Engine } from '../core/Engine.js';
 import { Panel } from '../ui/Panel.js';
-import { FLAT_HUD } from '../ui/viewport.js';
+import { FLAT_HUD, eyeFrame } from '../ui/viewport.js';
 import { resolveText } from './text.js';
 import type { PanelManager, PanelClickEvent } from '../ui/PanelManager.js';
 import { Recorder } from '../data/Recorder.js';
@@ -93,6 +93,8 @@ export class ModuleRunner {
   private engine: Engine;
   private ctx: ModuleContext;
   private root = new THREE.Group();
+  /** Parent of the runner's own panels; a child of the rig (see constructor). */
+  private panelRoot = new THREE.Group();
   private infoPanel: Panel;
   private hudPanel: Panel;
   private blockIndex = 0;
@@ -153,6 +155,13 @@ export class ModuleRunner {
     };
 
     this.engine.scene.add(this.root);
+    // The runner's own panels ride on the rig, not in the world. A module
+    // that moves the rig - NAV teleports between nodes, COMMAND seats the
+    // participant - would otherwise leave the instruction screen for the
+    // next block standing at the world origin, out of sight, with the only
+    // button that continues the test on it. That was NAV's "I can look
+    // around but it never goes on".
+    this.engine.rig.add(this.panelRoot);
 
     // Panel distances differ by platform. In VR, 1.9 m is a comfortable reading
     // distance that keeps the panel outside arm's reach. On a flat screen the
@@ -173,7 +182,7 @@ export class ModuleRunner {
       pxPerMeter: L.info.pxPerMeter, superSample: 2, theme, name: 'info',
     });
     this.infoPanel.group.position.set(...L.info.position);
-    this.root.add(this.infoPanel.group);
+    this.panelRoot.add(this.infoPanel.group);
     opts.panels.add(this.infoPanel);
 
     // A slim always-on HUD: block progress and abort.
@@ -185,7 +194,7 @@ export class ModuleRunner {
     this.hudPanel.group.position.set(
       0, 1.6 + Math.sin(hudRad) * L.hud.distanceM, -Math.cos(hudRad) * L.hud.distanceM);
     this.hudPanel.group.rotation.x = L.hud.tiltRad;
-    this.root.add(this.hudPanel.group);
+    this.panelRoot.add(this.hudPanel.group);
     opts.panels.add(this.hudPanel);
 
     this.hudPanel.setDraw((ui) => this.drawHud(ui));
@@ -269,6 +278,33 @@ export class ModuleRunner {
     });
   }
 
+  /**
+   * Turn the runner's panels to face the participant's current heading.
+   * In a headset a block can end with the head turned well away from the
+   * rig's forward axis (WATCH is scanning, NAV is turning); the next screen
+   * has to appear where they are looking, not where they started. On a flat
+   * screen the camera cannot leave the rig's axis, so this is a no-op there.
+   */
+  private facePanels(): void {
+    if (!this.engine.inXR) return;
+    const { eye, yawRad } = eyeFrame(this.ctx);
+    const rig = this.engine.rig;
+    rig.updateMatrixWorld(true);
+    const eyeLocal = rig.worldToLocal(eye.clone());
+    // A rig yaw of φ turns local bearing b into world bearing b - φ, so the
+    // head's world bearing reads as b + φ in rig space.
+    const yawLocal = yawRad + rig.rotation.y;
+    const dir = new THREE.Vector3(Math.sin(yawLocal), 0, -Math.cos(yawLocal));
+    const L = runnerPanelLayout(false);
+    this.infoPanel.group.position.set(eyeLocal.x, L.info.position[1], eyeLocal.z)
+      .addScaledVector(dir, -L.info.position[2]);
+    this.infoPanel.group.rotation.set(0, -yawLocal, 0);
+    const rad = (L.hud.elDeg * Math.PI) / 180;
+    this.hudPanel.group.position.set(eyeLocal.x, eyeLocal.y + L.hud.distanceM * Math.sin(rad), eyeLocal.z)
+      .addScaledVector(dir, L.hud.distanceM * Math.cos(rad));
+    this.hudPanel.group.rotation.set(L.hud.tiltRad, -yawLocal, 0, 'YXZ');
+  }
+
   private setState(s: RunnerState): void {
     this.state = s;
     this.ctx.recorder.event('flow_state', { state: s, block: this.currentBlock()?.id ?? null });
@@ -279,6 +315,7 @@ export class ModuleRunner {
     // implements calibrate(), and such a module draws its own content there.
     const hide = s === 'practice' || s === 'assessment' || s === 'calibration';
     this.infoPanel.group.visible = !hide;
+    if (!hide) this.facePanels();
     this.syncTopBar();
 
     // Touch controls belong to a running block and nothing else. Clearing them
@@ -300,8 +337,31 @@ export class ModuleRunner {
     audio.syncListener(this.engine.camera);
     if (this.state === 'practice' || this.state === 'assessment') {
       this.opts.module.update(dt, this.ctx);
+    }
+    // The HUD is redrawn only when what it shows has changed. Redrawing it
+    // every frame meant rasterising and re-uploading a 2 megapixel canvas 72
+    // times a second on the headset - a large part of the frame budget spent
+    // on a strip that changes once per block.
+    const key = `${this.state}|${this.blockIndex}|${this.fpsReadout()}`;
+    if (key !== this.hudKey) {
+      this.hudKey = key;
       this.hudPanel.invalidate();
     }
+  }
+
+  private hudKey = '';
+  private fpsDebug = typeof location !== 'undefined' && /[?&]fps\b/.test(location.search);
+  private fpsLast = { at: 0, text: '' };
+
+  /** `?fps` in the URL shows the live frame rate on the HUD strip - for the
+   *  tester with the headset, not for participants. */
+  private fpsReadout(): string {
+    if (!this.fpsDebug) return '';
+    const now = this.engine.clock.frameTime;
+    if (now - this.fpsLast.at > 500) {
+      this.fpsLast = { at: now, text: `${Math.round(1000 / this.engine.clock.frameInterval)} fps` };
+    }
+    return this.fpsLast.text;
   }
 
   private async advance(): Promise<void> {
@@ -323,10 +383,13 @@ export class ModuleRunner {
         if (!block) return this.finish();
         if (this.tryOut) {
           // One block, with feedback, then straight back to the intro. Nothing
-          // is scored and nothing is saved.
+          // is scored and nothing is saved. A block that has no practice form
+          // (practiceTrials 0) runs in its measured form - asking it for
+          // practice made it return at once, and KIPRÓBÁLOM "flashed and went
+          // back to the menu" for exactly those blocks.
           this.practicePhase = true;
           this.setState('practice');
-          await this.runBlock(block, true);
+          await this.runBlock(block, block.practiceTrials > 0);
           this.tryOut = false;
           this.blockIndex = 0;
           this.setState('intro');
@@ -375,11 +438,21 @@ export class ModuleRunner {
     if (this.aborted) return;
     this.blockRunning = true;
     this.ctx.recorder.event('block_start', { block: block.id, practice });
+    this.engine.clock.takeFrameStats();
     try {
       await this.opts.module.runBlock(this.ctx, block, practice);
     } catch (err) {
       console.error('[runner] block failed', err);
       this.ctx.recorder.event('block_error', { block: block.id, message: String(err) });
+    }
+    // Frame timing per block. Comfort in a headset is decided by the
+    // distribution, not the average, and nothing else in the log records it.
+    const stats = this.engine.clock.takeFrameStats();
+    if (stats) {
+      this.ctx.recorder.event('frame_stats', {
+        block: block.id, practice, ...stats,
+        targetHz: this.engine.xrFrameRate ?? this.engine.clock.refreshRate,
+      });
     }
     this.ctx.recorder.event('block_end', { block: block.id, practice });
     this.blockRunning = false;
@@ -497,6 +570,9 @@ export class ModuleRunner {
       });
     }
 
+    if (this.fpsDebug) {
+      ui.text(this.fpsReadout(), ui.w - 370, ui.h - 24, { size: 15, color: t.textMuted, align: 'right', font: t.fontMono });
+    }
     if (this.state === 'practice') {
       ui.roundRect(ui.w - 350, 20, 110, 24, 12, withAlpha(t.warn, 0.9));
       ui.text('GYAKORLÁS', ui.w - 295, 32, { size: 13, color: '#0a0d12', align: 'center', weight: '700' });
@@ -547,7 +623,8 @@ export class ModuleRunner {
           y += 50;
         });
         y += 6;
-        ui.text('Bármelyik sort megnyomhatod: az a rész önmagában lefut, visszajelzéssel, és nem számít bele az eredménybe.',
+        ui.text('Bármelyik sort kiválaszthatod. A rész önállóan, visszajelzéssel fut le, és az eredménye nem ' +
+          'számít bele a mérésbe.',
           pad, y + 10, { size: 19, color: t.textMuted });
         const label = this.ctx.mode === 'assessment' ? 'MÉRÉS INDÍTÁSA' : 'INDÍTÁS';
         ui.button('info:next', ui.w - pad - 340, ui.h - 104, 340, 66, { label, variant: 'primary' });
@@ -670,6 +747,7 @@ export class ModuleRunner {
     this.infoPanel.dispose();
     this.hudPanel.dispose();
     this.root.removeFromParent();
+    this.panelRoot.removeFromParent();
     this.ctx.signals.clear();
     this.ctx.motion.clear();
   }

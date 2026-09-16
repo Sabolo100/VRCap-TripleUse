@@ -200,10 +200,19 @@ export class AudioSystem {
   speak(text: string, opts: { rate?: number; pitch?: number; lang?: string } = {}): boolean {
     if (!this.enabled || !this.speechAvailable) return false;
     try {
+      const lang = opts.lang ?? 'hu-HU';
+      // Setting `lang` alone is not enough: Firefox (and some Android builds)
+      // read a Hungarian sentence with the default English voice unless the
+      // voice is chosen explicitly. Without a matching voice, say nothing -
+      // the caller then falls back to its non-speech cue, which is better
+      // than a call sign nobody can understand.
+      const voice = this.voiceFor(lang);
+      if (!voice) return false;
       const u = new SpeechSynthesisUtterance(text);
       u.rate = opts.rate ?? 1.05;
       u.pitch = opts.pitch ?? 1;
-      u.lang = opts.lang ?? 'hu-HU';
+      u.lang = lang;
+      u.voice = voice;
       speechSynthesis.speak(u);
       return true;
     } catch {
@@ -213,6 +222,17 @@ export class AudioSystem {
 
   stopSpeech(): void {
     if (this.speechAvailable) speechSynthesis.cancel();
+  }
+
+  private voiceFor(lang: string): SpeechSynthesisVoice | null {
+    const want = lang.toLowerCase().slice(0, 2);
+    const voices = speechSynthesis.getVoices();
+    const match = voices.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(want));
+    if (match.length === 0) return null;
+    // Prefer a local, default-flagged voice; network voices add latency.
+    return match.find((v) => v.default && v.localService)
+      ?? match.find((v) => v.localService)
+      ?? match[0]!;
   }
 }
 

@@ -45,6 +45,8 @@ const BLUE = 0x3d9dff;
 const NEUTRAL = 0x8fa6bf;
 const WHITE = 0xffffff;
 const PASS_RADIUS = 1.2;
+/** How far short of the aim point a flight ends, metres. */
+const PASS_PLANE_M = 0.9;
 const HEAD_RADIUS = 0.35;
 
 interface Flight {
@@ -437,9 +439,15 @@ export class HoldModule implements AssessmentModule {
     // point at the same distance, so the two differ only in trajectory.
     const toBase = new THREE.Vector3(0, 1.6, 0);
     const lateral = new THREE.Vector3(-from.z, 0, from.x).normalize();
-    const to = f.collision
+    const aim = f.collision
       ? toBase.clone().add(lateral.clone().multiplyScalar(ctx.rng.range(-HEAD_RADIUS * 0.6, HEAD_RADIUS * 0.6)))
       : toBase.clone().add(lateral.clone().multiplyScalar(f.missOffset));
+    // The flight ends on a pass plane 0.9 m short of the aim point, on the
+    // same line - the trajectory is unchanged, but the object no longer
+    // reaches the camera, fills the viewport with one flat colour and parks
+    // there. The tester: "they fly into my face and flash the screen".
+    const total = from.distanceTo(aim);
+    const to = from.clone().lerp(aim, Math.max(0.5, 1 - PASS_PLANE_M / total));
 
     mesh.position.copy(from);
     mesh.scale.setScalar(0.34);
@@ -457,8 +465,12 @@ export class HoldModule implements AssessmentModule {
     // rather than the participant's inhibition.
     let ssdMs: number | null = null;
     if (f.type === 'stop') {
-      const candidate = this.ssd;
-      ssdMs = candidate + 300 <= f.travelMs ? candidate : null;
+      // A signal that arrives with 300 ms of flight left is unstoppable by
+      // construction (SSRT is 200-300 ms) and was being scored as a failed
+      // inhibition. It now needs 700 ms of flight after it, and never lands
+      // past the midpoint of the approach.
+      const candidate = Math.min(this.ssd, Math.round(f.travelMs * 0.5));
+      ssdMs = candidate + 700 <= f.travelMs ? candidate : null;
     }
 
     const live: LiveFlight = {
@@ -663,7 +675,7 @@ export class HoldModule implements AssessmentModule {
     // Stop signal: the object turns white and a tone sounds at the same frame.
     if (live.ssdMs !== null && !live.stopFired && elapsed >= live.ssdMs) {
       live.stopFired = true;
-      this.applyColor(mesh, 'white', 2.4);
+      this.applyColor(mesh, 'white', 1.3);
       ctx.audio.tone({ freq: 320, durationMs: 120, gain: 0.3 });
       ctx.recorder.event('stop_signal', {
         ssdMs: Math.round(live.ssdMs),
@@ -673,11 +685,16 @@ export class HoldModule implements AssessmentModule {
     }
 
     if (!live.stopFired) {
-      // The go feature: a 3.3 Hz brightness pulse, visible from any angle so a
-      // tumbling object is never disadvantaged.
-      const brightness = live.pulsing ? 0.45 + 0.55 * (0.5 - 0.5 * Math.cos((now / 1000) * 3.3 * Math.PI * 2)) : 0.85;
+      // The go feature: a 3.3 Hz pulse in brightness AND size, visible from
+      // any angle so a tumbling object is never disadvantaged. Brightness
+      // alone was not enough on a 2 degree object right after a bright
+      // flash; the size beat is what makes "pulsing" legible at a distance.
+      const beat = 0.5 - 0.5 * Math.cos((now / 1000) * 3.3 * Math.PI * 2);
+      const brightness = live.pulsing ? 0.35 + 0.65 * beat : 0.85;
       this.applyColor(mesh, live.colorKind, brightness);
+      mesh.scale.setScalar(0.34 * (live.pulsing ? 0.86 + 0.28 * beat : 1));
     }
+    if (t >= 1) mesh.visible = false;
 
     // Head tracking gain: did the participant follow the object, or wait?
     this.sampleTimer += dt;
@@ -880,8 +897,8 @@ export class HoldModule implements AssessmentModule {
     return {
       opsScore: ops,
       headline: [
-        { label: 'Gátlási hiba (commission)', value: pct(commissionRate), hint: `nehéz eset ${pct(commissionRed)}` },
-        { label: 'Gátlási sebesség (SSRT)', value: ms(ssrt), hint: ssrtHint },
+        { label: 'Téves válasz gátláskor', value: pct(commissionRate), hint: `nehéz eset ${pct(commissionRed)}` },
+        { label: 'Megállítási idő (SSRT)', value: ms(ssrt), hint: ssrtHint },
         { label: 'Go reakcióidő', value: ms(goRtMedian), hint: `kimaradás ${pct(goOmission)}` },
         { label: 'Pályaítélet (d′)', value: num(trajSdt.dPrime) },
         { label: 'Szabályváltás költsége', value: Number.isFinite(ruleChangeCost) ? `${Math.round(ruleChangeCost * 100)} pont` : '—', hint: `perszeveráció ${perseveration}` },

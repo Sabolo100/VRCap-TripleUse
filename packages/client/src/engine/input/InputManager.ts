@@ -529,6 +529,8 @@ export class InputManager {
     this.raycaster.far = RAY_LEN;
     const visible = this.pointerTargets.filter((o) => o.visible);
     if (visible.length === 0) return null;
+    // Sprites (text labels under pointer targets) throw without a camera.
+    this.raycaster.camera = this.engine.camera;
     return this.raycaster.intersectObjects(visible, true)[0] ?? null;
   }
 

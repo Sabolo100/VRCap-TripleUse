@@ -7,7 +7,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
-import { fitAngles } from '../../engine/ui/viewport.js';
+import { LazyFollow, placeAtBearing } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { layoutVolume, volumeFor, viewRelation, wrapDeg, type VolumeField, type VolumeSlot } from '../shared/volume.js';
@@ -86,6 +86,8 @@ interface Emitter {
   /** Set while this emitter is the deviant. */
   event: EventType | null;
   eventStart: number;
+  /** Response window of the running event; deviations last this long. */
+  eventWindowMs: number;
   /** Pulse counter at which the emitter last fired, for skip/double. */
   driftOffset: THREE.Vector3;
 }
@@ -189,6 +191,7 @@ export class WatchModule implements AssessmentModule {
   private blockDurationMs = 0;
   private running = false;
   private rotationDegPerSec = 0;
+  private latticePhase = 0;
   private latticeYaw = 0;
 
   private events: WatchEvent[] = [];
@@ -220,7 +223,7 @@ export class WatchModule implements AssessmentModule {
     this.root.add(this.lattice);
 
     this.field = volumeFor(ctx.platform, {
-      vr: { azDeg: 180, elMinDeg: -16, elMaxDeg: 26, rNear: 3.2, rFar: 8.5, minSepDeg: 9 },
+      vr: { azDeg: 180, elMinDeg: -10, elMaxDeg: 26, rNear: 3.2, rFar: 8.5, minSepDeg: 9 },
       desktop: { azDeg: 26, elMinDeg: -11, elMaxDeg: 13, rNear: 4.0, rFar: 5.2, minSepDeg: 7 },
       mobile: { azDeg: 20, elMinDeg: -10, elMaxDeg: 12, rNear: 4.0, rFar: 5.0, minSepDeg: 7 },
     });
@@ -253,8 +256,7 @@ export class WatchModule implements AssessmentModule {
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr':
-        return 'Fordulj körbe nyugodtan — az események a hátad mögött is történhetnek. ' +
-          'RAVASZ, amint bármelyik fény kilép a közös ütemből.';
+        return 'Fordulj körbe; az eltérés mögötted is történhet. Húzd meg a RAVASZT, amint egy fény kilép az ütemből.';
       case 'mobile':
         return 'ELTÉRÉS gomb a képernyő alján, amint bármelyik fény kilép a közös ütemből.';
       default:
@@ -276,15 +278,22 @@ export class WatchModule implements AssessmentModule {
       const sphere = makePrimitive({
         kind: 'sphere', color: BASE_COLOR, unlit: true, size: 0.17 * slot.depthScale,
       });
-      const columnHeight = 1.1 * slot.depthScale;
+      // The column runs from the sphere down to the floor and the base plate
+      // sits ON the floor, whatever the slot's height. A fixed 1.1 m column
+      // left plates hanging in the air or - at the far, low slots - buried in
+      // and z-fighting with the room floor ("textures showing through").
+      const ds = slot.depthScale;
+      const baseH = 0.02 * ds;
+      const baseTopY = 0.012 + baseH;
+      const columnHeight = Math.max(0.2, slot.position.y - 0.10 * ds - baseTopY);
       const column = makePrimitive({
-        kind: 'cylinder', color: 0x1b2836, unlit: true, size: [0.03 * slot.depthScale, columnHeight, 0.03 * slot.depthScale],
+        kind: 'cylinder', color: 0x1b2836, unlit: true, size: [0.03 * ds, columnHeight, 0.03 * ds],
       });
-      column.position.y = -columnHeight / 2 - 0.10 * slot.depthScale;
+      column.position.y = -columnHeight / 2 - 0.10 * ds;
       const base = makePrimitive({
-        kind: 'cylinder', color: 0x16202c, unlit: true, size: [0.26 * slot.depthScale, 0.02 * slot.depthScale, 0.26 * slot.depthScale],
+        kind: 'cylinder', color: 0x16202c, unlit: true, size: [0.26 * ds, baseH, 0.26 * ds],
       });
-      base.position.y = -columnHeight - 0.10 * slot.depthScale;
+      base.position.y = -(slot.position.y - 0.012 - baseH / 2);
 
       g.add(sphere, column, base);
       g.position.copy(slot.position);
@@ -292,7 +301,7 @@ export class WatchModule implements AssessmentModule {
 
       this.emitters.push({
         index: i, slot, group: g, sphere,
-        event: null, eventStart: 0,
+        event: null, eventStart: 0, eventWindowMs: 0,
         driftOffset: new THREE.Vector3(),
       });
     }
@@ -313,7 +322,7 @@ export class WatchModule implements AssessmentModule {
    */
   private setupTouchControls(): void {
     this.ctx.mobileControls?.set({
-      hint: 'Figyeld a közös ütemet. Amint bármelyik fény kilép belőle, nyomd meg a gombot.',
+      hint: 'Figyeld a közös ütemet. Ha bármelyik fény eltér tőle, nyomd meg az ELTÉRÉS gombot.',
       buttons: [{
         id: 'deviation', label: 'ELTÉRÉS', sub: 'most lépett ki az ütemből',
         variant: 'primary', wide: true,
@@ -423,6 +432,7 @@ export class WatchModule implements AssessmentModule {
       radius: em.slot.radius,
       windowMs: windowForEccentricity(rel.eccentricityDeg),
     };
+    em.eventWindowMs = ev.windowMs;
     this.activeEvent = ev;
     if (!this.practice) this.events.push(ev);
 
@@ -527,7 +537,18 @@ export class WatchModule implements AssessmentModule {
     const now = ctx.engine.clock.frameTime;
 
     if (this.rotationDegPerSec !== 0) {
-      this.latticeYaw += (this.rotationDegPerSec * Math.PI / 180) * dt;
+      if (ctx.platform === 'vr') {
+        this.latticeYaw += (this.rotationDegPerSec * Math.PI / 180) * dt;
+      } else {
+        // A flat screen cannot follow a lattice that turns away: on a laptop
+        // the emitters rotated straight out of the viewport. The lattice
+        // swings +/- 8 degrees instead, at the same peak angular speed, so
+        // the "moving scene" manipulation survives and everything stays on
+        // screen.
+        const ampRad = (8 * Math.PI) / 180;
+        this.latticePhase += ((this.rotationDegPerSec * Math.PI) / 180 / ampRad) * dt;
+        this.latticeYaw = ampRad * Math.sin(this.latticePhase);
+      }
       this.lattice.rotation.y = this.latticeYaw;
     }
 
@@ -593,7 +614,7 @@ export class WatchModule implements AssessmentModule {
       this.lastHudSecond = Math.floor(now / 1000);
       this.hudPanel.invalidate();
     }
-    this.positionHud();
+    this.positionHud(dt);
   }
 
   private lastHudSecond = 0;
@@ -618,25 +639,29 @@ export class WatchModule implements AssessmentModule {
       if (em.event) {
         const dt = now - em.eventStart;
         switch (em.event) {
+          // Every deviation lasts as long as its response window. It used to
+          // last one pulse period (870 ms) while the window ran to 6 s - the
+          // window was granted for the turn a rear event needs, but by the
+          // time the participant had turned there was nothing left to see.
           case 'skip':
-            // Hold dark through one whole cycle.
-            level = dt < 1000 / PULSE_HZ ? 0.06 : base;
+            // Dark for the whole window.
+            level = dt < em.eventWindowMs ? 0.06 : base;
             break;
           case 'double': {
-            // Two pulses inside one period.
+            // Two pulses per period, for the whole window.
             const p2 = (now / 1000) * PULSE_HZ * 2;
-            level = dt < 1000 / PULSE_HZ ? 0.5 - 0.5 * Math.cos(p2 * Math.PI * 2) : base;
+            level = dt < em.eventWindowMs ? 0.5 - 0.5 * Math.cos(p2 * Math.PI * 2) : base;
             break;
           }
           case 'hue':
-            // One period in the wrong colour. Visible from any angle, so a
-            // tumbling or distant emitter is not disadvantaged.
-            if (dt < 1000 / PULSE_HZ) target = accent2;
+            // The wrong colour for the whole window. Visible from any angle,
+            // so a tumbling or distant emitter is not disadvantaged.
+            if (dt < em.eventWindowMs) target = accent2;
             break;
           case 'drift': {
-            // Slide out and back over 1.2 s. In a volume this reads as a real
-            // displacement in depth and direction, not a 2D nudge.
-            const k = clamp(dt / 1200, 0, 1);
+            // Slide out and back, repeating every 2.4 s for the window. In a
+            // volume this reads as a real displacement in depth and direction.
+            const k = dt < em.eventWindowMs ? (dt % 2400) / 2400 : 1;
             const amount = Math.sin(k * Math.PI) * 0.55 * em.slot.depthScale;
             const lateral = new THREE.Vector3(-em.slot.position.z, 0, em.slot.position.x).normalize();
             em.driftOffset.copy(lateral).multiplyScalar(amount);
@@ -655,28 +680,21 @@ export class WatchModule implements AssessmentModule {
     }
   }
 
-  private positionHud(): void {
-    const cam = this.ctx.engine.camera;
-    const p = new THREE.Vector3();
-    const q = new THREE.Quaternion();
-    cam.getWorldPosition(p);
-    cam.getWorldQuaternion(q);
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
-    fwd.y = 0;
-    fwd.normalize();
+  // Lazy follow, not head-lock: turning is the task here, and a timer that
+  // swings with every head movement is both nauseating and unreadable. The
+  // wide dead zone lets the participant scan a whole sector before the strip
+  // eases after them.
+  private hudFollow = new LazyFollow({ deadZoneDeg: 40, tauS: 0.5 });
+
+  private positionHud(dt?: number): void {
     // The HUD follows the participant so it is readable whichever way they
-    // have turned - and it must, because turning is the task. On a phone the
-    // drop below eye level has to be clamped: 42 degrees of vertical viewport
-    // is not much, and there is no looking down on a flat screen.
-    const fit = fitAngles(this.ctx, {
+    // have turned. On a phone the drop below eye level has to be clamped: 42
+    // degrees of vertical viewport is not much, and there is no looking down
+    // on a flat screen.
+    placeAtBearing(this.ctx, this.hudPanel.group, this.hudFollow.track(this.ctx, dt), {
       elDeg: -20, distanceM: 1.7,
       widthM: this.hudPanel.width, heightM: this.hudPanel.height,
     });
-    const rad = (fit.elDeg * Math.PI) / 180;
-    this.hudPanel.group.position.copy(p)
-      .addScaledVector(fwd, fit.distanceM * Math.cos(rad));
-    this.hudPanel.group.position.y = p.y + fit.distanceM * Math.sin(rad);
-    this.hudPanel.group.lookAt(p);
   }
 
   private logThirdSummaries(): void {
@@ -879,7 +897,7 @@ export class WatchModule implements AssessmentModule {
       { label: 'Észlelési érzékenység (d′)', value: num(stats.dPrime), hint: `találat ${pct(hitRate)}` },
       { label: 'Éberség-lejtés', value: pts(decHitRate), hint: Number.isFinite(decRt) ? `RT ${decRt >= 0 ? '+' : ''}${Math.round(decRt)} ms/harmad` : undefined },
       { label: 'Téves riasztás', value: `${fa}`, hint: `kalibráció ${pct(calibHitRate)}` },
-      { label: 'Detekciós idő', value: Number.isFinite(medianRt) ? `${Math.round(medianRt)} ms` : '—' },
+      { label: 'Észlelési idő', value: Number.isFinite(medianRt) ? `${Math.round(medianRt)} ms` : '—' },
     ];
     if (isVr) {
       headline.splice(2, 0,

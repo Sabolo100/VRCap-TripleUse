@@ -6,6 +6,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { eyeFrame } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { volumePosition, Tumbler } from '../shared/volume.js';
@@ -31,6 +32,9 @@ import { volumePosition, Tumbler } from '../shared/volume.js';
  * well-documented signature that separates the two strategies. Variant A
  * cannot produce this measurement at all.
  */
+
+/** Distance from the eyes at which a ball arrives, metres. */
+const ARRIVAL_M = 1.1;
 
 type BlockId = 'approach' | 'occluded' | 'size' | 'angle';
 
@@ -128,6 +132,7 @@ export class AnticipateSpatialModule implements AssessmentModule {
   private root = new THREE.Group();
   private ball!: THREE.Mesh;
   private aimRing!: THREE.Mesh;
+  private shadow!: THREE.Mesh;
   private feedbackPanel!: Panel;
   private tumbler = new Tumbler();
 
@@ -166,10 +171,20 @@ export class AnticipateSpatialModule implements AssessmentModule {
     // "arrival" a place rather than an invisible instant, without giving away
     // the timing.
     this.aimRing = makePrimitive({
-      kind: 'torus', color: ctx.theme.textMuted, unlit: true, opacity: 0.22, size: 0.9,
+      kind: 'torus', color: ctx.theme.textMuted, unlit: true, opacity: 0.4, size: 0.56,
     });
-    this.aimRing.position.set(0, 1.6, -0.55);
+    this.aimRing.position.set(0, 1.6, -ARRIVAL_M);
+    this.aimRing.visible = false;
     this.root.add(this.aimRing);
+
+    // A dark disc on the floor under the ball. Head-on approach has no
+    // motion parallax, and an unlit sphere over an empty floor has nothing
+    // that says how far away it is; the disc's position and size on the
+    // ground are the missing distance cue.
+    this.shadow = makePrimitive({ kind: 'cylinder', color: 0x03060a, unlit: true, opacity: 0.55, size: [0.34, 0.01, 0.34] });
+    this.shadow.position.y = 0.012;
+    this.shadow.visible = false;
+    this.root.add(this.shadow);
 
     this.feedbackPanel = new Panel({
       width: 0.85, height: 0.2, pxPerMeter: 950, theme: ctx.theme, frame: false, name: 'anticipate-b-feedback',
@@ -280,6 +295,11 @@ export class AnticipateSpatialModule implements AssessmentModule {
     this.practice = practice;
     this.currentBlock = block.id as BlockId;
     const count = practice ? block.practiceTrials : block.trials;
+    // The arrival ring belongs to the head-on blocks only. In the angle
+    // block the ball arrives from the side, nowhere near a ring fixed
+    // straight ahead, and in the size block a fixed reference invites a
+    // size comparison the block is designed to withhold.
+    this.aimRing.visible = this.currentBlock === 'approach' || this.currentBlock === 'occluded';
     if (count === 0) return;
 
     const queue = this.buildSpecs(this.currentBlock, count, ctx.rng);
@@ -304,17 +324,29 @@ export class AnticipateSpatialModule implements AssessmentModule {
   ): Promise<void> {
     const ctx = this.ctx;
     this.ball.visible = false;
+    this.shadow.visible = false;
     this.feedbackPanel.group.visible = false;
     await this.wait(ctx.rng.range(900, 1700));
     if (this.aborted) { resolve({ signedErrorMs: null, outcome: 'timeout' }); return; }
 
-    const from = volumePosition(spec.azDeg, spec.elDeg, spec.startRadius, 1.6);
-    // Arrival is the ring plane just in front of the face, not the eye itself:
-    // an object that reaches the eye has already passed the moment being judged.
-    const dir = from.clone().sub(new THREE.Vector3(0, 1.6, 0)).normalize();
-    const to = new THREE.Vector3(0, 1.6, 0).addScaledVector(dir, 0.55);
+    // From wherever the participant is actually standing and facing, not the
+    // world origin. Arrival is the ring plane 1.1 m out, not the face: a ball
+    // that ends 55 cm from the eyes is past the moment being judged, and the
+    // tester's "it flies straight into my face" was exactly that.
+    const { eye, yawRad } = eyeFrame(ctx);
+    const b = yawRad + (spec.azDeg * Math.PI) / 180;
+    const el = (spec.elDeg * Math.PI) / 180;
+    const dir = new THREE.Vector3(Math.sin(b) * Math.cos(el), Math.sin(el), -Math.cos(b) * Math.cos(el));
+    const from = eye.clone().addScaledVector(dir, spec.startRadius);
+    const to = eye.clone().addScaledVector(dir, ARRIVAL_M);
+    if (this.aimRing.visible) {
+      this.aimRing.position.copy(to);
+      this.aimRing.lookAt(eye);
+    }
 
-    this.ball.scale.setScalar(spec.physicalSize / 0.18);
+    // The shared sphere is 1 m across, so scale = diameter. `size / 0.18`
+    // made the 0.18 m ball a full metre wide.
+    this.ball.scale.setScalar(spec.physicalSize);
     this.ball.position.copy(from);
     this.ball.visible = true;
     this.tumbler.clear();
@@ -438,6 +470,7 @@ export class AnticipateSpatialModule implements AssessmentModule {
     if (!live.occluded && elapsed >= live.occludeAtMs) {
       live.occluded = true;
       this.ball.visible = false;
+      this.shadow.visible = false;
       ctx.recorder.event('ball_occluded', {
         remainingMs: Math.round(live.arrivalT - ctx.engine.clock.frameTime),
       });
@@ -451,6 +484,9 @@ export class AnticipateSpatialModule implements AssessmentModule {
     // signal, and flattening it would remove the thing being measured.
     this.ball.position.lerpVectors(live.from, live.to, t);
     this.ball.visible = true;
+    this.shadow.position.set(this.ball.position.x, 0.012, this.ball.position.z);
+    this.shadow.scale.set(this.ball.scale.x, 0.01, this.ball.scale.x);
+    this.shadow.visible = true;
   }
 
   /* --------------------------------------------------------------- UI */

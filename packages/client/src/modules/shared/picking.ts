@@ -39,6 +39,10 @@ export class ObjectPicker {
     if (targets.length === 0) return null;
     this.raycaster.set(ray.origin, ray.direction);
     this.raycaster.far = far;
+    // Sprites (the text labels RISK hangs on its targets) refuse to raycast
+    // without a camera - they throw, the input layer swallows the exception,
+    // and the click is silently lost.
+    this.raycaster.camera = this.ctx.engine.camera;
     const hit = this.raycaster.intersectObjects(targets, true)[0];
     if (!hit) return null;
 
@@ -51,9 +55,12 @@ export class ObjectPicker {
     }
     // Walk up to the object that carries the stimulus tag, so a group with
     // several child meshes still resolves to one logical item.
+    // Modules tag with `stimulusIndex` or `choice`; if neither is found on
+    // the way up, the hit mesh itself is the answer - not the scene.
+    const tagged = (o: THREE.Object3D) => o.userData.stimulusIndex !== undefined || o.userData.choice !== undefined;
     let obj: THREE.Object3D | null = hit.object;
-    while (obj && obj.userData.stimulusIndex === undefined && obj.parent) obj = obj.parent;
-    return { object: obj ?? hit.object, point: hit.point, distance: hit.distance };
+    while (obj && !tagged(obj) && obj.parent) obj = obj.parent;
+    return { object: obj && tagged(obj) ? obj : hit.object, point: hit.point, distance: hit.distance };
   }
 
   /** Angle between the ray and the direction to a world point, degrees. */

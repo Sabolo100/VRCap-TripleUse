@@ -225,7 +225,7 @@ export class RhythmModule implements AssessmentModule {
     ctx.panels.add(this.feedbackPanel);
 
     this.offAction = ctx.engine.input.on((e: ActionEvent) => this.onAction(e));
-    for (const b of this.blocks) b.controlHint = this.controlHint();
+    for (const b of this.blocks) b.controlHint = this.controlHint(b.id as BlockId);
 
     ctx.recorder.event('rhythm_setup', {
       platform: ctx.platform,
@@ -240,13 +240,28 @@ export class RhythmModule implements AssessmentModule {
   }
 
 
-  private controlHint(): string {
-    switch (this.ctx.platform) {
-      case 'vr': return 'RAVASZ minden ütemre · két kéznél: BAL ravasz → közelebbi, JOBB ravasz → távolabbi';
-      case 'desktop': return 'SZÓKÖZ minden ütemre · két kéznél: F → bal gömb, J → jobb gömb';
-      default: return 'Koppints minden ütemre · két kéznél: bal képernyőfél → bal gömb, jobb fél → jobb gömb';
+  private controlHint(block: BlockId): string {
+    const p = this.ctx.platform;
+    switch (block) {
+      case 'visual':
+        return p === 'vr' ? 'RAVASZ, amikor a gömb pontosan a gyűrűben van.'
+          : p === 'mobile' ? 'Koppints, amikor a gömb pontosan a gyűrűben van.'
+          : 'SZÓKÖZ, amikor a gömb pontosan a gyűrűben van.';
+      case 'tempo':
+        return p === 'vr' ? 'RAVASZ minden ütemre · tempóváltáskor igazodj az új ütemhez'
+          : p === 'mobile' ? 'Koppints minden ütemre · tempóváltáskor igazodj az új ütemhez'
+          : 'SZÓKÖZ minden ütemre · tempóváltáskor igazodj az új ütemhez';
+      case 'poly':
+        return p === 'vr' ? 'KÖZELEBBI gömb → BAL ravasz · TÁVOLABBI gömb → JOBB ravasz'
+          : p === 'mobile' ? 'BAL gömb → koppintás a bal oldalon · JOBB gömb → koppintás a jobb oldalon'
+          : 'BAL gömb → F billentyű · JOBB gömb → J billentyű';
+      default:
+        return p === 'vr' ? 'Húzd meg a RAVASZT minden hallott ütemre; a hang elnémulása után folytasd ugyanabban a tempóban.'
+          : p === 'mobile' ? 'Koppints minden hallott ütemre; a hang elnémulása után folytasd ugyanabban a tempóban.'
+          : 'SZÓKÖZ minden hallott ütemre; a hang után folytasd ugyanabban a tempóban.';
     }
   }
+
 
   /* ------------------------------------------------------------ blocks */
 
@@ -829,14 +844,14 @@ export class RhythmModule implements AssessmentModule {
     const pct = (v: number) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : '—');
 
     const headline = [
-      { label: 'Időzítési pontosság', value: ms(asyncSd), hint: 'szórás — a fő mutató' },
+      { label: 'Időzítési szórás', value: ms(asyncSd), hint: 'szórás — a fő mutató' },
       {
         label: 'Előretartás', value: ms(asyncMean, true),
         hint: Number.isFinite(asyncMean) && asyncMean < 0 ? 'megelőzöd az ütemet — ez a szokásos' : undefined,
       },
       { label: 'Belső óra', value: ms(cont.sdIntervalMs), hint: 'hang nélkül ennyit ingadozol' },
       {
-        label: 'Tempódrift',
+        label: 'Tempóeltolódás',
         value: Number.isFinite(cont.driftMsPerBeat)
           ? `${cont.driftMsPerBeat >= 0 ? '+' : '−'}${Math.abs(cont.driftMsPerBeat).toFixed(1)} ms/ütem` : '—',
         hint: Number.isFinite(cont.driftMsPerBeat)

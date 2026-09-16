@@ -793,3 +793,9 @@ canvas.m-radar { width: 100%; height: auto; display: block; }
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
+
+/* iPhone: install-to-home-screen tip (Safari tab has no fullscreen). */
+.m-ios-tip { display: grid; gap: 8px; margin: 12px 16px 0; }
+.m-ios-tip strong { font-size: 14px; }
+.m-ios-tip span { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.m-ios-tip button { justify-self: start; }

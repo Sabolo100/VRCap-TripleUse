@@ -78,7 +78,8 @@ body.in-xr .xr-overlay { display: block; }
   top: 0;
   z-index: 10;
 }
-.topbar .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar .brand { display: flex; align-items: center; gap: 12px; min-width: 0; color: inherit; text-decoration: none; cursor: pointer; }
+.topbar .brand:hover .mark { filter: brightness(1.15); }
 .topbar .mark {
   width: 34px; height: 34px; border-radius: 9px; flex: none;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -306,7 +307,7 @@ body.in-xr .xr-overlay { display: block; }
 
 /* Radar canvas in the profile card */
 .radar-wrap { display: flex; justify-content: center; }
-canvas.radar { width: 100%; max-width: 340px; height: auto; }
+canvas.radar { width: 100%; max-width: 380px; height: auto; }
 
 @media (max-width: 640px) {
   .wrap { padding: 0 16px; }
@@ -378,3 +379,7 @@ canvas.radar { width: 100%; max-width: 340px; height: auto; }
   background: color-mix(in srgb, var(--accent-2) 22%, transparent);
   color: var(--accent-2);
 }
+
+/* The pointer is an aiming device in the tests: a crosshair says where
+   the centre is, an arrow's hotspot is its tip and reads as its middle. */
+canvas.vrcap-canvas { cursor: crosshair; }

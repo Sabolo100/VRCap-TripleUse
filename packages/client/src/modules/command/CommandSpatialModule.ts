@@ -70,10 +70,11 @@ export class CommandSpatialModule implements AssessmentModule {
     },
     {
       id: 'roundB',
-      title: '2. KÖR — KIJELÖLT PARANCSNOK',
+      title: '2. KÖR — KIJELÖLT VEZETŐ',
       instruction:
-        'Új szerkezet, és most kijelölt parancsnok vezeti a leltárt: a többiek jelentik, amit látnak, ő ' +
-        'állítja be a számokat. A nézőpontok is változtak — amit az előbb láttál, most lehet, hogy takarásban van.',
+        'Új szerkezet jelenik meg. A leltárt most egy kijelölt vezető irányítja: a többiek elmondják, ' +
+        'mit látnak, a vezető pedig beállítja a számokat. A nézőpontok is megváltoztak, ezért ami az ' +
+        'előző körben látszott, most takarásban lehet.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,

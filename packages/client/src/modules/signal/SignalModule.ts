@@ -93,17 +93,18 @@ export class SignalModule implements AssessmentModule {
       title: 'JELLEMZŐKERESÉS',
       instruction: {
         vr:
-          'Egy tömb jelenik meg előtted: csupa KÉK KOCKA, és köztük legfeljebb egy NARANCSSÁRGA. Ez a cél. ' +
-          'Ha megtaláltad, mutass rá a kontroller sugarával, és húzd meg a ravaszt — a lehető leggyorsabban. ' +
-          'A próbák felében nincs cél: ilyenkor a tömb alatti NINCS CÉL gombra mutass, és úgy húzd meg a ravaszt.',
+          'KÉK KOCKÁKBÓL álló tömb jelenik meg előtted. Legfeljebb egy NARANCSSÁRGA KOCKA lesz közöttük: ' +
+          'ez a cél. Ha megtalálod, mutass rá a kontroller sugarával, és húzd meg a ravaszt a lehető ' +
+          'leggyorsabban. A próbák felében nincs cél; ilyenkor mutass a tömb alatti NINCS CÉL gombra, és ' +
+          'húzd meg a ravaszt.',
         desktop:
-          'Egy tömb jelenik meg előtted: csupa KÉK KOCKA, és köztük legfeljebb egy NARANCSSÁRGA. Ez a cél. ' +
-          'Ha megtaláltad, kattints rá a lehető leggyorsabban. A próbák felében nincs cél: ilyenkor a tömb ' +
-          'alatti NINCS CÉL gombra kattints.',
+          'KÉK KOCKÁKBÓL álló tömb jelenik meg előtted. Legfeljebb egy NARANCSSÁRGA KOCKA lesz közöttük: ' +
+          'ez a cél. Ha megtalálod, kattints rá a lehető leggyorsabban. A próbák felében nincs cél; ' +
+          'ilyenkor kattints a tömb alatti NINCS CÉL gombra.',
         mobile:
-          'Egy tömb jelenik meg előtted: csupa KÉK KOCKA, és köztük legfeljebb egy NARANCSSÁRGA. Ez a cél. ' +
-          'Ha megtaláltad, koppints rá a lehető leggyorsabban. A próbák felében nincs cél: ilyenkor a ' +
-          'képernyő alján a NINCS CÉL gombot nyomd meg.',
+          'KÉK KOCKÁKBÓL álló tömb jelenik meg előtted. Legfeljebb egy NARANCSSÁRGA KOCKA lesz közöttük: ' +
+          'ez a cél. Ha megtalálod, koppints rá a lehető leggyorsabban. A próbák felében nincs cél; ' +
+          'ilyenkor nyomd meg a képernyő alján a NINCS CÉL gombot.',
       },
       controlHint: '',
       trials: 24,
@@ -114,17 +115,18 @@ export class SignalModule implements AssessmentModule {
       title: 'KONJUNKCIÓS KERESÉS',
       instruction: {
         vr:
-          'Most a cél a NARANCSSÁRGA KOCKA. A tömbben narancssárga gömbök és kék kockák is vannak: egyik ' +
-          'jellemző önmagában nem elég, csak az a cél, amelyik egyszerre narancssárga ÉS kocka. Ha megtaláltad, ' +
-          'mutass rá a sugárral, és húzd meg a ravaszt. A próbák felében nincs cél — akkor a NINCS CÉL gombot használd.',
+          'A cél a NARANCSSÁRGA KOCKA. Narancssárga gömbök és kék kockák is lesznek a tömbben, ezért a ' +
+          'célt a két tulajdonság együtt határozza meg: NARANCSSÁRGA ÉS KOCKA. Ha megtalálod, mutass rá a ' +
+          'kontroller sugarával, és húzd meg a ravaszt. A próbák felében nincs cél; ilyenkor a NINCS CÉL ' +
+          'gombot válaszd a sugárral és a ravasszal.',
         desktop:
-          'Most a cél a NARANCSSÁRGA KOCKA. A tömbben narancssárga gömbök és kék kockák is vannak: egyik ' +
-          'jellemző önmagában nem elég, csak az a cél, amelyik egyszerre narancssárga ÉS kocka. Ha megtaláltad, ' +
-          'kattints rá. A próbák felében nincs cél — akkor a NINCS CÉL gombra kattints.',
+          'A cél a NARANCSSÁRGA KOCKA. Narancssárga gömbök és kék kockák is lesznek a tömbben, ezért a ' +
+          'célt a két tulajdonság együtt határozza meg: NARANCSSÁRGA ÉS KOCKA. Ha megtalálod, kattints rá. ' +
+          'A próbák felében nincs cél; ilyenkor kattints a NINCS CÉL gombra.',
         mobile:
-          'Most a cél a NARANCSSÁRGA KOCKA. A tömbben narancssárga gömbök és kék kockák is vannak: egyik ' +
-          'jellemző önmagában nem elég, csak az a cél, amelyik egyszerre narancssárga ÉS kocka. Ha megtaláltad, ' +
-          'koppints rá. A próbák felében nincs cél — akkor a képernyő alján a NINCS CÉL gombot nyomd meg.',
+          'A cél a NARANCSSÁRGA KOCKA. Narancssárga gömbök és kék kockák is lesznek a tömbben, ezért a ' +
+          'célt a két tulajdonság együtt határozza meg: NARANCSSÁRGA ÉS KOCKA. Ha megtalálod, koppints rá. ' +
+          'A próbák felében nincs cél; ilyenkor nyomd meg a képernyő alján a NINCS CÉL gombot.',
       },
       controlHint: '',
       trials: 30,
@@ -135,16 +137,17 @@ export class SignalModule implements AssessmentModule {
       title: 'KÖVETÉS',
       instruction: {
         vr:
-          'Néhány gömb felvillan — ezeket jegyezd meg. Utána minden gömb egyformává válik, és mozogni kezd. ' +
-          'Kövesd szemmel a megjegyzetteket. Amikor megállnak, mutass rájuk egyenként a sugárral és húzd meg ' +
-          'a ravaszt, majd a KÉSZ gombra mutatva zárd le a próbát.',
+          'Néhány gömb röviden felvillan: jegyezd meg ezeket. Ezután minden gömb egyformává válik és ' +
+          'mozogni kezd. Kövesd szemmel a megjegyzett gömböket. Amikor megállnak, válaszd ki őket ' +
+          'egyenként a kontroller sugarával és a ravasszal, majd ugyanígy válaszd a KÉSZ gombot.',
         desktop:
-          'Néhány gömb felvillan — ezeket jegyezd meg. Utána minden gömb egyformává válik, és mozogni kezd. ' +
-          'Kövesd szemmel a megjegyzetteket. Amikor megállnak, kattints rájuk egyenként, majd a KÉSZ gombra.',
+          'Néhány gömb röviden felvillan: jegyezd meg ezeket. Ezután minden gömb egyformává válik és ' +
+          'mozogni kezd. Kövesd szemmel a megjegyzett gömböket. Amikor megállnak, kattints rájuk ' +
+          'egyenként, majd a KÉSZ gombra.',
         mobile:
-          'Néhány gömb felvillan — ezeket jegyezd meg. Utána minden gömb egyformává válik, és mozogni kezd. ' +
-          'Kövesd szemmel a megjegyzetteket. Amikor megállnak, koppints rájuk egyenként, majd a képernyő ' +
-          'alján a KÉSZ gombra.',
+          'Néhány gömb röviden felvillan: jegyezd meg ezeket. Ezután minden gömb egyformává válik és ' +
+          'mozogni kezd. Kövesd szemmel a megjegyzett gömböket. Amikor megállnak, koppints rájuk ' +
+          'egyenként, majd nyomd meg a képernyő alján a KÉSZ gombot.',
       },
       controlHint: '',
       trials: 12,
@@ -155,15 +158,17 @@ export class SignalModule implements AssessmentModule {
       title: 'VÁLTOZÁS',
       instruction: {
         vr:
-          'A kép villogni fog, és közben egyetlen objektum folyamatosan változik: a színe, a mérete vagy a ' +
-          'helye. Találd meg, melyik az, mutass rá a sugárral, és húzd meg a ravaszt. Nem kell sietned — itt ' +
-          'a pontosság számít.',
+          'A jelenet többször eltűnik, majd újra megjelenik. Közben egy objektum színe, mérete vagy helye ' +
+          'megváltozik. Találd meg ezt az objektumot, mutass rá a kontroller sugarával, és húzd meg a ' +
+          'ravaszt. Nem kell sietned; itt a pontosság számít.',
         desktop:
-          'A kép villogni fog, és közben egyetlen objektum folyamatosan változik: a színe, a mérete vagy a ' +
-          'helye. Találd meg, melyik az, és kattints rá. Nem kell sietned — itt a pontosság számít.',
+          'A jelenet többször eltűnik, majd újra megjelenik. Közben egy objektum színe, mérete vagy helye ' +
+          'megváltozik. Találd meg ezt az objektumot, és kattints rá. Nem kell sietned; itt a pontosság ' +
+          'számít.',
         mobile:
-          'A kép villogni fog, és közben egyetlen objektum folyamatosan változik: a színe, a mérete vagy a ' +
-          'helye. Találd meg, melyik az, és koppints rá. Nem kell sietned — itt a pontosság számít.',
+          'A jelenet többször eltűnik, majd újra megjelenik. Közben egy objektum színe, mérete vagy helye ' +
+          'megváltozik. Találd meg ezt az objektumot, és koppints rá. Nem kell sietned; itt a pontosság ' +
+          'számít.',
       },
       controlHint: '',
       trials: 18,
@@ -174,20 +179,19 @@ export class SignalModule implements AssessmentModule {
       title: 'PERIFÉRIA',
       instruction: {
         vr:
-          'Két dolgod lesz egyszerre. Középen egy gyűrű sodródik lassan: tartsd rajta a kontroller sugarát ' +
-          'végig. Közben a látómeződ szélén időnként felvillan valami — amint észreveszed, nyomd meg a ' +
-          'MARKOLATGOMBOT (grip), bármelyik kézzel, a lehető leggyorsabban. Ne fordítsd oda a fejed: a szemed ' +
-          'sarkából kell észrevenned. Néha nem villan semmi — akkor ne nyomj semmit.',
+          'Két feladatot végezz egyszerre. Tartsd a kontroller sugarát a középen sodródó gyűrűn. Közben a ' +
+          'látómeződ szélén néha felvillan valami; amint észreveszed, nyomd meg bármelyik kézzel a ' +
+          'markolatgombot (grip). Ne fordítsd oda a fejed: a szemed sarkából kell észrevenned. Ha nem ' +
+          'villan fel semmi, ne nyomj gombot.',
         desktop:
-          'Két dolgod lesz egyszerre. Középen egy gyűrű sodródik lassan: kövesd az egérkurzorral végig. ' +
-          'Közben a képernyő szélén időnként felvillan valami — amint észreveszed, nyomd meg a SZÓKÖZT a ' +
-          'lehető leggyorsabban. Ne vidd oda a tekinteted: a szemed sarkából kell észrevenned. Néha nem villan ' +
-          'semmi — akkor ne nyomj semmit.',
+          'Két feladatot végezz egyszerre. Kövesd az egérkurzorral a középen sodródó gyűrűt. Közben a ' +
+          'képernyő szélén néha felvillan valami; amint észreveszed, nyomd meg a SZÓKÖZT. Ne nézz oda: a ' +
+          'szemed sarkából kell észrevenned. Ha nem villan fel semmi, ne nyomj gombot.',
         mobile:
-          'Két dolgod lesz egyszerre. Középen egy gyűrű sodródik lassan: tartsd rajta az egyik ujjad végig. ' +
-          'Közben a képernyő szélén időnként felvillan valami — amint észreveszed, a másik kezeddel nyomd meg ' +
-          'a képernyő alján a VILLANÁS gombot. Ne vidd oda a tekinteted: a szemed sarkából kell észrevenned. ' +
-          'Néha nem villan semmi — akkor ne nyomj semmit.',
+          'Két feladatot végezz egyszerre. Tartsd az egyik ujjad a középen sodródó gyűrűn. Közben a ' +
+          'képernyő szélén néha felvillan valami; amint észreveszed, a másik kezeddel nyomd meg a képernyő ' +
+          'alján a VILLANÁS gombot. Ne nézz oda: a szemed sarkából kell észrevenned. Ha nem villan fel ' +
+          'semmi, ne nyomj gombot.',
       },
       controlHint: '',
       trials: 30,
@@ -309,7 +313,9 @@ export class SignalModule implements AssessmentModule {
     this.feedbackPanel = new Panel({
       width: 0.9, height: 0.2, pxPerMeter: 900, theme: ctx.theme, frame: false, name: 'signal-feedback',
     });
-    this.placeBelowArray(this.feedbackPanel, this.field.elDeg + 17);
+    // +11, not +17: at -42 degrees and 2.4 m the panel's centre was 6 mm
+    // BELOW the floor in the headset, z-fighting with it.
+    this.placeBelowArray(this.feedbackPanel, this.field.elDeg + 11);
     this.feedbackPanel.setDraw((ui) => this.drawFeedback(ui));
     this.feedbackPanel.group.visible = false;
     this.root.add(this.feedbackPanel.group);
@@ -570,7 +576,7 @@ export class SignalModule implements AssessmentModule {
         // centre", so the peripheral answer gets a button of its own and the
         // scene keeps the tap.
         mc.set({
-          hint: 'Tartsd az egyik ujjad a középső gyűrűn. Amint a szélén felvillan valami, a másik kezeddel nyomd meg a gombot.',
+          hint: 'Egyik ujjad maradjon a gyűrűn. Villanáskor a másik kezeddel nyomd meg a VILLANÁS gombot.',
           buttons: [{
             id: 'flash', label: 'VILLANÁS', sub: 'a szemem sarkából láttam',
             variant: 'accent2', wide: true,
@@ -1439,11 +1445,11 @@ export class SignalModule implements AssessmentModule {
     return {
       opsScore: ops,
       headline: [
-        { label: 'Keresési meredekség (konjunkció)', value: fmt(conj.slopeP, 0, ' ms/elem'), hint: `jellemző ${fmt(feat.slopeP, 0, ' ms/elem')}` },
+        { label: 'Keresési meredekség', value: fmt(conj.slopeP, 0, ' ms/elem'), hint: `jellemző ${fmt(feat.slopeP, 0, ' ms/elem')}` },
         { label: 'Keresési pontosság (d′)', value: fmt(searchSdt.dPrime, 2), hint: `${searchSdt.criterion > 0.2 ? 'óvatos' : searchSdt.criterion < -0.2 ? 'kockázatvállaló' : 'kiegyensúlyozott'}` },
-        { label: 'Követési kapacitás', value: fmt(motK, 1, ' objektum') },
+        { label: 'Követett gömbök száma', value: fmt(motK, 1, ' objektum') },
         { label: 'Változásészlelés', value: pct(changeAccuracy), hint: `${fmt(changeCycles, 1)} ciklus` },
-        { label: 'Perifériás detekció', value: pct(periphOverall), hint: fmt(periphRt, 0, ' ms') },
+        { label: 'Perifériás észlelés', value: pct(periphOverall), hint: fmt(periphRt, 0, ' ms') },
         { label: 'Téves riasztás', value: `${sFa + periphFa} / ${sCr + catches.length}` },
       ],
       summary: {

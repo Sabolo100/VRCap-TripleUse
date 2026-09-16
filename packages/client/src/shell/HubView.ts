@@ -48,16 +48,18 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
 
   host.appendChild(
     el('div', { class: 'topbar' }, [
-      el('div', { class: 'brand' }, [
+      // The mark is the way home: the tester's first note was that the icon
+      // in the corner did nothing.
+      el('a', { class: 'brand', href: '#/', title: 'Kezdőoldal', 'aria-label': 'Kezdőoldal' }, [
         el('div', { class: 'mark' }),
         el('h1', {}, [d.copy.productName]),
       ]),
       el('div', { class: 'spacer' }),
       s.offline ? el('span', { class: 'chip warn' }, [el('span', { class: 'dot' }), 'offline']) : null,
       s.vrSupported
-        ? el('span', { class: 'chip ok' }, [el('span', { class: 'dot' }), 'VR kész'])
-        : el('span', { class: 'chip muted' }, ['Böngésző mód']),
-      el('button', { class: 'btn btn-quiet', type: 'button', onclick: cb.onChangeDomain }, ['Terület váltás']),
+        ? el('span', { class: 'chip ok' }, [el('span', { class: 'dot' }), 'VR elérhető'])
+        : el('span', { class: 'chip muted' }, ['Böngészős mód']),
+      el('button', { class: 'btn btn-quiet', type: 'button', onclick: cb.onChangeDomain }, ['Területváltás']),
     ])
   );
 
@@ -76,7 +78,7 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
       el('div', { class: 'stats' }, [
         stat(String(mods.length), 'elérhető modul'),
         stat(String(runnable.length), 'most indítható'),
-        stat(String(new Set(mods.flatMap((m) => m.constructs.map((c) => c.id))).size), 'mért képesség'),
+        stat(String(new Set(mods.flatMap((m) => m.constructs.map((c) => c.id))).size), 'mért terület'),
         stat(d.copy.scoreShort, 'pontszám'),
       ]),
       el('div', { class: 'cta-row' }, [
@@ -91,7 +93,7 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
               ? ''
               : insecure
                 ? 'A WebXR biztonságos kontextust igényel. Nyisd meg az oldalt HTTPS-en.'
-                : 'Ez az eszköz nem támogat immersive VR-t',
+                : 'Ez az eszköz nem támogatja a VR módot',
           },
           [s.vrSupported
             ? '⟶  BELÉPÉS VR-BE'
@@ -103,13 +105,14 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
       ]),
       el('p', { class: 'hint' }, [
         s.vrSupported
-          ? 'A VR belépéshez a böngésző felhasználói gesztust követel — ezért kell ide kattintani. A headsetben ugyanez a központ fogad, onnan minden modul elindítható.'
+          ? 'A böngésző csak kattintás után engedi elindítani a VR módot. A headsetben ugyanez a kezdőtér ' +
+            'jelenik meg, ahonnan elindíthatod a támogatott modulokat.'
           : insecure
-          ? 'Ez az oldal nem HTTPS-en fut, és a böngésző a WebXR-t csak biztonságos kapcsolaton engedi. ' +
-            'Az eszközöddel nincs baj — a címsorban http:// helyett https:// kell. ' +
-            'A modulok addig is futnak egérrel és érintéssel.'
+          ? 'A VR mód biztonságos HTTPS-kapcsolatot igényel. A címsorban a http:// helyett https:// kezdetű ' +
+            'címet nyiss meg. A támogatott modulokat addig asztali vagy mobil módban is használhatod.'
           : vrOnlyHere.length === 0
-            ? 'Nincs headset? Minden aktív modul fut egérrel és érintéssel is. Az eredményeket a rendszer külön eszközosztályként kezeli, nem keveri a VR mérésekkel.'
+            ? 'Headset nélkül a sík platformokat támogató modulok egérrel vagy érintéssel futnak. Az ' +
+              'eredményeket a rendszer eszközosztályonként külön kezeli.'
             : `Nincs headset? A modulok egérrel és érintéssel is futnak, ${vrOnlyHere.map((m) => m.code).join(' és a ')} kivételével — ` +
               `${vrOnlyHere.length === 1 ? 'annál' : 'azoknál'} maga a mérés a térbeli követés. ` +
               'Az eredményeket a rendszer külön eszközosztályként kezeli, nem keveri a VR mérésekkel.',
@@ -143,7 +146,7 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
       el('h3', {}, ['Katalógus']),
       el('span', { class: 'sub' }, [
         `${planned.length} további modul specifikálva, fejlesztés alatt · ` +
-          'a relevancia-jelölés mutatja, mennyire kötődik ehhez a területhez',
+          'a relevanciajelölés azt mutatja, mennyire kapcsolódik a modul ehhez a területhez',
       ]),
     ])
   );
@@ -157,7 +160,7 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
     el('div', { class: 'section-title' }, [
       el('h3', {}, ['Eredmények']),
       el('span', { class: 'sub' }, [
-        s.subject ? `${s.subject.externalId} · profil` : 'Nincs belépve — csak ebben a böngészőben tárolt próbák',
+        s.subject ? `${s.subject.externalId} · profil` : 'Nincs bejelentkezve — csak ebben a böngészőben tárolt próbák láthatók',
       ]),
     ])
   );
@@ -171,12 +174,11 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
 
   wrap.appendChild(
     el('div', { class: 'panel', style: 'margin-top:22px' }, [
-      el('h3', {}, ['Vizsgálatvezető · Phase 2']),
+      el('h3', {}, ['Vizsgálatvezető · 2. fázis']),
       el('p', { class: 'body' }, [
-        'A tervezett AI vizsgálatvezető a modulok között chatben instruál, ellenőrzi, hogy a résztvevő ' +
-          'értette-e a feladatot, javaslatot tesz a következő modulra a profil alapján, és a mérés végén ' +
-          'szövegesen összefoglal. A kapcsolódási pont a rendszerben már megvan; a beszélgető réteg ' +
-          'a második fázisban készül el.',
+        'A tervezett AI-vizsgálatvezető a modulok között segít az instrukciók értelmezésében, javaslatot ' +
+          'adhat a következő modulra, és a mérés végén szöveges összefoglalót készíthet. Ez a beszélgetési ' +
+          'funkció a második fejlesztési fázisban készül el.',
       ]),
       el('button', { class: 'btn btn-ghost', type: 'button', disabled: true }, ['Beszélgetés indítása (hamarosan)']),
     ])
@@ -188,9 +190,9 @@ export function renderHub(host: HTMLElement, domain: DomainCode, cb: HubCallback
     el('div', { class: 'footer' }, [
       el('p', {}, [el('strong', {}, ['Fontos: ']), d.copy.disclaimer]),
       el('p', {}, [
-        'Minden futás rögzíti az eszközt, a böngészőt, a modul verzióját és a konfigurációt. ' +
-          'Ranglista és összehasonlítás csak azonos eszközosztályon belül készül — egy Quest 3 ravasz és ' +
-          'egy egérkattintás nem ugyanaz a mérés.',
+        'Minden futás rögzíti az eszközt, a böngészőt, a modulverziót és a konfigurációt. ' +
+          'Összehasonlítás csak azonos eszközosztályon belül készül, mert a Quest 3 ravasza és az ' +
+          'egérkattintás nem azonos mérés.',
       ]),
     ])
   );
@@ -252,8 +254,8 @@ function renderIdentityPanel(domain: DomainCode, cb: HubCallbacks): HTMLElement 
   return el('div', { class: 'panel' }, [
     el('h3', {}, [d.copy.idLabel]),
     el('p', { class: 'body' }, [
-      'Add meg az azonosítót, ha az eredményeidet menteni és időben követni szeretnéd. ' +
-        'Belépés nélkül is kipróbálhatsz minden aktív modult — az eredmény ilyenkor nem kerül profilhoz.',
+      'Add meg az azonosítódat, ha menteni és időben követni szeretnéd az eredményeidet. Belépés ' +
+        'nélkül is kipróbálhatod az aktív modulokat; az eredmény ilyenkor nem kapcsolódik profilhoz.',
     ]),
     el('div', { class: 'idform' }, [
       input,
@@ -358,8 +360,8 @@ function renderRunsPanel(domain: DomainCode): HTMLElement {
   if (runs.length === 0) {
     body.appendChild(
       el('p', { class: 'empty' }, [
-        'Még nincs eredmény ebben a területben. Indíts el egy modult — a REACT a leggyorsabb belépő, ' +
-          'körülbelül hét perc, és rögtön ad egy pszichomotoros alapvonalat.',
+        'Még nincs eredmény ezen a területen. Elsőként a körülbelül hétperces REACT modult érdemes ' +
+          'elindítani; ez reakció- és követési alapértékeket ad.',
       ])
     );
   } else {
@@ -401,7 +403,7 @@ function renderProfilePanel(domain: DomainCode): HTMLElement {
     return { label: a.label, value: den > 0 ? num / den : null };
   });
 
-  const canvas = el('canvas', { class: 'radar', width: '680', height: '620' });
+  const canvas = el('canvas', { class: 'radar', width: '760', height: '640' });
   queueMicrotask(() => drawRadar(canvas, values, d.palette.accent, d.palette.textMuted));
 
   const measured = values.filter((v) => v.value !== null).length;
@@ -410,7 +412,7 @@ function renderProfilePanel(domain: DomainCode): HTMLElement {
     el('div', { class: 'radar-wrap' }, [canvas]),
     el('p', { class: 'hint' }, [
       measured === 0
-        ? 'A profil akkor rajzolódik ki, ha legalább egy modult befejeztél. Több modul → megbízhatóbb kép.'
+        ? 'A profil legalább egy befejezett modul után jelenik meg. Több modul több megfigyelt eredményt ad.'
         : `${measured} / ${values.length} tengelyen van adat. A ki nem töltött tengelyekhez tartozó modulok még nem futottak le.`,
     ]),
   ]);
@@ -428,10 +430,26 @@ function drawRadar(
   const h = canvas.height;
   const cx = w / 2;
   const cy = h / 2;
-  const radius = Math.min(w, h) / 2 - 96;
+  const radius = Math.min(w, h) / 2 - 104;
   const n = axes.length;
   ctx.clearRect(0, 0, w, h);
   ctx.font = '600 17px Inter, system-ui, sans-serif';
+  const lineH = 20;
+  // Labels are wrapped to whatever width is left between the ring and the
+  // canvas edge on their side; "Munkamemória" and "Döntés & vezetés" were
+  // being cut mid-word at the old fixed width.
+  const wrap = (text: string, maxW: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let cur = '';
+    for (const wd of words) {
+      const next = cur ? `${cur} ${wd}` : wd;
+      if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = wd; }
+      else cur = next;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
 
   for (let ring = 1; ring <= 4; ring++) {
     ctx.beginPath();
@@ -469,12 +487,17 @@ function drawRadar(
 
   axes.forEach((axis, i) => {
     const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + Math.cos(a) * (radius + 40);
+    const c = Math.cos(a);
+    const x = cx + c * (radius + 34);
     const y = cy + Math.sin(a) * (radius + 30);
     ctx.fillStyle = axis.value === null ? hexA(muted, 0.5) : muted;
-    ctx.textAlign = Math.abs(Math.cos(a)) < 0.3 ? 'center' : Math.cos(a) > 0 ? 'left' : 'right';
+    const centered = Math.abs(c) < 0.3;
+    ctx.textAlign = centered ? 'center' : c > 0 ? 'left' : 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText(axis.label, x, y);
+    const maxW = centered ? 240 : (c > 0 ? w - x : x) - 10;
+    const lines = wrap(axis.label, maxW);
+    const y0 = y - ((lines.length - 1) * lineH) / 2;
+    lines.forEach((ln, k) => ctx.fillText(ln, x, y0 + k * lineH));
   });
 }
 

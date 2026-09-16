@@ -129,8 +129,8 @@ export class RiskModule implements AssessmentModule {
       id: 'bart_approach',
       title: 'KÖZELEDŐ LÉGGÖMB',
       instruction:
-        'Ugyanaz a játék, ugyanazokkal az esélyekkel és ugyanazokkal a célokkal — de most a léggömb nem ' +
-        'nő, hanem KÖZELEDIK. Akkora marad, amekkorának látod; csak egyre közelebb kerül hozzád.',
+        'Ugyanaz a feladat, ugyanazokkal az esélyekkel és válaszokkal, de a léggömb most nem nő, hanem ' +
+        'KÖZELEDIK. A látszó mérete nem változik; csak egyre közelebb kerül hozzád.',
       controlHint: '',
       trials: BALLOONS,
       practiceTrials: PRACTICE_BALLOONS,
@@ -168,6 +168,11 @@ export class RiskModule implements AssessmentModule {
 
   private balloonMesh!: THREE.Mesh;
   private pumpTarget!: THREE.Mesh;
+  private pumpLabel!: THREE.Sprite;
+  private cashLabel!: THREE.Sprite;
+  private pumpBase = new THREE.Vector3(1, 1, 1);
+  private cashBase = new THREE.Vector3(1, 1, 1);
+  private deckBase = new THREE.Vector3(1, 1, 1);
   private cashTarget!: THREE.Mesh;
   private deckMeshes: THREE.Mesh[] = [];
   private deckLabels: THREE.Sprite[] = [];
@@ -225,20 +230,29 @@ export class RiskModule implements AssessmentModule {
     this.balloonMesh.visible = false;
     this.pumpTarget = makePrimitive({ kind: 'cylinder', color: t.accent, unlit: true, size: [0.10, 0.03, 0.10] });
     this.cashTarget = makePrimitive({ kind: 'box', color: t.ok, unlit: true, size: [0.12, 0.03, 0.08] });
+    this.pumpBase = this.pumpTarget.scale.clone();
+    this.cashBase = this.cashTarget.scale.clone();
     this.pumpTarget.userData.choice = 'pump';
     this.cashTarget.userData.choice = 'cash';
     this.pumpTarget.visible = false;
     this.cashTarget.visible = false;
     ctx.root.add(this.balloonMesh, this.pumpTarget, this.cashTarget);
 
-    this.pumpTarget.add(this.labelFor('PUMPA', 0.05));
-    this.cashTarget.add(this.labelFor('BEVÁLTÁS', 0.05));
+    // Labels live in the root, not under the targets: a child of a mesh
+    // scaled to [0.10, 0.03, 0.10] has its offset scaled too, and the words
+    // ended up inside the shapes, invisible on every platform.
+    this.pumpLabel = this.labelFor('PUMPA', 0);
+    this.cashLabel = this.labelFor('BEVÁLTÁS', 0);
+    this.pumpLabel.visible = false;
+    this.cashLabel.visible = false;
+    ctx.root.add(this.pumpLabel, this.cashLabel);
 
     this.deckBySlot = ctx.rng.shuffle(DECKS);
     for (let i = 0; i < 4; i++) {
       const m = makePrimitive({
         kind: 'box', color: t.surfaceAlt, unlit: true, size: [0.11, 0.015, 0.15],
       });
+      this.deckBase.copy(m.scale);
       m.userData.choice = `slot${i}`;
       m.visible = false;
       ctx.root.add(m);
@@ -247,8 +261,8 @@ export class RiskModule implements AssessmentModule {
       // participant must learn the deck from its pay-offs, and a stable name
       // would let a repeat participant carry the answer over.
       const label = makeLabel(String(i + 1), { size: 52, color: '#ffffff' });
-      label.position.set(0, 0.03, 0);
-      m.add(label);
+      label.visible = false;
+      ctx.root.add(label);
       this.deckLabels.push(label);
     }
 
@@ -263,7 +277,7 @@ export class RiskModule implements AssessmentModule {
 
     this.place();
     this.offAction = ctx.engine.input.on((e: ActionEvent) => this.onAction(e));
-    for (const b of this.blocks) b.controlHint = this.controlHint();
+    for (const b of this.blocks) b.controlHint = this.controlHint(b.id === 'cards');
 
     ctx.recorder.event('risk_setup', {
       platform: ctx.platform,
@@ -289,13 +303,30 @@ export class RiskModule implements AssessmentModule {
 
   private place(): void {
     const a = this.anchor;
-    a.offset(-TARGET_SEPARATION / 2, -0.26, 0.42, this.pumpTarget.position);
-    a.offset(TARGET_SEPARATION / 2, -0.26, 0.42, this.cashTarget.position);
+    // The headset layout is a hand layout: targets 42 cm from the face, 26 cm
+    // below the eyes, where a controller rests. On a flat screen the same
+    // offsets put them at -32 degrees - the bottom edge of the viewport and
+    // behind the HUD strip - and the tester reported RISK as "nothing
+    // happens". A screen gets a scaled-up, further-away layout that a mouse
+    // can see and hit.
+    const flat = this.ctx.platform !== 'vr';
+    const tz = flat ? 1.25 : 0.42;
+    const ty = flat ? -0.34 : -0.26;
+    const sep = flat ? 0.84 : TARGET_SEPARATION;
+    a.offset(-sep / 2, ty, tz, this.pumpTarget.position);
+    a.offset(sep / 2, ty, tz, this.cashTarget.position);
+    // Multiply the primitive's own size scale; replacing it made a 2.2 m box.
+    this.pumpTarget.scale.copy(this.pumpBase).multiplyScalar(flat ? 2.2 : 1);
+    this.cashTarget.scale.copy(this.cashBase).multiplyScalar(flat ? 2.2 : 1);
+    this.pumpLabel.position.copy(this.pumpTarget.position).add(new THREE.Vector3(0, flat ? 0.12 : 0.06, 0));
+    this.cashLabel.position.copy(this.cashTarget.position).add(new THREE.Vector3(0, flat ? 0.12 : 0.06, 0));
     a.offset(0, -0.02, BALLOON_DISTANCE, this.balloonMesh.position);
     for (let i = 0; i < 4; i++) {
-      a.place(DECK_AZ[i]!, -24, DECK_RADIUS, this.deckMeshes[i]!.position);
+      a.place(DECK_AZ[i]!, flat ? -13 : -24, flat ? 1.15 : DECK_RADIUS, this.deckMeshes[i]!.position);
+      this.deckMeshes[i]!.scale.copy(this.deckBase).multiplyScalar(flat ? 2.4 : 1);
       this.deckMeshes[i]!.lookAt(a.origin);
       this.deckMeshes[i]!.rotateX(Math.PI / 2);
+      this.deckLabels[i]!.position.copy(this.deckMeshes[i]!.position).add(new THREE.Vector3(0, flat ? 0.10 : 0.05, 0));
     }
     a.offset(0, 0.22, 0.9, this.bankPanel.group.position);
     this.bankPanel.group.lookAt(a.origin);
@@ -308,11 +339,13 @@ export class RiskModule implements AssessmentModule {
   }
 
 
-  private controlHint(): string {
+  private controlHint(cards: boolean): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'Sugár a PUMPA vagy a BEVÁLTÁS célra + RAVASZ · a pakliknál sugár a paklira + RAVASZ';
-      case 'desktop': return 'Kattints a PUMPA vagy a BEVÁLTÁS célra · a pakliknál a paklira';
-      default: return 'PUMPA / BEVÁLTÁS gomb · a pakliknál az 1 · 2 · 3 · 4 gomb';
+      case 'vr': return cards
+        ? 'Mutass a választott paklira a kontroller sugarával, és húzd meg a RAVASZT.'
+        : 'Sugár a PUMPA vagy a BEVÁLTÁS célra + RAVASZ';
+      case 'desktop': return cards ? 'Kattints a választott paklira.' : 'Kattints a PUMPA vagy a BEVÁLTÁS célra.';
+      default: return cards ? 'Nyomd meg a választott pakli 1, 2, 3 vagy 4 gombját.' : 'Nyomd meg a PUMPA vagy a BEVÁLTÁS gombot.';
     }
   }
 
@@ -382,6 +415,8 @@ export class RiskModule implements AssessmentModule {
 
     this.pumpTarget.visible = true;
     this.cashTarget.visible = true;
+    this.pumpLabel.visible = true;
+    this.cashLabel.visible = true;
     this.balloonMesh.visible = true;
     this.updateBalloon();
     this.setBalloonControls();
@@ -445,6 +480,8 @@ export class RiskModule implements AssessmentModule {
     this.recordBalloonTrial(rec);
     this.pumpTarget.visible = false;
     this.cashTarget.visible = false;
+    this.pumpLabel.visible = false;
+    this.cashLabel.visible = false;
     await this.wait(BALLOON_ITI_MS);
     this.balloonMesh.visible = false;
     this.setFeedback('', 'neutral');
@@ -482,7 +519,7 @@ export class RiskModule implements AssessmentModule {
   private setBalloonControls(): void {
     this.ctx.mobileControls?.set({
       look: 'off',
-      hint: 'Meddig mész el? A beváltott pont a tiéd.',
+      hint: 'A BEVÁLTÁS gombbal a tét a bankba kerül.',
       buttons: [
         { id: 'pump', label: 'PUMPA', sub: `+${PUMP_VALUE} pont`, variant: 'primary', onTap: (t) => this.choose('pump', t) },
         { id: 'cash', label: 'BEVÁLTÁS', sub: 'a tét a bankba', variant: 'accent2', onTap: (t) => this.choose('cash', t) },
@@ -528,6 +565,7 @@ export class RiskModule implements AssessmentModule {
     const ctx = this.ctx;
     this.balloonMesh.visible = false;
     for (const m of this.deckMeshes) m.visible = true;
+    for (const l of this.deckLabels) l.visible = true;
     this.setCardControls();
     this.lastDeck = null;
     let afterLoss = false;
@@ -570,6 +608,7 @@ export class RiskModule implements AssessmentModule {
       await this.wait(CARD_ITI_MS);
     }
     for (const m of this.deckMeshes) m.visible = false;
+    for (const l of this.deckLabels) l.visible = false;
   }
 
   private setCardControls(): void {
@@ -577,7 +616,7 @@ export class RiskModule implements AssessmentModule {
     if (!mc) return;
     mc.set({
       look: 'off',
-      hint: 'Válassz paklit. Van, amelyik többet hoz, mint amennyit visz.',
+      hint: 'Válassz egy paklit. A paklik eltérnek, de előre nem tudod, hogyan.',
       // Four equal choices, so four buttons with direct callbacks - there is
       // no natural set of four abstract actions, and a dial answers a
       // direction question, which this is not.
@@ -770,7 +809,10 @@ export class RiskModule implements AssessmentModule {
     this.balloonMesh.visible = false;
     this.pumpTarget.visible = false;
     this.cashTarget.visible = false;
+    this.pumpLabel.visible = false;
+    this.cashLabel.visible = false;
     for (const m of this.deckMeshes) m.visible = false;
+    for (const l of this.deckLabels) l.visible = false;
     this.picker.setHoverTargets([]);
   }
 
@@ -917,7 +959,7 @@ export class RiskModule implements AssessmentModule {
         hint: 'a fel nem robbant léggömbök átlaga',
       },
       {
-        label: 'Illeszkedés a valószínűségekhez',
+        label: 'Valószínűséghez igazodás',
         value: Number.isFinite(adjustedIndex)
           ? `${Math.abs(adjustedIndex - EV_OPTIMAL_PUMPS).toFixed(1)} pumpával ${adjustedIndex < EV_OPTIMAL_PUMPS ? 'óvatosabb' : 'merészebb'}`
           : '—',

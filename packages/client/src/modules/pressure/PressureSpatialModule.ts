@@ -6,6 +6,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
+import { eyeFrame } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { volumePosition, Tumbler } from '../shared/volume.js';
@@ -43,7 +44,6 @@ type Congruency = 'congruent' | 'incongruent' | 'neutral';
 
 const CYAN = 0x22d3ee;
 const MAGENTA = 0xe879f9;
-const GREY = 0x8b97a8;
 
 interface SpatialTrial {
   colorSide: Side;
@@ -93,9 +93,10 @@ export class PressureSpatialModule implements AssessmentModule {
       id: 'depthsimon',
       title: 'MÉLYSÉGI ÜTKÖZÉS',
       instruction:
-        'Most a válasz iránya előre-hátra. Ha a szín a TÁVOLI (narancssárga) gyűrűt kéri, TOLD ELŐRE a ' +
-        'kontrollert odáig; ha a KÖZELIT (kék), HÚZD VISSZA. A gömb hol közel, hol távol jelenik meg — és ' +
-        'a helye itt is ütközhet a helyes válasszal.',
+        'Most a válasz iránya előre-hátra. Előtted két gyűrű lebeg: egy KÖZELI CIÁNKÉK és egy TÁVOLI MAGENTA. ' +
+        'Ha a gömb CIÁNKÉK, HÚZD VISSZA a kontrollert a közeli gyűrűig; ha MAGENTA, TOLD ELŐRE a távoli ' +
+        'gyűrűig. A gömb hol közel, hol távol jelenik meg — a helye itt is ütközhet a helyes válasszal, ' +
+        'csak a színe számít.',
       controlHint: '',
       trials: 36,
       practiceTrials: 6,
@@ -178,10 +179,13 @@ export class PressureSpatialModule implements AssessmentModule {
     this.peripheral.visible = false;
     // Two rings mark the near and far response zones, so "push out" and "pull
     // back" are places in the world rather than instructions to remember.
-    this.nearMarker = makePrimitive({ kind: 'torus', color: 0x4fc3f7, unlit: true, opacity: 0.3, size: 0.34 });
-    this.farMarker = makePrimitive({ kind: 'torus', color: 0xff9e1b, unlit: true, opacity: 0.3, size: 0.34 });
-    this.nearMarker.position.set(0, 1.35, -0.3);
-    this.farMarker.position.set(0, 1.45, -0.85);
+    // Ring colours match the stimulus colours (cyan = near, magenta = far), so
+    // "which ring" is answered by the colour itself; they are placed in front
+    // of the participant when the block starts (see runBlock).
+    this.nearMarker = makePrimitive({ kind: 'torus', color: CYAN, unlit: true, opacity: 0.6, size: 0.30 });
+    this.farMarker = makePrimitive({ kind: 'torus', color: MAGENTA, unlit: true, opacity: 0.6, size: 0.60 });
+    this.nearMarker.position.set(0, 1.4, -0.5);
+    this.farMarker.position.set(0, 1.4, -1.0);
     this.nearMarker.visible = false;
     this.farMarker.visible = false;
     this.root.add(this.stim, this.peripheral, this.nearMarker, this.farMarker);
@@ -209,7 +213,7 @@ export class PressureSpatialModule implements AssessmentModule {
 
   private controlHint(block: BlockId): string {
     if (block === 'depthsimon') {
-      return 'TÁVOLI (narancs) gyűrű → told előre a kontrollert · KÖZELI (kék) → húzd vissza. A szín mondja, melyik.';
+      return 'CIÁNKÉK gömb → húzd vissza a közeli gyűrűig · MAGENTA gömb → told előre a távoli gyűrűig. Csak a szín számít.';
     }
     if (block === 'squeeze') {
       return 'CIÁN → BAL ravasz · MAGENTA → JOBB ravasz · fehér villanás a szélén → MARKOLATGOMB (grip)';
@@ -291,6 +295,7 @@ export class PressureSpatialModule implements AssessmentModule {
 
     this.nearMarker.visible = isDepth;
     this.farMarker.visible = isDepth;
+    if (isDepth) this.placeDepthRings();
     this.stakePanel.group.visible = isSqueeze;
     if (isSqueeze) this.scheduleDistractor();
 
@@ -321,6 +326,33 @@ export class PressureSpatialModule implements AssessmentModule {
     this.peripheral.visible = false;
   }
 
+  /**
+   * Keep a stimulus on screen for at least 220 ms even if the answer came
+   * sooner. A sphere that vanishes 90 ms after it appeared reads as a glitch,
+   * and reveals nothing the participant has not already decided.
+   */
+  private hideStimAfterMinimum(onsetT: number, after?: () => void): void {
+    const hide = () => { this.stim.visible = false; after?.(); };
+    const left = 220 - (this.ctx.engine.clock.frameTime - onsetT);
+    if (left > 0) setTimeout(hide, left);
+    else hide();
+  }
+
+  /**
+   * The two depth rings sit on the participant's forward axis at block start:
+   * near at 0.5 m, far at 1.0 m, both a little below eye level, sized to the
+   * same angle so neither looks "bigger". They are world-fixed from then on -
+   * a response zone that followed the head would move away from the hand.
+   */
+  private placeDepthRings(): void {
+    const { eye, yawRad } = eyeFrame(this.ctx);
+    const dir = new THREE.Vector3(Math.sin(yawRad), 0, -Math.cos(yawRad));
+    const y = eye.y - 0.18;
+    this.nearMarker.position.copy(eye).addScaledVector(dir, 0.5).setY(y);
+    this.farMarker.position.copy(eye).addScaledVector(dir, 1.0).setY(y);
+    for (const m of [this.nearMarker, this.farMarker]) m.lookAt(eye.x, y, eye.z);
+  }
+
   private windowFor(index: number, count: number, squeeze: boolean): number {
     if (!squeeze) return 2000;
     return Math.max(600, 1400 - Math.round((index / Math.max(1, count)) * 800));
@@ -343,11 +375,19 @@ export class PressureSpatialModule implements AssessmentModule {
       const onsetT = ctx.engine.clock.frameTime;
       const half: 0 | 1 = index < count / 2 ? 0 : 1;
 
-      this.live = {
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const mine = {
         requiredSide: spec.colorSide, onsetT, windowMs, responded: false,
-        axis: 'lateral', congruency: spec.congruency,
-        resolve: () => { this.live = null; this.stim.visible = false; this.tumbler.remove(this.stim); resolve(); },
+        axis: 'lateral' as const, congruency: spec.congruency,
+        resolve: () => {
+          if (timer) clearTimeout(timer);
+          this.live = null;
+          this.hideStimAfterMinimum(onsetT);
+          this.tumbler.remove(this.stim);
+          resolve();
+        },
       };
+      this.live = mine;
       this.currentHalf = half;
       ctx.audio.click();
       ctx.recorder.event('stimulus_onset', {
@@ -361,14 +401,16 @@ export class PressureSpatialModule implements AssessmentModule {
       // task. Losing those probes as the block goes on is the narrowing effect.
       if (squeeze && index % 3 === 1) this.firePeripheral();
 
-      setTimeout(() => {
-        const l = this.live;
-        if (!l || l.responded) return;
-        l.responded = true;
+      // Owned by this trial: a timer that tested whichever trial happened to
+      // be live when it fired cut the NEXT stimulus short - sometimes within
+      // 100 ms of its onset - and logged a timeout with the wrong congruency.
+      timer = setTimeout(() => {
+        if (this.live !== mine || mine.responded) return;
+        mine.responded = true;
         this.commit(null, 'timeout', false, 'lateral', spec.congruency, half);
         this.breakStreak();
         if (this.practice) this.showFeedback('LEJÁRT', false);
-        l.resolve();
+        mine.resolve();
       }, windowMs + 30);
     });
   }
@@ -382,23 +424,27 @@ export class PressureSpatialModule implements AssessmentModule {
       const radius = spec.stimulusDepth === 'near' ? 1.5 : 3.6;
       const pos = volumePosition(spec.azDeg, spec.elDeg, radius, 1.6);
       this.stim.position.copy(pos);
-      this.stim.scale.setScalar(radius / 1.5);
-      (this.stim.material as THREE.MeshBasicMaterial).color.setHex(
-        spec.requiredDepth === 'near' ? CYAN : spec.congruency === 'neutral' ? GREY : MAGENTA
-      );
-      if (spec.congruency === 'neutral') {
-        (this.stim.material as THREE.MeshBasicMaterial).color.setHex(spec.requiredDepth === 'near' ? CYAN : MAGENTA);
-      }
+      // 0.24 m at the near depth, scaled with distance so near and far look
+      // the same size. `radius / 1.5` alone made a 1-2.4 m sphere.
+      this.stim.scale.setScalar(0.24 * (radius / 1.5));
+      // The colour is the instruction: cyan = pull back to the near ring,
+      // magenta = push out to the far ring. The rings carry the same colours.
+      (this.stim.material as THREE.MeshBasicMaterial).color.setHex(spec.requiredDepth === 'near' ? CYAN : MAGENTA);
       this.stim.visible = true;
 
       const onsetT = ctx.engine.clock.frameTime;
       const half: 0 | 1 = index < count / 2 ? 0 : 1;
       const hand = this.handPos();
-      this.live = {
+      const mine = {
         requiredDepth: spec.requiredDepth, onsetT, windowMs: 2600, responded: false,
-        axis: 'depth', congruency: spec.congruency, handStart: hand ?? undefined,
-        resolve: () => { this.live = null; this.stim.visible = false; this.stim.scale.setScalar(1); resolve(); },
+        axis: 'depth' as const, congruency: spec.congruency, handStart: hand ?? undefined,
+        resolve: () => {
+          this.live = null;
+          this.hideStimAfterMinimum(onsetT, () => this.stim.scale.setScalar(0.24));
+          resolve();
+        },
       };
+      this.live = mine;
       this.currentHalf = half;
       ctx.audio.click();
       ctx.recorder.event('stimulus_onset', {
@@ -411,7 +457,7 @@ export class PressureSpatialModule implements AssessmentModule {
       // along the line of sight.
       const poll = () => {
         const l = this.live;
-        if (!l || l.responded) return;
+        if (!l || l !== mine || l.responded) return;
         const now = ctx.engine.clock.frameTime;
         const h = this.handPos();
         if (h && l.handStart) {

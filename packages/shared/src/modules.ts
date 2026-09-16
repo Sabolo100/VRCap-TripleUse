@@ -42,7 +42,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '01',
     code: 'SIGNAL',
     title: 'SIGNAL',
-    subtitle: 'Vizuális keresés & anomália-észlelés',
+    subtitle: 'Vizuális keresés és anomália-észlelés',
     version: '1.0.0',
     status: 'active',
     duration: 420,
@@ -52,8 +52,8 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 2,
     summary:
-      'Sok hasonló objektum között kevés releváns célpont. Megtalálni, követni, ' +
-      'változást észlelni - gyorsan és pontosan, perifériáról is.',
+      'Hasonló objektumok között kell megtalálni a ritka célt, követni a mozgó tárgyakat, észlelni a ' +
+      'változást és a perifériás felvillanást.',
     paradigms: ['Visual search', 'Multiple Object Tracking', 'Change detection'],
     constructs: [
       { id: 'visual_search', label: 'Vizuális keresés', catalogRef: 16 },
@@ -92,24 +92,23 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Fenyegetés- és anomália-észlelés',
         rationale:
-          'Megfigyelői, felderítő és őrszolgálati feladatok magja: zajos környezetből kiemelni a ' +
-          'releváns keveset, mielőtt az számítana.',
+          'A feladat a zajos környezetben megjelenő ritka, releváns eltérések felismerését vizsgálja, ami ' +
+          'megfigyelői és őrszolgálati helyzetekben fontos.',
         examples: ['felderítő', 'drónkezelő', 'képelemző', 'őr'],
       },
       B: {
         relevance: P,
         headline: 'Hibafelismerés és minőségellenőrzés',
         rationale:
-          'Radarkép, műszerfal, gyártósor, röntgenfelvétel: ugyanaz a képesség dönti el, hogy a ' +
-          'ritka eltérés feltűnik-e időben.',
+          'Radarképen, műszerfalon, gyártósoron vagy röntgenfelvételen is fontos, hogy a ritka eltérés időben feltűnjön.',
         examples: ['légiirányító', 'radiológiai asszisztens', 'minőségellenőr', 'biztonsági szkenner-operátor'],
       },
       C: {
         relevance: S,
         headline: 'Játéktér-olvasás',
         rationale:
-          'Csapatsportokban a szabad ember megtalálása mozgó, hasonló ingerek közül - ' +
-          'a "látja a pályát" képesség mérhető magja.',
+          'A feladat azt vizsgálja, milyen gyorsan és pontosan található meg egy releváns játékos vagy ' +
+          'esemény a mozgó pályaképen.',
         examples: ['labdarúgás', 'kosárlabda', 'vízilabda', 'jégkorong'],
       },
     },
@@ -120,7 +119,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '02',
     code: 'SPACE',
     title: 'SPACE',
-    subtitle: 'Térbeli orientáció & mentális forgatás',
+    subtitle: 'Térbeli orientáció és mentális forgatás',
     version: '1.0.0',
     status: 'external',
     externalUrl: 'https://mindview-vr.vercel.app/',
@@ -131,8 +130,8 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 2,
     summary:
-      'Shepard-Metzler mentális forgatás. Külön rendszerként már elkészült, a platform ' +
-      'külső modulként indítja és az eredményt azonosító alapján fűzi vissza.',
+      'Térbeli alakzatokat kell fejben elforgatni és összehasonlítani. A már elkészült külső modul ' +
+      'eredményét a rendszer azonosító alapján kapcsolja a profilhoz.',
     paradigms: ['Shepard-Metzler mental rotation'],
     constructs: [
       { id: 'mental_rotation', label: 'Mentális forgatás', catalogRef: 11 },
@@ -152,8 +151,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Műszaki-téri gondolkodás',
         rationale:
-          'Sebészi, fogászati, gépészmérnöki és szerelői munkakörök egyik legjobban prediktáló ' +
-          'képessége; pályaorientációnál a műszaki irány erős jelzője.',
+          'Sebészeti, fogászati, gépészeti és szerelési feladatokban gyakori a tárgyak és tervek térbeli ' +
+          'megfeleltetése; a mérés ezt a teljesítményt vizsgálja.',
         examples: ['sebész', 'fogorvos', 'gépészmérnök', 'CAD-tervező', 'szerelő'],
       },
       C: {
@@ -172,7 +171,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '03',
     code: 'NAV',
     title: 'NAV',
-    subtitle: 'Navigáció & téri memória',
+    subtitle: 'Navigáció és téri memória',
     version: '1.0.0',
     status: 'active',
     duration: 600,
@@ -182,8 +181,7 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 2,
     codeLoad: 4,
     summary:
-      'Útvonaltanulás, tájékozódás, irányérzék és útvonal-visszaidézés procedurális ' +
-      'vagy valós domborzaton.',
+      'Útvonaltanulás, tájékozódás, iránybecslés és a megtanult útvonal felidézése virtuális térben.',
     paradigms: ['Route learning', 'Path integration', 'Wayfinding'],
     constructs: [
       { id: 'spatial_memory', label: 'Téri memória', catalogRef: 15 },
@@ -211,7 +209,7 @@ export const MODULES: ModuleManifest[] = [
       C: {
         relevance: S,
         headline: 'Terepi és nyíltvízi tájékozódás',
-        rationale: 'Tájfutás, terepfutás, túrakerékpár, vitorlázás alapképessége.',
+        rationale: 'Ezekben a sportágakban a tájékozódás és az iránytartás a teljesítmény része.',
         examples: ['tájfutás', 'terepfutás', 'vitorlázás', 'sítúra'],
       },
     },
@@ -222,7 +220,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '04',
     code: 'REACT',
     title: 'REACT',
-    subtitle: 'Reakcióidő & pszichomotoros kontroll',
+    subtitle: 'Reakcióidő és pszichomotoros kontroll',
     version: '1.0.0',
     status: 'active',
     duration: 420,
@@ -273,26 +271,25 @@ export const MODULES: ModuleManifest[] = [
     domains: {
       A: {
         relevance: P,
-        headline: 'Reakció és fegyverkezelési alapmotorika',
+        headline: 'Reakció és eszközkezelési alapmozgások',
         rationale:
-          'Minden időkritikus katonai feladat alsó korlátja. A reakcióidő szórása fáradtságra és ' +
-          'alváshiányra érzékenyebb, mint az átlag - ezért is mérjük külön.',
+          'Az időkritikus feladatokban a reakcióidő mellett annak ingadozása is fontos; a mérés mindkettőt külön rögzíti.',
         examples: ['minden beosztás', 'járművezető', 'légvédelmi kezelő'],
       },
       B: {
         relevance: P,
-        headline: 'Biztonságkritikus reakcióképesség',
+        headline: 'Biztonságkritikus reakcióteljesítmény',
         rationale:
-          'A vezetői alkalmasság klasszikus magja. A lapszus-arány (>500 ms válaszok) a ' +
-          'műszakos fáradtság legjobb rövid indikátora.',
+          'A feladat a reakcióidőt, a lassú válaszok arányát és a követés pontosságát méri. Ezek a mutatók ' +
+          'műszakos vagy figyelmet igénylő munkában relevánsak.',
         examples: ['gépjárművezető', 'mozdonyvezető', 'daruvezető', 'műszakos operátor'],
       },
       C: {
         relevance: P,
         headline: 'Startreakció és követőmozgás',
         rationale:
-          'Rajtreakció, ütés-elhárítás, labdakövetés. A követési blokk a folyamatos ' +
-          'vizuomotoros kontrollt méri, ami sportágcsoportot jól elkülönít.',
+          'Rajt, ütéselhárítás és labdakövetés közben is fontos a gyors, pontos válasz és a folyamatos ' +
+          'vizuomotoros követés.',
         examples: ['sprint', 'asztalitenisz', 'vívás', 'ökölvívás', 'motorsport'],
       },
     },
@@ -313,15 +310,15 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 4,
     summary:
-      'Négy állomás egyszerre: követés, rendszerfigyelés, erőforrás-tartás, hangkommunikáció. ' +
-      'Kiemelt mutató a dual-task cost.',
+      'Négy állomás működik párhuzamosan: követés, rendszerfigyelés, tartályszintek kezelése és ' +
+      'rádiózás. A fő mutató az egyidejű feladatok többletterhe.',
     paradigms: ['NASA MATB-II'],
     constructs: [
       { id: 'divided_attention', label: 'Megosztott figyelem', catalogRef: 23 },
       { id: 'multitasking', label: 'Többfeladatosság', catalogRef: 24 },
       { id: 'task_switching', label: 'Feladatváltás', catalogRef: 28 },
       { id: 'information_overload', label: 'Információs túlterhelés', catalogRef: 50 },
-      { id: 'dual_task_cost', label: 'Dual-task cost', catalogRef: 131 },
+      { id: 'dual_task_cost', label: 'Kettős feladatterhelés', catalogRef: 131 },
       { id: 'speech_in_noise', label: 'Beszédértés zajban', catalogRef: 94 },
     ],
     headlineMetrics: ['dual_task_cost', 'tracking_rms', 'monitor_hit_rate', 'audio_hit_rate'],
@@ -329,7 +326,7 @@ export const MODULES: ModuleManifest[] = [
       A: {
         relevance: P,
         headline: 'Harcálláspont-terhelés',
-        rationale: 'Rádió, műszer, célkövetés és döntés egyidejűleg - a vezetői terhelés modellje.',
+        rationale: 'Rádió, műszer, célkövetés és döntés egyidejűleg — a vezetői terhelés modellje.',
         examples: ['harcjárművezető', 'pilóta', 'harcálláspont-kezelő'],
       },
       B: {
@@ -354,7 +351,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '06',
     code: 'WATCH',
     title: 'WATCH',
-    subtitle: 'Éberség & perifériás figyelem',
+    subtitle: 'Éberség és perifériás figyelem',
     version: '1.0.0',
     status: 'active',
     duration: 660,
@@ -364,8 +361,8 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 3,
     summary:
-      'Hosszú, monoton ingerfolyam, ritka eltérésekkel. A teljesítmény időbeli lejtése ' +
-      '(vigilance decrement) a fő mutató.',
+      'Hosszú, monoton ingerfolyamban kell felismerni a ritka eltéréseket. A fő mutató azt jelzi, ' +
+      'hogyan változik a teljesítmény az idő előrehaladtával.',
     paradigms: ['Mackworth Clock Test', 'Signal detection theory'],
     constructs: [
       { id: 'sustained_attention', label: 'Tartós figyelem', catalogRef: 21 },
@@ -386,8 +383,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Műszakos éberség',
         rationale:
-          'Éjszakai műszak, vezérlőterem, hosszú vezetés. Az éberség-lejtés méri, meddig ' +
-          'tartható a figyelem, nem azt, hogy induláskor mekkora.',
+          'Éjszakai műszakban, vezérlőteremben és hosszú vezetés közben fontos, hogyan változik a ritka ' +
+          'események észlelése az idő előrehaladtával.',
         examples: ['vezérlőterem-operátor', 'kamionsofőr', 'biztonsági őr', 'éjszakás ápoló'],
       },
       C: {
@@ -414,8 +411,8 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 3,
     summary:
-      'Időnyomás, gyorsuló ingerek, szabályváltás, zavaró hang. Nem trauma - kontrollált ' +
-      'kognitív terhelés. Kiemelt mutató a hiba utáni helyreállás.',
+      'Időnyomás, gyorsuló ingerek, szabályváltás és zavaró hangok mellett méri a teljesítményt. A fő ' +
+      'mutató a hiba utáni helyreállás.',
     paradigms: ['Stroop interference', 'Task-set switching', 'Time pressure'],
     constructs: [
       { id: 'cognitive_flexibility', label: 'Kognitív flexibilitás', catalogRef: 28 },
@@ -452,7 +449,7 @@ export const MODULES: ModuleManifest[] = [
       A: {
         relevance: P,
         headline: 'Harci stressz kognitív komponense',
-        rationale: 'Nem a félelem, hanem a döntési képesség romlása terhelés alatt.',
+        rationale: 'A döntések pontosságának és idejének változását méri kognitív terhelés alatt.',
         examples: ['minden harcoló beosztás', 'parancsnok'],
       },
       B: {
@@ -467,8 +464,7 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Versenyhelyzeti stabilitás',
         rationale:
-          '"Choking under pressure" mérhető közelítése: hogyan változik a pontosság ' +
-          'és a döntési idő, amikor a tét és a tempó nő.',
+          'A feladat azt méri, hogyan változik a pontosság és a döntési idő, amikor nő a tét és gyorsul a tempó.',
         examples: ['büntetőrúgás', 'tenisz', 'sportlövészet', 'küzdősportok'],
       },
     },
@@ -479,7 +475,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '08',
     code: 'HOLD',
     title: 'HOLD',
-    subtitle: 'Válaszgátlás & impulzuskontroll',
+    subtitle: 'Válaszgátlás és impulzuskontroll',
     version: '1.0.0',
     status: 'active',
     duration: 420,
@@ -489,8 +485,8 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 3,
     summary:
-      'Cselekedni, amikor kell, és visszatartani, amikor nem szabad. Go/No-Go és ' +
-      'stop-signal logika absztrakt ingerekkel, menet közbeni szabályváltással.',
+      'Válaszolni, amikor kell, és visszatartani vagy megállítani a választ, amikor nem szabad. ' +
+      'Absztrakt ingerek és menet közbeni szabályváltás.',
     paradigms: ['Go/No-Go', 'Stop-Signal Task'],
     constructs: [
       { id: 'response_inhibition', label: 'Válaszgátlás', catalogRef: 63 },
@@ -505,24 +501,23 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Tűzmegnyitási fegyelem (absztrakt)',
         rationale:
-          'A "shoot / no-shoot" döntés absztrakt megfelelője embermodell és fegyver nélkül. ' +
-          'A gátlási hiba drágább, mint a késés - a pontozás ezt tükrözi.',
+          'A „shoot / no-shoot” döntés absztrakt megfelelője embermodell és fegyver nélkül. A gátlási hiba ' +
+          'drágább, mint a késés — a pontozás ezt tükrözi.',
         examples: ['harcoló beosztás', 'ellenőrzőpont-szolgálat', 'rendész'],
       },
       B: {
         relevance: P,
         headline: 'Biztonsági önfegyelem',
         rationale:
-          'Vészleállítás, elhamarkodott beavatkozás visszatartása, protokoll-fegyelem. ' +
-          'Az impulzivitás munkabaleseti kockázati tényező.',
+          'Vészleállításnál, biztonsági eljárásoknál és más időkritikus helyzetekben fontos a már ' +
+          'megkezdett válasz visszatartása; a feladat ezt a teljesítményt méri.',
         examples: ['gépkezelő', 'sofőr', 'sebész', 'vegyipari operátor'],
       },
       C: {
         relevance: P,
         headline: 'Cselezés-ellenállás és fegyelmezett indulás',
         rationale:
-          'Kapus és védő megállítja a már megkezdett mozdulatot a cselre; rajtnál a ' +
-          'kilépés visszatartása. Klasszikus stop-signal képesség.',
+          'A feladat a már megkezdett mozdulat megállítását vizsgálja, ami cselhelyzetben és rajtnál is releváns.',
         examples: ['kapus', 'vívás', 'kosárlabda-védekezés', 'sprintrajt'],
       },
     },
@@ -543,8 +538,8 @@ export const MODULES: ModuleManifest[] = [
     assetLoad: 1,
     codeLoad: 3,
     summary:
-      'Téri és hallási szekvenciák, kód-hely párosítás, felidézés zavaró feladat után. ' +
-      'Corsi- és N-back-logika VR-ben.',
+      'Térbeli sorozatok, alakzat–hely párosítás, folyamatos frissítés és felidézés zavaró feladat ' +
+      'után, Corsi- és kétlépéses logikával.',
     paradigms: ['Corsi Block-Tapping', 'N-back', 'Delayed recall'],
     constructs: [
       { id: 'working_memory', label: 'Munkamemória', catalogRef: 25 },
@@ -565,8 +560,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Munkamemória-kapacitás',
         rationale:
-          'Gyógyszeradagolás, klíringszám, ellenőrzőlista, ügyfélinformáció fejben tartása ' +
-          'zavaró környezetben - a legtöbb hibázás forrása.',
+          'Gyógyszeradagolás, klíringszám, ellenőrzőlista, ügyfélinformáció fejben tartása zavaró ' +
+          'környezetben — a legtöbb hibázás forrása.',
         examples: ['ápoló', 'gyógyszerész', 'pénzügyi ügyintéző', 'pilóta'],
       },
       C: {
@@ -583,7 +578,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '10',
     code: 'COMMAND',
     title: 'COMMAND',
-    subtitle: 'Csapat, problémamegoldás & vezetés',
+    subtitle: 'Csapat, problémamegoldás és vezetés',
     version: '1.0.0',
     status: 'active',
     duration: 900,
@@ -619,8 +614,8 @@ export const MODULES: ModuleManifest[] = [
       {
         label: 'Alap',
         subtitle: 'Közös tábla, titkos kártyák',
-        summary: 'Vízszintes logisztikai tábla; az információaszimmetria szöveges: mindenki két olyan ' +
-          'javítást ismer, amit a többiek nem. Bármely platformon játszható.',
+        summary: 'Vízszintes logisztikai tábla, szöveges információkülönbségekkel: minden résztvevő két olyan ' +
+          'javítást ismer, amelyet a többiek nem. Minden támogatott platformon futtatható.',
         status: 'active',
         supports: ['vr', 'desktop', 'mobile'],
         duration: 900,
@@ -648,18 +643,18 @@ export const MODULES: ModuleManifest[] = [
       },
       B: {
         relevance: P,
-        headline: 'Vezetői assessment center',
+        headline: 'Vezetői és csapatmunka-helyzet',
         rationale:
-          'Klasszikus AC-gyakorlat mérhető formában: ki oszt meg információt, kinek a ' +
-          'javaslatát fogadja el a csapat, ki delegál, ki blokkol.',
+          'A közös feladatban mérhető, ki oszt meg információt, mely javaslatokat fogadja el a csapat, és ' +
+          'hogyan alakul a delegálás és az együttműködés.',
         examples: ['középvezető-kiválasztás', 'projektmenedzser', 'műszakvezető', 'krízisstáb'],
       },
       C: {
         relevance: S,
         headline: 'Csapatkohézió és pályán belüli vezetés',
         rationale:
-          'Ki a csapatkapitány-típus? A modul azt méri, ki hoz döntést információhiányban ' +
-          'és kire hallgat a csapat - nem azt, ki beszél a legtöbbet.',
+          'A feladatban megfigyelhető, ki kezdeményez döntést információhiányban, hogyan oszlik meg az ' +
+          'információ, és kinek a javaslatait fogadja el a csapat.',
         examples: ['csapatkapitány-kiválasztás', 'evezős nyolcas', 'váltó', 'kosárlabda'],
       },
     },
@@ -670,7 +665,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '11',
     code: 'ANTICIPATE',
     title: 'ANTICIPATE',
-    subtitle: 'Időzítés & előrejelzés',
+    subtitle: 'Időzítés és előrejelzés',
     version: '1.0.0',
     status: 'active',
     duration: 360,
@@ -681,13 +676,13 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 3,
     hue: 140,
     summary:
-      'Mozgó objektum takarásba kerül; a felhasználónak akkor kell reagálnia, amikor ' +
-      'a becsapódási pontot elérné. Koincidencia-időzítés és időbeli okklúzió.',
+      'A mozgó gömb takarásba kerül, és akkor kell válaszolni, amikor elérné a célt. A feladat a ' +
+      'pontos időzítést és a mozgás időbeli továbbvezetését méri.',
     paradigms: ['Coincidence-anticipation timing (Bassin)', 'Temporal occlusion', 'Time-to-contact estimation'],
     constructs: [
-      { id: 'coincidence_timing', label: 'Koincidencia-időzítés' },
+      { id: 'coincidence_timing', label: 'Érkezési időzítés' },
       { id: 'time_to_contact', label: 'Ütközési idő becslése' },
-      { id: 'motion_extrapolation', label: 'Mozgás-extrapoláció' },
+      { id: 'motion_extrapolation', label: 'A mozgás folytatásának becslése' },
       { id: 'temporal_prediction', label: 'Időbeli előrejelzés' },
       { id: 'velocity_discrimination', label: 'Sebesség-megkülönböztetés' },
     ],
@@ -706,9 +701,8 @@ export const MODULES: ModuleManifest[] = [
       {
         label: 'Térbeli',
         subtitle: 'Feléd érkező tárgy időzítése',
-        summary: 'A tárgy feléd repül, és az érkezését az optikai tágulásból kell megítélned. ' +
-          'Külön méri, hogy tau-t használsz-e vagy méret-heurisztikát — ez a sportbeli szakértelem ' +
-          'egyik legjobban dokumentált jele.',
+        summary: 'A tárgy feléd repül, és az érkezését a látható mozgásból kell időzítened. A változat a közeledő ' +
+          'tárgyak érkezési idejének becslését vizsgálja.',
         status: 'active',
         supports: ['vr', 'desktop'],
         duration: 420,
@@ -734,8 +728,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Labdaérkezés időzítése',
         rationale:
-          'Ütő-, dobó- és elkapósportok legfontosabb percepciós képessége. A takarásos ' +
-          'változat pont azt méri, amit a valóság kikényszerít: a labda utolsó szakaszát már nem látjuk.',
+          'Ütő-, dobó- és elkapósportokban fontos a labda érkezésének pontos becslése. A takarásos rész ' +
+          'azt vizsgálja, hogyan folytatódik a becslés, amikor a pálya vége már nem látható.',
         examples: ['teniszfogadás', 'baseball', 'krikett', 'asztalitenisz', 'röplabda'],
       },
     },
@@ -746,7 +740,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '12',
     code: 'FIELD',
     title: 'FIELD',
-    subtitle: 'Hasznos látómező & dinamikus látásélesség',
+    subtitle: 'Hasznos látómező és dinamikus látásélesség',
     version: '1.0.0',
     status: 'active',
     duration: 660,
@@ -757,8 +751,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 3,
     hue: 190,
     summary:
-      'Központi feladat mellett rövid felvillanású perifériás inger helyének azonosítása, ' +
-      'növekvő excentricitáson és zavaró háttérrel. UFOV-logika VR-ben.',
+      'Egy központi feladat mellett röviden felvillanó, oldalsó inger helyét kell felismerni, egyre ' +
+      'távolabb a középponttól és zavaró háttérben.',
     paradigms: ['Useful Field of View (UFOV)', 'Dynamic visual acuity', 'Divided attention field test'],
     constructs: [
       { id: 'useful_field_of_view', label: 'Hasznos látómező' },
@@ -772,23 +766,23 @@ export const MODULES: ModuleManifest[] = [
       A: {
         relevance: S,
         headline: 'Perifériás helyzetfelismerés',
-        rationale: 'A látómező stressz alatti beszűkülése közvetlenül mérhető és kiképzéssel javítható.',
+        rationale: 'A feladat azt méri, hogyan változik a perifériás események felismerése kontrollált terhelés mellett.',
         examples: ['harcoló beosztás', 'járőr'],
       },
       B: {
         relevance: P,
         headline: 'Vezetői látómező',
         rationale:
-          'A UFOV a közúti balesetek egyik legerősebb, validált percepciós előrejelzője, ' +
-          'különösen idősebb és fáradt vezetőknél.',
+          'A hasznos látómező közlekedési helyzetekben is releváns, különösen fáradtság és nagyobb életkor ' +
+          'mellett; az eredmény csak erre a feladatra vonatkozik.',
         examples: ['hivatásos sofőr', 'buszvezető', 'idősvezetői felülvizsgálat', 'gépkezelő'],
       },
       C: {
         relevance: P,
         headline: 'Pályakép szélessége',
         rationale:
-          'A "jó játéklátás" nagyrészt hasznos látómező: mennyit vesz észre a periférián ' +
-          'anélkül, hogy a labdáról levenné a tekintetét.',
+          'A „jó játéklátás” nagyrészt hasznos látómező: mennyit vesz észre a periférián anélkül, hogy a ' +
+          'labdáról levenné a tekintetét.',
         examples: ['labdarúgó irányító', 'kosárlabda-átlövő', 'kézilabda-irányító', 'jégkorong'],
       },
     },
@@ -799,7 +793,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '13',
     code: 'STEADY',
     title: 'STEADY',
-    subtitle: 'Poszturális stabilitás & kéznyugalom',
+    subtitle: 'Poszturális stabilitás és kéznyugalom',
     version: '1.0.0',
     status: 'active',
     duration: 330,
@@ -810,8 +804,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 2,
     hue: 260,
     summary:
-      'A headset és a kontrollerek 6DoF adatából számított testlengés és kéztremor. ' +
-      'Nyitott/csukott szem, egy lábon állás, vizuális perturbáció, célon tartás.',
+      'A headset és a kontrollerek mozgásából számított testlengés és kéztremor. Nyitott vagy ' +
+      'elsötétített nézet, egy lábon állás, mozgó látvány és célon tartás.',
     paradigms: ['Romberg / posturography', 'Hand steadiness test', 'Sensory reweighting'],
     constructs: [
       { id: 'postural_stability', label: 'Poszturális stabilitás' },
@@ -825,23 +819,23 @@ export const MODULES: ModuleManifest[] = [
       A: {
         relevance: S,
         headline: 'Terhelés alatti testkontroll',
-        rationale: 'Lövészstabilitás, terhelt menet utáni egyensúly, fejsérülés utáni visszatérés szűrése.',
+        rationale: 'A feladat a testlengést és a kéz apró mozgásait méri különböző vizuális és testhelyzeti feltételek mellett.',
         examples: ['lövész', 'ejtőernyős', 'visszatérési szűrés'],
       },
       B: {
         relevance: P,
         headline: 'Magasban végzett és finommunka',
         rationale:
-          'Állványos munka, sebészi kéznyugalom, fogászat, mikroelektronika. Az objektív ' +
-          'tremor-mérés eddig külön eszközt igényelt, itt a headset adja.',
+          'Magasban végzett munka, sebészet, fogászat és mikroelektronika közben is releváns a test és a ' +
+          'kéz mozgásának stabilitása; itt a headset és a kontrollerek rögzítik ezt.',
         examples: ['sebész', 'fogorvos', 'állványozó', 'mikroszerelő', 'laboráns'],
       },
       C: {
         relevance: P,
         headline: 'Statikus és dinamikus egyensúly',
         rationale:
-          'Egyensúly-domináns sportágak alapszűrése, és - fontos alkalmazás - agyrázkódás ' +
-          'utáni visszatérési protokoll objektív mérőszáma.',
+          'Egyensúlyigényes sportágakban és terhelés utáni állapotkövetésben releváns lehet a testlengés ' +
+          'objektív rögzítése. Ez nem orvosi vizsgálat.',
         examples: ['torna', 'sílesiklás', 'szörf', 'íjászat', 'agyrázkódás utáni return-to-play'],
       },
     },
@@ -852,7 +846,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '14',
     code: 'RHYTHM',
     title: 'RHYTHM',
-    subtitle: 'Motoros időzítés & ritmusszinkronizáció',
+    subtitle: 'Motoros időzítés és ritmusszinkronizáció',
     version: '1.0.0',
     status: 'active',
     duration: 540,
@@ -863,8 +857,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 2,
     hue: 320,
     summary:
-      'Ütemhez igazodó mozgás, majd az ütem elnémítása után a tempó tartása. ' +
-      'Szinkronizációs-folytatásos paradigma, két kézzel és keresztritmussal is.',
+      'Először egy hallható vagy látható ütemhez kell igazodni, majd a jelzés megszűnése után tartani ' +
+      'a tempót. Kétkezes és eltérő ütemű rész is van.',
     paradigms: ['Sensorimotor synchronisation', 'Synchronisation-continuation tapping', 'Polyrhythm'],
     constructs: [
       { id: 'motor_timing', label: 'Motoros időzítés' },
@@ -889,8 +883,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Mozgásritmus és ciklustartás',
         rationale:
-          'Az evezés, úszás, futás, gátfutás gazdaságosságát a ritmus stabilitása határozza meg; ' +
-          'a szinkron sportokban pedig ez maga a teljesítmény.',
+          'Evezésben, úszásban, futásban és szinkron sportokban is fontos az ütem tartása; a feladat ennek ' +
+          'pontosságát és ingadozását méri.',
         examples: ['evezés', 'úszás', 'gátfutás', 'szinkronúszás', 'ritmikus gimnasztika', 'tánc'],
       },
     },
@@ -901,7 +895,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '15',
     code: 'ADAPT',
     title: 'ADAPT',
-    subtitle: 'Mozgástanulási ráta & vizuomotoros adaptáció',
+    subtitle: 'Mozgástanulási ráta és vizuomotoros adaptáció',
     version: '1.0.0',
     status: 'active',
     duration: 600,
@@ -912,8 +906,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 3,
     hue: 95,
     summary:
-      'A kéz és a látott kurzor közé rejtett elforgatás kerül. Mérjük, milyen gyorsan tanul ' +
-      'újra a rendszer, és mekkora az utóhatás a torzítás megszűnése után.',
+      'Ismételt célzó mozdulatok során méri, hogyan változik a pontosság, mekkora az utóhatás, és ' +
+      'milyen gyors az újratanulás.',
     paradigms: ['Visuomotor rotation adaptation', 'Prism adaptation', 'Savings & aftereffect'],
     constructs: [
       { id: 'motor_learning_rate', label: 'Mozgástanulási ráta' },
@@ -932,18 +926,18 @@ export const MODULES: ModuleManifest[] = [
       },
       B: {
         relevance: P,
-        headline: 'Betaníthatóság mérőszáma',
+        headline: 'Tanulási ráta ismételt mozdulatokban',
         rationale:
-          'A legtöbb alkalmassági teszt a pillanatnyi szintet méri. Ez azt méri, milyen ' +
-          'gyorsan javul - pályaorientációban és betanításnál ez a fontosabb kérdés.',
+          'A feladat azt méri, hogyan változik a mozgás pontossága azonos számú ismétlés során. Az ' +
+          'eredmény az ebben a feladatban megfigyelt tanulási görbét írja le.',
         examples: ['laparoszkópos sebészet', 'távirányított gépkezelés', 'CNC-betanulás', 'pályaorientáció'],
       },
       C: {
         relevance: P,
-        headline: 'Tanulási potenciál',
+        headline: 'Mozgástanulási ráta',
         rationale:
-          'Tehetségazonosításban a jelenlegi teljesítménynél többet mond a tanulási ráta: ' +
-          'ki javul gyorsabban ugyanannyi ismétlésből.',
+          'A jelenlegi teljesítmény mellett az is megfigyelhető, mennyit változik a pontosság azonos számú ' +
+          'ismétlés alatt.',
         examples: ['utánpótlás-szűrés', 'technikai sportágak', 'sportágváltás'],
       },
     },
@@ -965,8 +959,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 3,
     hue: 45,
     summary:
-      'Apró elemek pontos megfogása, áthelyezése, szűk pályán való átvezetése két kézzel, ' +
-      'idő- és érintéshiba-méréssel. Pegboard-logika VR-ben.',
+      'Apró elemek pontos megfogása, áthelyezése és szűk pályán való átvezetése két kézzel. A rendszer ' +
+      'méri az időt, a mozgáspályát és az érintési hibákat.',
     paradigms: ['Purdue Pegboard', 'Grooved Pegboard', 'Buzz-wire tracing'],
     constructs: [
       { id: 'manual_dexterity', label: 'Manuális ügyesség' },
@@ -985,10 +979,10 @@ export const MODULES: ModuleManifest[] = [
       },
       B: {
         relevance: P,
-        headline: 'Kézügyességi alkalmasság',
+        headline: 'Kézügyességi feladatteljesítmény',
         rationale:
-          'A pegboard-típusú tesztek a manuális szakmák bevált szűrőeszközei; VR-ben ' +
-          'eszközkopás nélkül, automatikus méréssel és nagyobb feladatválasztékkal.',
+          'A pálcikaelhelyezési feladatok a finom kézmozgás sebességét és pontosságát mérik; VR-ban a ' +
+          'mozgáspálya és az érintési hibák is automatikusan rögzíthetők.',
         examples: ['sebész', 'fogorvos', 'órás', 'elektronikai szerelő', 'fodrász', 'szakács'],
       },
       C: {
@@ -1005,7 +999,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '17',
     code: 'RISK',
     title: 'RISK',
-    subtitle: 'Kockázatvállalás & döntési stílus',
+    subtitle: 'Kockázatvállalás és döntési stílus',
     version: '0.1.0',
     status: 'active',
     duration: 420,
@@ -1016,8 +1010,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 2,
     hue: 10,
     summary:
-      'Ismételt nyereség-veszteség döntések növekvő tétekkel, tanulható valószínűségekkel. ' +
-      'Nem személyiségteszt: a megfigyelt döntési viselkedést írja le.',
+      'Ismételt nyereség–veszteség döntések növekvő téttel és megtapasztalható valószínűségekkel. A ' +
+      'mérés az ebben a feladatban megfigyelt döntési viselkedést írja le.',
     paradigms: ['Balloon Analogue Risk Task (BART)', 'Iowa Gambling Task', 'Probabilistic learning'],
     constructs: [
       { id: 'risk_taking_behaviour', label: 'Kockázatvállalási viselkedés', catalogRef: 65 },
@@ -1030,8 +1024,9 @@ export const MODULES: ModuleManifest[] = [
     domains: {
       A: {
         relevance: S,
-        headline: 'Kockázati profil műveleti döntésekben',
-        rationale: 'Túl konzervatív és túl vakmerő döntéshozó egyaránt kockázat - a szélsőségek érdekesek.',
+        headline: 'Kockázatkezelés műveleti döntésekben',
+        rationale: 'A feladatban megfigyelhető, hogyan változnak a döntések bizonytalan kimenetel és ismételt ' +
+          'visszajelzés mellett.',
         examples: ['parancsnoki kiválasztás', 'tűzszerész', 'pilóta'],
       },
       B: {
@@ -1046,8 +1041,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Taktikai kockázatvállalás',
         rationale:
-          'Támad vagy biztosít? Az extrémsportokban és a versenytaktikában a kockázati ' +
-          'profil sportágcsoportot és szerepkört is elkülönít.',
+          'Versenyhelyzetben gyakori a biztosabb és a kockázatosabb döntés közötti választás; a feladat az ' +
+          'ismételt döntések mintázatát figyeli meg.',
         examples: ['kerékpáros szökés', 'sziklamászás', 'síugrás', 'póker/e-sport', 'motorsport'],
       },
     },
@@ -1058,7 +1053,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '18',
     code: 'PROTOCOL',
     title: 'PROTOCOL',
-    subtitle: 'Eljárásrendi fegyelem & ellenőrzőlista',
+    subtitle: 'Eljárásrendi fegyelem és ellenőrzőlista',
     version: '0.1.0',
     status: 'active',
     duration: 540,
@@ -1069,8 +1064,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 3,
     hue: 165,
     summary:
-      'Több lépéses eljárás pontos, sorrendhelyes végrehajtása - időnyomás, megszakítás és ' +
-      'menet közbeni eljárásmódosítás mellett. A kihagyott lépés a fő mutató.',
+      'Többlépéses eljárás pontos, helyes sorrendű végrehajtása időnyomás, megszakítás és menet ' +
+      'közbeni módosítás mellett. A fő mutató a kihagyott lépések száma.',
     paradigms: ['Checklist compliance', 'Prospective memory', 'Interruption recovery'],
     constructs: [
       { id: 'procedural_compliance', label: 'Eljáráskövetés' },
@@ -1091,8 +1086,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Protokollkövetés megszakítások közben',
         rationale:
-          'A repülésben és az egészségügyben a súlyos hibák többsége kihagyott ellenőrzőlista-' +
-          'lépés megszakítás után. Ez a modul pontosan ezt méri, nem az elméleti tudást.',
+          'Repülési és egészségügyi eljárásokban is kockázatot jelenthet a megszakítás után kihagyott ' +
+          'lépés. A modul ennek feladaton belüli előfordulását méri, nem az elméleti tudást.',
         examples: ['pilóta', 'ápoló', 'gyógyszerész', 'vegyipari operátor', 'laborvezető'],
       },
       C: {
@@ -1107,7 +1102,7 @@ export const MODULES: ModuleManifest[] = [
     ordinal: '19',
     code: 'INTENT',
     title: 'INTENT',
-    subtitle: 'Mozgásolvasás & szándékfelismerés',
+    subtitle: 'Mozgásolvasás és szándékfelismerés',
     version: '0.1.0',
     status: 'active',
     duration: 420,
@@ -1118,8 +1113,8 @@ export const MODULES: ModuleManifest[] = [
     codeLoad: 3,
     hue: 285,
     summary:
-      'Absztrakt pontfény-alak (point-light figure) mozdulatot kezd; a mozdulat közben ' +
-      'eltűnik. A feladat a szándék irányának megjóslása - beleértve a megtévesztést.',
+      'Egy fénypontokból álló alak mozdulatot kezd, majd eltűnik. A feladat a mozgás irányának ' +
+      'előrejelzése, megtévesztő mozdulatok mellett is.',
     paradigms: ['Biological motion / point-light displays', 'Temporal occlusion of opponent action', 'Deception detection'],
     constructs: [
       { id: 'biological_motion_perception', label: 'Biológiai mozgás észlelése' },
@@ -1146,8 +1141,8 @@ export const MODULES: ModuleManifest[] = [
         relevance: P,
         headline: 'Ellenfélolvasás',
         rationale:
-          'Az elit sportoló nem gyorsabban reagál - hamarabb tud. A korai kinematikai ' +
-          'jelzések olvasása a legjobban dokumentált szakértői előny a sportpszichológiában.',
+          'A feladat azt méri, milyen korán és pontosan olvasható ki az ellenfél mozdulatának iránya a ' +
+          'látható kinematikai jelekből.',
         examples: ['kapus', 'vívás', 'tenisz', 'küzdősportok', 'kosárlabda-védekezés'],
       },
     },

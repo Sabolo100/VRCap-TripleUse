@@ -125,7 +125,8 @@ function buildOnce(seed: number, seats: number, blockCount: number): StructureSc
 
   const seatPositions = Array.from({ length: seats }, (_, i) => {
     const a = (i / seats) * Math.PI * 2;
-    return { seat: i, x: Math.sin(a) * SEAT_RADIUS, z: Math.cos(a) * SEAT_RADIUS, yaw: a + Math.PI };
+    // rotation.y = a faces the table centre from (sin a, cos a); a + π faced away.
+    return { seat: i, x: Math.sin(a) * SEAT_RADIUS, z: Math.cos(a) * SEAT_RADIUS, yaw: a };
   });
 
   // A lobed cluster rather than a ball.

@@ -77,9 +77,9 @@ export class SteadyModule implements AssessmentModule {
       id: 'stance',
       title: 'NYITOTT SZEM',
       instruction:
-        'Csak állj, harminc másodpercig. Lábak vállszélességben, karok lazán a test mellett, és nézz előre ' +
-        'a gyűrűre. Semmit nem kell megnyomnod: a headset azt méri, hogyan mozdul a fejed, miközben ' +
-        'mozdulatlanul próbálsz állni.',
+        'Állj harminc másodpercig vállszélességű terpeszben, a karodat lazán a tested mellett tartva, és ' +
+        'nézd az előtted lévő gyűrűt. Gombot nem kell nyomnod. Próbálj mozdulatlanul állni; a headset a ' +
+        'fejed apró elmozdulásait méri.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -89,8 +89,9 @@ export class SteadyModule implements AssessmentModule {
       id: 'dark',
       title: 'ELSÖTÉTÍTVE',
       instruction:
-        'Most elsötétül a kijelző. Állj tovább ugyanígy, ne mozdulj. Ha bizonytalannak érzed magad, nyisd ' +
-        'ki a szemed vagy fogódzz meg — a bal kontroller MENÜ gombjával bármikor kiléphetsz.',
+        'A kijelző elsötétül. Maradj ugyanabban a testhelyzetben, és próbálj mozdulatlanul állni. Ha ' +
+        'bizonytalannak érzed magad, azonnal nyisd ki a szemed vagy fogódzz meg. A bal kontroller MENÜ ' +
+        'gombjával bármikor megszakíthatod a részt.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -111,9 +112,9 @@ export class SteadyModule implements AssessmentModule {
       id: 'oneleg',
       title: 'EGY LÁBON',
       instruction:
-        'Ehhez a részhez legalább másfél méter szabad hely kell körülötted, és jó, ha van valaki a ' +
-        'közelben. Ha ez nincs meg, nyugodtan hagyd ki — a többi eredmény enélkül is érvényes. Ha vállalod: ' +
-        'állj egy lábon, előbb az egyiken, aztán a másikon.',
+        'Ehhez a részhez legalább másfél méter szabad helyre és lehetőleg egy melletted álló személyre ' +
+        'van szükség. Ha ez nem biztosítható, válaszd a KIHAGYOM gombot; a többi eredmény ettől még ' +
+        'értelmezhető. Ha folytatod, állj először az egyik, majd a másik lábadon.',
       controlHint: '',
       trials: 2,
       practiceTrials: 0,

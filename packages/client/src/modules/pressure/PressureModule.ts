@@ -112,8 +112,8 @@ export class PressureModule implements AssessmentModule {
       id: 'switching',
       title: 'VÁLTÁS',
       instruction:
-        'Most próbáról próbára változhat, hogy a SZÍN vagy az ALAK számít. A felirat minden alkalommal ' +
-        'megmondja — de csak röviden, ezért minden próbán olvasd el. A válaszok ugyanazok, mint eddig.',
+        'Most próbáról próbára változhat, hogy a SZÍN vagy az ALAK számít. Minden próba elején olvasd el ' +
+        'a rövid feliratot: ez mutatja az aktuális szabályt. A válaszok ugyanazok, mint eddig.',
       controlHint: '',
       trials: 40,
       practiceTrials: 6,
@@ -122,8 +122,9 @@ export class PressureModule implements AssessmentModule {
       id: 'pressure',
       title: 'NYOMÁS',
       instruction:
-        'Ugyanaz a feladat, de mostantól fogy az idő, zavaró hangok szólnak, és látod a saját sorozatodat. ' +
-        'A sorozat közepén a szabály MEGFORDUL — figyelj a jelzésre. Nincs benne semmi ijesztő; csak kevesebb az idő.',
+        'A feladat ugyanaz, de most fogy az idő, zavaró hangokat hallasz, és látod a válaszsorozatodat. ' +
+        'A sorozat közben a szabály MEGFORDUL; figyelj a jelzésre. Nincs benne semmi ijesztő, csak ' +
+        'kevesebb az idő.',
       controlHint: '',
       trials: 44,
       practiceTrials: 4,
@@ -132,8 +133,8 @@ export class PressureModule implements AssessmentModule {
       id: 'recovery',
       title: 'HELYREÁLLÁS',
       instruction:
-        'Vissza az első rész feltételeihez: csak a SZÍN számít, és újra van bőven idő. Nincs hang, nincs ' +
-        'számláló. Ez azt méri, elmúlt-e a nyomás hatása.',
+        'Visszatérnek az első rész feltételei: csak a SZÍN számít, és ismét van elegendő idő. Nem lesz ' +
+        'zavaró hang és számláló. Ez a rész a nyomás utáni teljesítményt méri.',
       controlHint: '',
       trials: 24,
       practiceTrials: 0,
@@ -244,11 +245,11 @@ export class PressureModule implements AssessmentModule {
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr':
-        return 'CIÁN vagy KOCKA → BAL ravasz · MAGENTA vagy GÖMB → JOBB ravasz';
+        return 'CIÁN → BAL ravasz · MAGENTA → JOBB ravasz · csak a szín számít';
       case 'mobile':
-        return 'CIÁN vagy KOCKA → BAL gomb · MAGENTA vagy GÖMB → JOBB gomb';
+        return 'CIÁN → BAL gomb · MAGENTA → JOBB gomb · csak a szín számít';
       default:
-        return 'CIÁN vagy KOCKA → F (vagy ←) · MAGENTA vagy GÖMB → J (vagy →)';
+        return 'CIÁN → F vagy ← · MAGENTA → J vagy → · csak a szín számít';
     }
   }
 
@@ -421,11 +422,14 @@ export class PressureModule implements AssessmentModule {
       if (this.currentBlock === 'pressure' && !this.practice && trial === this.reversalAt && !this.reversed) {
         this.reversed = true;
         this.cueText = 'SZABÁLY MEGFORDULT';
+        this.reversalNoticeUntil = trial + 4;
         ctx.recorder.event('rule_reversal', { trialIndex: trial, newMapping: 'reversed' });
         ctx.audio.warn();
       } else {
         this.cueText = spec.dimension === 'color' ? 'SZÍN' : 'ALAK';
       }
+      this.cueIsSwitch = !!spec.isSwitch;
+      this.cueAfterReversal = this.reversed && trial < this.reversalNoticeUntil;
       this.cuePanel.group.visible = true;
       this.cuePanel.invalidate();
       ctx.recorder.event('cue_shown', {
@@ -639,14 +643,38 @@ export class PressureModule implements AssessmentModule {
 
   /* --------------------------------------------------------------- UI */
 
+  private cueIsSwitch = false;
+  private cueAfterReversal = false;
+  private reversalNoticeUntil = -1;
+
+  /** The current stimulus-to-response mapping in words, reversal applied. */
+  private mappingLine(): string {
+    const p = this.ctx.platform;
+    const left = p === 'vr' ? 'BAL RAVASZ' : p === 'mobile' ? 'BAL gomb' : 'F';
+    const right = p === 'vr' ? 'JOBB RAVASZ' : p === 'mobile' ? 'JOBB gomb' : 'J';
+    const a = this.reversed ? right : left;
+    const b = this.reversed ? left : right;
+    return `CIÁN · KOCKA → ${a}      MAGENTA · GÖMB → ${b}`;
+  }
+
   private drawCue(ui: UI): void {
     const t = ui.t;
     const isReversal = this.cueText.includes('MEGFORDULT');
-    ui.roundRect(0, 0, ui.w, ui.h, 12, withAlpha(isReversal ? t.warn : '#000000', isReversal ? 0.9 : 0.5));
-    ui.text(this.cueText, ui.w / 2, ui.h / 2, {
-      size: isReversal ? 34 : 42,
+    // A switch trial gets an accent frame; the tester's complaint was that
+    // the only warning of a rule change was that one word had changed.
+    const bg = isReversal ? withAlpha(t.warn, 0.9) : this.cueIsSwitch ? withAlpha(t.accent, 0.28) : withAlpha('#000000', 0.5);
+    ui.roundRect(0, 0, ui.w, ui.h, 12, bg, this.cueIsSwitch && !isReversal ? t.accent : undefined, 2);
+    const cue = isReversal ? this.cueText : this.cueAfterReversal ? `ÚJ SZABÁLY · ${this.cueText}` : this.cueText;
+    ui.text(cue, ui.w / 2, ui.h * 0.38, {
+      size: isReversal ? 30 : this.cueAfterReversal ? 30 : 38,
       color: isReversal ? '#0a0d12' : t.text,
       align: 'center', weight: '700', font: t.fontDisplay, letterSpacing: '3px',
+    });
+    // The mapping stays on screen for the whole block. The info panel that
+    // used to carry it is hidden while a block runs, so on a laptop and in a
+    // headset nothing said which side was which.
+    ui.text(this.mappingLine(), ui.w / 2, ui.h * 0.8, {
+      size: 16, color: isReversal ? '#0a0d12' : t.textMuted, align: 'center', weight: '600',
     });
   }
 

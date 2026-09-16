@@ -4,8 +4,23 @@
     {
       "name": "client",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:client"],
+      "runtimeArgs": [
+        "run",
+        "dev:client"
+      ],
       "port": 5173
+    },
+    {
+      "name": "dist",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8099",
+        "--directory",
+        "packages/client/dist"
+      ],
+      "port": 8099
     }
   ]
 }

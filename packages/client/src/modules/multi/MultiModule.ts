@@ -42,7 +42,10 @@ import {
 
 type BlockId = 'baseline' | 'dual' | 'load';
 
-const RADIUS_M = 2.0;
+// 1.5 m, not 2.0: at 2 m the station text subtended about 1 degree in the
+// headset - a quarter smaller than the runner's own panels, which are the
+// legibility floor - and the tester could not read the stations.
+const RADIUS_M = 1.5;
 const BASELINE_MS = 50_000;
 const DUAL_MS = 80_000;
 const LOAD_MS = 140_000;
@@ -66,6 +69,8 @@ interface CondResult {
   stations: StationId[];
   durationMs: number;
   trackRms: number;
+  /** Share of scored samples with the disc inside the inner ring. */
+  trackOnTarget: number;
   trackIdleFraction: number;
   monitorHits: number;
   monitorMisses: number;
@@ -103,26 +108,24 @@ export class MultiModule implements AssessmentModule {
       title: 'EGYESÉVEL',
       instruction: {
         vr:
-          'Négy állomás vesz körül. KÖVETÉS: egy korong sodródik — a BAL kar mozgatásával tartsd a gyűrű ' +
-          'közepén. RENDSZER: két jelzőfény és négy skála — amelyik eltér a normálistól, arra mutass a jobb ' +
-          'kontrollerrel, és húzd meg a ravaszt. TARTÁLYOK: két tartály szintjét tartsd a zöld sávban a ' +
-          'szivattyúk ki-bekapcsolásával (mutass rá, ravasz). RÁDIÓ: hívások érkeznek — csak a SAJÁT ' +
-          'hívójeledre válaszolj, a mondott csatorna kiválasztásával. Most mindegyiket külön kapod, egyenként ' +
-          '50 másodpercre: ez lesz az összehasonlítási alap.',
+          'Négy állomás vesz körül. KÖVETÉS: a bal karral tartsd középen a korongot. RENDSZER: a zöld fény ' +
+          'égjen, a piros maradjon sötét, a skálák mutatója legyen középen; eltéréskor válassz a jobb ' +
+          'kontroller sugarával és a ravasszal. TARTÁLYOK: a szinteket tartsd a zöld sávban a ' +
+          'szivattyúkkal; ha az egyik elromlik, használd a másikat. RÁDIÓ: csak a SAJÁT hívójeledre ' +
+          'válaszolj a bemondott csatorna kiválasztásával. Most az állomásokat külön, 50 másodpercig ' +
+          'végzed.',
         desktop:
-          'Négy állomás lesz előtted. KÖVETÉS: egy korong sodródik — a WASD vagy a nyíl billentyűkkel tartsd ' +
-          'a gyűrű közepén. RENDSZER: két jelzőfény és négy skála — amelyik eltér a normálistól, arra ' +
-          'kattints. TARTÁLYOK: két tartály szintjét tartsd a zöld sávban a szivattyúk ki-bekapcsolásával ' +
-          '(kattints a szivattyúra). RÁDIÓ: hívások érkeznek — csak a SAJÁT hívójeledre válaszolj, a mondott ' +
-          'csatornára kattintva. Most mindegyiket külön kapod, egyenként 50 másodpercre: ez lesz az ' +
-          'összehasonlítási alap.',
+          'Négy állomás jelenik meg. KÖVETÉS: a WASD vagy a nyíl billentyűkkel tartsd középen a korongot. ' +
+          'RENDSZER: a zöld fény égjen, a piros maradjon sötét, a skálák mutatója legyen középen; ' +
+          'eltéréskor kattints. TARTÁLYOK: a szinteket tartsd a zöld sávban a szivattyúkra kattintva; ha ' +
+          'az egyik elromlik, használd a másikat. RÁDIÓ: csak a SAJÁT hívójeledre válaszolj a bemondott ' +
+          'csatornára kattintva. Most az állomásokat külön, 50 másodpercig végzed.',
         mobile:
-          'Négy állomás lesz előtted. KÖVETÉS: egy korong sodródik — a bal alsó sarokban lévő karral, a bal ' +
-          'hüvelykujjaddal tartsd a gyűrű közepén. RENDSZER: két jelzőfény és négy skála — amelyik eltér a ' +
-          'normálistól, arra koppints. TARTÁLYOK: két tartály szintjét tartsd a zöld sávban a szivattyúk ' +
-          'ki-bekapcsolásával (koppints a szivattyúra). RÁDIÓ: hívások érkeznek — csak a SAJÁT hívójeledre ' +
-          'válaszolj, a mondott csatornára koppintva. Most mindegyiket külön kapod, egyenként 50 másodpercre: ' +
-          'ez lesz az összehasonlítási alap.',
+          'Négy állomás jelenik meg. KÖVETÉS: a bal alsó karral tartsd középen a korongot. RENDSZER: a ' +
+          'zöld fény égjen, a piros maradjon sötét, a skálák mutatója legyen középen; eltéréskor koppints. ' +
+          'TARTÁLYOK: a szinteket tartsd a zöld sávban a szivattyúkra koppintva; ha az egyik elromlik, ' +
+          'használd a másikat. RÁDIÓ: csak a SAJÁT hívójeledre válaszolj a bemondott csatornára koppintva. ' +
+          'Most az állomásokat külön, 50 másodpercig végzed.',
       },
       controlHint: '',
       trials: 4,
@@ -134,17 +137,17 @@ export class MultiModule implements AssessmentModule {
       title: 'KETTŐ EGYSZERRE',
       instruction: {
         vr:
-          'Most a KÖVETÉS és a RENDSZER megy egyszerre. A bal kezed a karon marad és tartja a korongot ' +
-          'középen; a jobb kezeddel közben mutatsz és válaszolsz a rendszerállomáson. Nem lehet mindkettőt ' +
-          'tökéletesen — az a kérdés, hogyan osztod meg a figyelmed.',
+          'Most a KÖVETÉS és a RENDSZER egyszerre működik. A bal karral tartsd a korongot középen, ' +
+          'miközben a jobb kontroller sugarával és a ravasszal válaszolsz a rendszerállomáson. Mindkét ' +
+          'feladatot folyamatosan végezd; nem baj, ha egyik sem tökéletes.',
         desktop:
-          'Most a KÖVETÉS és a RENDSZER megy egyszerre. A bal kezed a WASD-n marad és tartja a korongot ' +
-          'középen; a jobb kezeddel közben az egérrel kattintasz a rendszerállomáson. Nem lehet mindkettőt ' +
-          'tökéletesen — az a kérdés, hogyan osztod meg a figyelmed.',
+          'Most a KÖVETÉS és a RENDSZER egyszerre működik. A WASD vagy a nyíl billentyűkkel tartsd a ' +
+          'korongot középen, miközben az egérrel válaszolsz a rendszerállomáson. Mindkét feladatot ' +
+          'folyamatosan végezd; nem baj, ha egyik sem tökéletes.',
         mobile:
-          'Most a KÖVETÉS és a RENDSZER megy egyszerre. A bal hüvelykujjad a karon marad és tartja a korongot ' +
-          'középen; a jobb hüvelykujjaddal közben koppintasz a rendszerállomáson. Nem lehet mindkettőt ' +
-          'tökéletesen — az a kérdés, hogyan osztod meg a figyelmed.',
+          'Most a KÖVETÉS és a RENDSZER egyszerre működik. A bal hüvelykujjaddal tartsd a korongot ' +
+          'középen, miközben a jobb kezeddel válaszolsz a rendszerállomáson. Mindkét feladatot ' +
+          'folyamatosan végezd; nem baj, ha egyik sem tökéletes.',
       },
       controlHint: '',
       trials: 1,
@@ -156,15 +159,18 @@ export class MultiModule implements AssessmentModule {
       title: 'MIND A NÉGY',
       instruction: {
         vr:
-          'Mind a négy állomás egyszerre, két szakaszban. Az állomások körülötted vannak, ezért egyszerre ' +
-          'legfeljebb kettőt látsz — fordulj oda, amelyikre figyelni akarsz. A második szakaszban sűrűbben ' +
-          'történnek a dolgok. Nem lehet mindent tökéletesen csinálni: az a kérdés, mit engedsz el.',
+          'Most mind a négy állomás egyszerre működik, két szakaszban. A bal karral tartsd középen a ' +
+          'korongot; a többi állomáson a jobb kontroller sugarával és a ravasszal válaszolj. Az állomások ' +
+          'körülötted vannak, ezért fordulj oda, amelyiket ellenőrizni szeretnéd. A második szakaszban ' +
+          'sűrűbben történnek az események.',
         desktop:
-          'Mind a négy állomás egyszerre, két szakaszban — mind a négy a képernyőn van. A második szakaszban ' +
-          'sűrűbben történnek a dolgok. Nem lehet mindent tökéletesen csinálni: az a kérdés, mit engedsz el.',
+          'Most mind a négy állomás egyszerre működik, két szakaszban. A WASD vagy a nyíl billentyűkkel ' +
+          'tartsd középen a korongot, a többi állomáson kattintással válaszolj. Mindegyik állomás látszik ' +
+          'a képernyőn. A második szakaszban sűrűbbek az események.',
         mobile:
-          'Mind a négy állomás egyszerre, két szakaszban — mind a négy a képernyőn van. A második szakaszban ' +
-          'sűrűbben történnek a dolgok. Nem lehet mindent tökéletesen csinálni: az a kérdés, mit engedsz el.',
+          'Most mind a négy állomás egyszerre működik, két szakaszban. A bal alsó karral tartsd középen a ' +
+          'korongot, a többi állomáson koppintással válaszolj. Mindegyik állomás látszik a képernyőn. A ' +
+          'második szakaszban sűrűbbek az események.',
       },
       controlHint: '',
       trials: 2,
@@ -478,7 +484,7 @@ export class MultiModule implements AssessmentModule {
     this.queue = this.schedule(active, durationMs, rates, t0);
     this.cur = {
       condition, stations: [...active], durationMs,
-      trackRms: NaN, trackIdleFraction: NaN,
+      trackRms: NaN, trackOnTarget: NaN, trackIdleFraction: NaN,
       monitorHits: 0, monitorMisses: 0, monitorFa: 0, monitorRts: [],
       resourceDeviation: NaN, recoveryLags: [],
       commHits: 0, commMisses: 0, commFa: 0, commOwn: 0, commRts: [],
@@ -693,6 +699,7 @@ export class MultiModule implements AssessmentModule {
     }
     if (this.activeIds.includes('track')) {
       cur.trackRms = this.track.rmsDeg;
+      cur.trackOnTarget = this.track.onTargetFraction;
       cur.trackIdleFraction = clamp(this.track.idleMs / Math.max(1, cur.durationMs), 0, 1);
     }
     if (this.activeIds.includes('monitor')) {
@@ -715,7 +722,7 @@ export class MultiModule implements AssessmentModule {
     if (!this.practice) this.results.push(cur);
     this.ctx.recorder.event('phase_end', {
       condition: cur.condition, practice: this.practice,
-      trackRmsDeg: r(cur.trackRms, 2),
+      trackRmsDeg: r(cur.trackRms, 2), trackOnTarget: r(cur.trackOnTarget, 3),
       monitorHits: cur.monitorHits, monitorMisses: cur.monitorMisses, monitorFalseAlarms: cur.monitorFa,
       resourceDeviation: r(cur.resourceDeviation, 0),
       commHits: cur.commHits, commMisses: cur.commMisses, commOwnCalls: cur.commOwn,
@@ -919,6 +926,7 @@ export class MultiModule implements AssessmentModule {
       ['tracking_rms', low?.trackRms ?? NaN, 'deg', 'load_low'],
       ['tracking_rms_baseline', bTrack?.trackRms ?? NaN, 'deg', 'baseline'],
       ['tracking_rms_high', high?.trackRms ?? NaN, 'deg', 'load_high'],
+      ['tracking_on_target', low?.trackOnTarget ?? NaN, 'ratio', 'load_low'],
       ['tracking_idle_fraction', low?.trackIdleFraction ?? NaN, 'ratio', 'load_low'],
       ['monitor_hit_rate', monHit(low), 'ratio', 'load_low'],
       ['monitor_hit_rate_baseline', monHit(bMonitor), 'ratio', 'baseline'],
@@ -946,7 +954,11 @@ export class MultiModule implements AssessmentModule {
     const faPenalty = (fa: number, perMin: number) =>
       Number.isFinite(fa) ? clamp(1 - fa / Math.max(1, perMin), 0, 1) : 1;
 
-    const trackingScore = normaliseSoft(Number.isFinite(low?.trackRms ?? NaN) ? low!.trackRms : 8, 1.4, 6.5);
+    // Anchors follow the rings the participant sees: 2 degrees RMS is a disc
+    // that lives inside the inner (3 degree) ring, 7 degrees is one that
+    // rides the outer ring. With the old 1.4/6.5 a run that was inside the
+    // ring most of the time scored 25.
+    const trackingScore = normaliseSoft(Number.isFinite(low?.trackRms ?? NaN) ? low!.trackRms : 8, 2.0, 7.0);
     const monitoringScore = normaliseSoft(Number.isFinite(monHit(low)) ? monHit(low) : 0.4, 0.92, 0.5)
       * faPenalty(faPerMin(low?.monitorFa ?? 0, low), 6);
     const resourceScore = normaliseSoft(
@@ -1050,6 +1062,7 @@ export class MultiModule implements AssessmentModule {
           stations: c.stations,
           durationMs: Math.round(c.durationMs),
           trackRmsDeg: r(c.trackRms, 2),
+          trackOnTarget: r(c.trackOnTarget, 3),
           trackIdleFraction: r(c.trackIdleFraction, 3),
           monitorHitRate: r(hitRate(c.monitorHits, c.monitorMisses), 3),
           monitorFalseAlarms: c.monitorFa,

@@ -157,9 +157,9 @@ export class HandsModule implements AssessmentModule {
       id: 'assembly',
       title: 'ÖSSZESZERELÉS',
       instruction:
-        'Négy alkatrészt kell egymásra tenned a középső tengelyen: tengely, alátét, gallér, alátét — ebben ' +
-        'a sorrendben, mindig váltott kézzel (tengely jobb, alátét bal, gallér jobb, alátét bal). A két kezed ' +
-        'párhuzamosan dolgozhat: amíg az egyik letesz, a másik már veheti a következőt.',
+        'Tedd az alkatrészeket a középső tengelyre ebben a sorrendben: tengely JOBB kézzel, alátét BAL ' +
+        'kézzel, gallér JOBB kézzel, majd alátét BAL kézzel. A megfogáshoz tartsd lenyomva a ravaszt, az ' +
+        'elhelyezéshez engedd el. Mindig a megadott sorrendet és kézbeosztást kövesd.',
       controlHint: '',
       trials: 1,
       practiceTrials: 1,
@@ -274,7 +274,7 @@ export class HandsModule implements AssessmentModule {
 
 
   private controlHint(): string {
-    return 'RAVASZ lenyomva: fogás · engedd el a furat (vagy a tengely) fölött';
+    return 'Tartsd lenyomva a RAVASZT a pálcika megfogásához; a kijelölt furat fölött engedd el.';
   }
 
   /** A direction in the participant's own frame, in world space. */

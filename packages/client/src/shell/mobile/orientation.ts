@@ -64,7 +64,7 @@ function update(): void {
         <rect x="5" y="2" width="14" height="20" rx="2.5"/>
         <path d="M9 19h6"/></svg>` }),
     el('strong', {}, ['Fordítsd el a telefont']),
-    el('p', {}, ['A teszt fekvő nézetben fut — így fér ki az utasítás és a válaszgomb.']),
+    el('p', {}, ['A teszt fekvő nézetben fut, mert így az instrukció és a válaszgombok is jól láthatók.']),
   ]);
   document.body.appendChild(overlay);
 }

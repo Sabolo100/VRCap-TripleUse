@@ -53,7 +53,7 @@ let showAllModules = false;
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'tests', label: 'Tesztek', icon: 'grid' },
   { id: 'profile', label: 'Profil', icon: 'radar' },
-  { id: 'history', label: 'Előzmény', icon: 'clock' },
+  { id: 'history', label: 'Előzmények', icon: 'clock' },
   { id: 'account', label: 'Fiók', icon: 'user' },
 ];
 
@@ -67,7 +67,7 @@ export function renderMobileLanding(host: HTMLElement, cb: MobileCallbacks): voi
     el('header', { class: 'm-onboard-head' }, [
       el('div', { class: 'm-logo' }),
       el('h1', {}, ['VR CAP']),
-      el('p', {}, ['Kognitív, figyelmi és pszichomotoros mérés. Válaszd ki, melyik területen dolgozol.']),
+      el('p', {}, ['Kognitív, figyelmi, döntési és pszichomotoros mérés. Válaszd ki a számodra megfelelő területet.']),
     ])
   );
 
@@ -133,6 +133,25 @@ export function renderMobileHub(host: HTMLElement, domain: DomainCode, cb: Mobil
   /* --- the tab body -------------------------------------------------- */
   const main = el('main', { class: 'm-main' });
   const rerender = () => renderMobileHub(host, domain, cb);
+
+  // iPhone Safari has no fullscreen API and no orientation lock: in a tab the
+  // test runs in the strip left under the address bar and the tester called
+  // it unusable. Installed to the home screen it runs full-screen and
+  // landscape-locked, so say so - once.
+  if (needsHomeScreenTip()) {
+    main.appendChild(
+      el('div', { class: 'm-note m-ios-tip' }, [
+        el('strong', {}, ['Teljes képernyő iPhone-on']),
+        el('span', {}, [
+          'A tesztek a Safari sávjai nélkül futnak jól. Megosztás gomb → „Főképernyőhöz adás", majd onnan indítsd az appot.',
+        ]),
+        el('button', {
+          class: 'm-pill ghost', type: 'button',
+          onclick: () => { try { localStorage.setItem('vrcap.iosTip', '1'); } catch { /* ignore */ } rerender(); },
+        }, ['Értem']),
+      ])
+    );
+  }
   switch (currentTab) {
     case 'tests': main.appendChild(testsView(domain, cb, rerender)); break;
     case 'profile': main.appendChild(profileView(domain)); break;
@@ -168,7 +187,7 @@ function tabTitle(t: Tab, modulePlural: string): string {
   switch (t) {
     case 'tests': return modulePlural.charAt(0).toUpperCase() + modulePlural.slice(1);
     case 'profile': return 'Profil';
-    case 'history': return 'Előzmény';
+    case 'history': return 'Előzmények';
     case 'account': return 'Fiók';
   }
 }
@@ -262,7 +281,7 @@ function openModuleSheet(
       nodes.push(
         el('div', { class: 'm-facts' }, [
           fact(`${mins}`, 'perc'),
-          fact(String(m.constructs.length), 'képesség'),
+          fact(String(m.constructs.length), 'mért terület'),
           fact(prof.relevance === 'primary' ? 'Elsődleges' : 'Másodlagos', 'relevancia'),
         ])
       );
@@ -280,9 +299,8 @@ function openModuleSheet(
 
       if (needsVr) {
         nodes.push(el('div', { class: 'm-note' }, [
-          'Ehhez a modulhoz VR headset kell: maga a mérés a fej és a kéz térbeli követéséből ' +
-          'származik. Ujjal ugyanez a feladat egy másik képességet mérne, ezért nem kínálunk ' +
-          'belőle leromlott változatot.',
+          'Ehhez a modulhoz VR headset kell, mert a mérés a fej vagy a kéz valódi térbeli mozgásából ' +
+          'származik. Ujjal más feladat jönne létre, ezért nincs egyszerűsített mobilváltozat.',
         ]));
       } else if (!startable) {
         nodes.push(el('div', { class: 'm-note' }, [
@@ -373,7 +391,7 @@ function profileView(domain: DomainCode): HTMLElement {
       el('div', { class: 'm-empty' }, [
         el('div', { class: 'm-empty-icon' }, [icon('radar')]),
         el('strong', {}, ['Még nincs profilod']),
-        el('p', {}, ['A profil akkor rajzolódik ki, ha legalább egy tesztet befejeztél. Több teszt → megbízhatóbb kép.']),
+        el('p', {}, ['A profil legalább egy befejezett teszt után jelenik meg. Több teszt több megfigyelt eredményt ad.']),
       ])
     );
     return view;
@@ -416,7 +434,7 @@ function historyView(domain: DomainCode, cb: MobileCallbacks, rerender: () => vo
       el('div', { class: 'm-empty' }, [
         el('div', { class: 'm-empty-icon' }, [icon('clock')]),
         el('strong', {}, ['Még nincs eredményed']),
-        el('p', {}, ['Indíts el egy tesztet — a REACT a leggyorsabb belépő, körülbelül hét perc.']),
+        el('p', {}, ['Indíts el egy tesztet. Elsőként a körülbelül hétperces REACT tesztet érdemes választani.']),
         el('button', {
           class: 'm-cta', type: 'button',
           onclick: () => { currentTab = 'tests'; rerender(); },
@@ -547,7 +565,7 @@ function accountView(domain: DomainCode, cb: MobileCallbacks, rerender: () => vo
       el('span', { class: 'm-rowbtn-text' }, [
         el('strong', {}, ['VR mód']),
         el('span', {}, [
-          s.vrSupported ? 'Belépés headsetbe'
+          s.vrSupported ? 'Belépés VR-ba'
             : dev?.blockedByInsecureContext ? 'HTTPS kell hozzá'
             : 'Ezen az eszközön nem elérhető',
         ]),
@@ -700,4 +718,16 @@ function hexA(hex: string, alpha: number): string {
   const h = hex.slice(1);
   const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+
+/** iOS Safari, in a normal tab (not installed to the home screen), tip not yet dismissed. */
+function needsHomeScreenTip(): boolean {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!ios) return false;
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
+    || window.matchMedia?.('(display-mode: standalone)').matches;
+  if (standalone) return false;
+  try { return localStorage.getItem('vrcap.iosTip') !== '1'; } catch { return true; }
 }

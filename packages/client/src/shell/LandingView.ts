@@ -18,7 +18,7 @@ export function renderLanding(host: HTMLElement, onPick: (d: DomainCode) => void
     el('div', { class: 'topbar' }, [
       el('div', { class: 'brand' }, [
         el('div', { class: 'mark' }),
-        el('h1', {}, ['VR COGNITIVE ASSESSMENT PLATFORM']),
+        el('h1', {}, ['VR CAP · KOGNITÍV MÉRÉSI PLATFORM']),
       ]),
       el('div', { class: 'spacer' }),
       el('span', { class: 'chip muted' }, [`${MODULES.length} modul`]),
@@ -30,12 +30,12 @@ export function renderLanding(host: HTMLElement, onPick: (d: DomainCode) => void
 
   wrap.appendChild(
     el('section', { class: 'hero' }, [
-      el('div', { class: 'eyebrow' }, ['Triple use · Meta Quest 3 · böngésző']),
+      el('div', { class: 'eyebrow' }, ['Három terület · Meta Quest 3 · böngésző']),
       el('h2', {}, ['Egy motor. Három terület.']),
       el('p', {}, [
-        'Absztrakt VR ingerekre épülő, ismételhető kognitív, figyelmi, döntési és pszichomotoros mérés. ' +
-          'Ugyanaz az assessment engine három arculattal: védelmi kiválasztás, munkaköri alkalmasság ' +
-          'és pályaorientáció, valamint sportági tehetségazonosítás. Válaszd ki, melyik területen dolgozol.',
+        'Absztrakt ingerekre épülő, ismételhető kognitív, figyelmi, döntési és pszichomotoros mérés ' +
+          'VR-ban, asztali böngészőben és mobilon. Ugyanaz a mérési rendszer három területen használható: ' +
+          'védelem, munka és pályaorientáció, valamint sport. Válaszd ki a számodra megfelelő területet.',
       ]),
     ])
   );

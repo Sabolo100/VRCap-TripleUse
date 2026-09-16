@@ -92,12 +92,13 @@ export function layoutVolume(count: number, f: VolumeField, rng: Rng): VolumeSlo
   const slots: { azDeg: number; elDeg: number; radius: number }[] = [];
   for (let i = 0; i < count; i++) {
     const base = fullCircle ? -180 + (i + 0.5) * sector : -f.azDeg + (i + 0.5) * sector;
+    // Sample distance in a way that fills the shell rather than piling up
+    // near the inner radius.
+    const radius = Math.sqrt(rng.range(f.rNear * f.rNear, f.rFar * f.rFar));
     slots.push({
       azDeg: base + rng.range(-0.32, 0.32) * sector,
-      elDeg: rng.range(f.elMinDeg, f.elMaxDeg),
-      // Sample distance in a way that fills the shell rather than piling up
-      // near the inner radius.
-      radius: Math.sqrt(rng.range(f.rNear * f.rNear, f.rFar * f.rFar)),
+      elDeg: Math.max(floorElevationDeg(f, radius), rng.range(f.elMinDeg, f.elMaxDeg)),
+      radius,
     });
   }
 
@@ -113,6 +114,21 @@ export function layoutVolume(count: number, f: VolumeField, rng: Rng): VolumeSlo
     // depth manipulation would collapse into a size manipulation.
     depthScale: s.radius / f.rNear,
   }));
+}
+
+/** Clearance every item keeps above the room floor, metres. */
+const FLOOR_CLEARANCE_M = 0.35;
+
+/**
+ * The lowest elevation at which a slot at `radius` still clears the floor.
+ * A fixed elevation floor does not scale: -16 degrees is harmless at 3 m and
+ * puts an item three quarters of a metre under the floor at 8.5 m, which is
+ * how WATCH emitters and SIGNAL cubes ended up sunk into the ground.
+ */
+function floorElevationDeg(f: VolumeField, radius: number): number {
+  const drop = FLOOR_CLEARANCE_M - f.height;
+  if (radius <= 0) return -90;
+  return (Math.asin(Math.max(-1, Math.min(1, drop / radius))) * 180) / Math.PI;
 }
 
 function relax(
@@ -141,7 +157,9 @@ function relax(
       }
     }
     for (const s of slots) {
-      s.elDeg = Math.max(f.elMinDeg, Math.min(f.elMaxDeg, s.elDeg));
+      // The floor is a lower bound the relaxation respects, so separation
+      // is guaranteed against the final elevations, not clamped afterwards.
+      s.elDeg = Math.max(f.elMinDeg, floorElevationDeg(f, s.radius), Math.min(f.elMaxDeg, s.elDeg));
       if (fullCircle) s.azDeg = wrapDeg(s.azDeg);
       else s.azDeg = Math.max(-f.azDeg, Math.min(f.azDeg, s.azDeg));
     }

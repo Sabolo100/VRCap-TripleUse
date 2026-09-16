@@ -6,7 +6,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, disposeTree, Pool } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
-import { fitAngles } from '../../engine/ui/viewport.js';
+import { LazyFollow, placeAtBearing } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import { ObjectPicker } from '../shared/picking.js';
@@ -79,8 +79,6 @@ interface Pending {
 }
 
 /** How far the head must turn before the panels follow, radians (~14 deg). */
-const PANEL_FOLLOW_DEADZONE_RAD = 0.25;
-const PANEL_FOLLOW_EASE = 0.12;
 
 export class SignalSpatialModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.SIGNAL!;
@@ -115,12 +113,13 @@ export class SignalSpatialModule implements AssessmentModule {
       title: 'KÖRKÖRÖS KERESÉS',
       instruction: {
         vr:
-          'Ugyanaz a cél, de az objektumok most KÖRÜLÖTTED vannak — teljes körben, akár a hátad mögött is. ' +
-          'Fordulj meg nyugodtan, amerre kell: amit nem nézel, azt nem találod meg. Ha megvan a cél, sugár ' +
-          'rá és ravasz; ha nincs, markolatgomb.',
+          'A cél továbbra is a NARANCSSÁRGA KOCKA, de az objektumok most teljes körben körülötted vannak, ' +
+          'akár a hátad mögött is. Fordulj körbe, és nézd át a teljes teret. Ha megtalálod a célt, mutass ' +
+          'rá a kontroller sugarával, és húzd meg a ravaszt; ha nincs cél, nyomd meg a markolatgombot ' +
+          '(grip).',
         desktop:
-          'Ugyanaz a cél, ugyanolyan három rétegben. Ha megtaláltad, kattints rá; ha nincs cél, kattints a ' +
-          'NINCS CÉL gombra. Ez a rész a headsetben teljes körben zajlik — képernyőn a tömb előtted marad.',
+          'A cél továbbra is a NARANCSSÁRGA KOCKA. Az objektumok három mélységi rétegben jelennek meg ' +
+          'előtted. Ha megtalálod a célt, kattints rá; ha nincs cél, kattints a NINCS CÉL gombra.',
         mobile:
           'Ugyanaz a cél, ugyanolyan három rétegben. Ha megtaláltad, koppints rá; ha nincs cél, koppints a ' +
           'NINCS CÉL gombra.',
@@ -134,13 +133,13 @@ export class SignalSpatialModule implements AssessmentModule {
       title: 'KÖVETÉS TAKARÁSSAL',
       instruction: {
         vr:
-          'Néhány gömb felvillan — ezeket jegyezd meg és kövesd szemmel. Mozgás közben a gömbök MÉLYSÉGBEN is ' +
-          'mozognak, ezért néha eltűnnek egymás mögött; attól még kövesd őket. Amikor megállnak, mutass rájuk ' +
-          'a sugárral és húzd meg a ravaszt, majd KÉSZ.',
+          'Néhány gömb felvillan: jegyezd meg és kövesd őket szemmel. A gömbök mélységben is mozognak, ' +
+          'ezért néha eltakarják egymást; ilyenkor is folytasd a követést. Amikor megállnak, válaszd ki a ' +
+          'megjegyzett gömböket a kontroller sugarával és a ravasszal, majd válaszd a KÉSZ gombot.',
         desktop:
-          'Néhány gömb felvillan — ezeket jegyezd meg és kövesd szemmel. Mozgás közben a gömbök MÉLYSÉGBEN is ' +
-          'mozognak, ezért néha eltűnnek egymás mögött; attól még kövesd őket. Amikor megállnak, kattints ' +
-          'rájuk egyenként, majd a KÉSZ gombra.',
+          'Néhány gömb felvillan: jegyezd meg és kövesd őket szemmel. A gömbök mélységben is mozognak, ' +
+          'ezért néha eltakarják egymást; ilyenkor is folytasd a követést. Amikor megállnak, kattints a ' +
+          'megjegyzett gömbökre, majd a KÉSZ gombra.',
         mobile:
           'Néhány gömb felvillan — ezeket jegyezd meg és kövesd szemmel. Mozgás közben a gömbök MÉLYSÉGBEN is ' +
           'mozognak, ezért néha eltűnnek egymás mögött; attól még kövesd őket. Amikor megállnak, koppints ' +
@@ -211,7 +210,7 @@ export class SignalSpatialModule implements AssessmentModule {
   private yawBins = new Array(24).fill(0);
   private sampleTimer = 0;
   /** Damped yaw the panels are anchored to. */
-  private panelYaw: number | null = null;
+  private panelFollow = new LazyFollow({ deadZoneDeg: 16 });
 
   /* ------------------------------------------------------------- init */
 
@@ -225,7 +224,7 @@ export class SignalSpatialModule implements AssessmentModule {
     this.layers = ctx.platform === 'vr' ? [2.2, 3.6, 5.4] : [2.4, 3.2, 4.2];
 
     this.frontField = volumeFor(ctx.platform, {
-      vr: { azDeg: 52, elMinDeg: -20, elMaxDeg: 24, rNear: 2.2, rFar: 5.4, minSepDeg: 8 },
+      vr: { azDeg: 52, elMinDeg: -14, elMaxDeg: 24, rNear: 2.2, rFar: 5.4, minSepDeg: 8 },
       desktop: { azDeg: 25, elMinDeg: -13, elMaxDeg: 14, rNear: 2.4, rFar: 4.2, minSepDeg: 6 },
       mobile: { azDeg: 19, elMinDeg: -11, elMaxDeg: 12, rNear: 2.4, rFar: 4.2, minSepDeg: 7 },
     });
@@ -813,7 +812,7 @@ export class SignalSpatialModule implements AssessmentModule {
   update(dt: number, ctx: ModuleContext): void {
     this.tumbler.update(dt);
     this.updateMot(dt);
-    if (this.controlPanel.group.visible || this.cuePanel.group.visible) this.positionPanels();
+    if (this.controlPanel.group.visible || this.cuePanel.group.visible) this.positionPanels(dt);
 
     this.sampleTimer += dt;
     if (this.sampleTimer >= 0.1) {
@@ -841,42 +840,19 @@ export class SignalSpatialModule implements AssessmentModule {
    * glued to the face; it now only catches up once the head has turned enough
    * to matter, and then eases rather than snapping.
    */
-  private positionPanels(): void {
-    const cam = this.ctx.engine.camera;
-    const eye = new THREE.Vector3();
-    const q = new THREE.Quaternion();
-    cam.getWorldPosition(eye);
-    cam.getWorldQuaternion(q);
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
-    fwd.y = 0;
-    if (fwd.lengthSq() < 1e-6) return;
-    fwd.normalize();
-
-    const yaw = Math.atan2(fwd.x, -fwd.z);
-    if (this.panelYaw === null) this.panelYaw = yaw;
-    let delta = yaw - this.panelYaw;
-    while (delta > Math.PI) delta -= Math.PI * 2;
-    while (delta < -Math.PI) delta += Math.PI * 2;
-    // Dead zone: small head movements leave the panels where they are, so the
-    // participant can look away from the control and back to it.
-    if (Math.abs(delta) > PANEL_FOLLOW_DEADZONE_RAD) {
-      this.panelYaw += delta * PANEL_FOLLOW_EASE;
-    }
-    const dir = new THREE.Vector3(Math.sin(this.panelYaw), 0, -Math.cos(this.panelYaw));
-
+  private positionPanels(dt?: number): void {
+    // Dead zone + ease (LazyFollow): small head movements leave the panels
+    // where they are, so the participant can look away from the control and
+    // back to it, and nothing is welded to the head.
+    const frame = this.panelFollow.track(this.ctx, dt);
     const place = (panel: Panel, dist: number, elevDeg: number) => {
       // The requested elevation clears the VR stimulus band. On a flat screen
       // it is well outside a 65 degree viewport, and since the camera cannot
       // be tilted there, the panel would simply not exist for the participant.
-      const fit = fitAngles(this.ctx, {
+      placeAtBearing(this.ctx, panel.group, frame, {
         elDeg: elevDeg, distanceM: dist,
         widthM: panel.width, heightM: panel.height,
       });
-      const rad = (fit.elDeg * Math.PI) / 180;
-      panel.group.position.copy(eye)
-        .addScaledVector(dir, fit.distanceM * Math.cos(rad))
-        .setY(eye.y + fit.distanceM * Math.sin(rad));
-      panel.group.lookAt(eye);
     };
     // -36 and +34 degrees: clear of the -20..+24 VR stimulus band in both
     // directions, with margin for the panels' own height. The flat bands are

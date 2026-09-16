@@ -7,6 +7,7 @@ import {
 } from '@vrcap/shared';
 import { Engine } from './engine/core/Engine.js';
 import { PanelManager } from './engine/ui/PanelManager.js';
+import { ensureFonts } from './engine/ui/fonts.js';
 import { ModuleRunner } from './engine/task/ModuleRunner.js';
 import { Room } from './engine/world/Room.js';
 import { audio } from './engine/audio/AudioSystem.js';
@@ -348,6 +349,11 @@ class App {
     const state = { module: manifest.code };
     if (history.state?.sheet) history.replaceState(state, '');
     else history.pushState(state, '');
+
+    // Panels are canvases: they keep the glyphs they were drawn with, so the
+    // web fonts (including the Latin Extended subset for Ő and Ű) have to be
+    // in before the first panel is drawn.
+    await ensureFonts(DOMAINS[domain]);
 
     const snapshot = store.get();
     const runner = new ModuleRunner({

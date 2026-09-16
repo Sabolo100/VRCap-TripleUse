@@ -110,14 +110,17 @@ export class MemoryModule implements AssessmentModule {
       title: 'MI — HOL',
       instruction: {
         vr:
-          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. Aztán eltűnnek, és ' +
-          'egyet közelről megmutatok: mutass a sugárral arra a helyre, ahol AZ AZ alakzat volt, és húzd meg a ravaszt.',
+          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik alakzat hol van. Ezután ' +
+          'eltűnnek, és egyet közelről megmutatok. Mutass a kontroller sugarával arra a helyre, ahol a ' +
+          'megmutatott alakzat volt, majd húzd meg a ravaszt.',
         desktop:
-          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. Aztán eltűnnek, és ' +
-          'egyet közelről megmutatok: kattints arra a helyre, ahol AZ AZ alakzat volt.',
+          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik alakzat hol van. Ezután ' +
+          'eltűnnek, és egyet közelről megmutatok. Kattints arra a helyre, ahol a megmutatott alakzat ' +
+          'volt.',
         mobile:
-          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik hol volt. Aztán eltűnnek, és ' +
-          'egyet közelről megmutatok: koppints arra a helyre, ahol AZ AZ alakzat volt.',
+          'Hat különböző alakzat jelenik meg hat helyen. Jegyezd meg, melyik alakzat hol van. Ezután ' +
+          'eltűnnek, és egyet közelről megmutatok. Koppints arra a helyre, ahol a megmutatott alakzat ' +
+          'volt.',
       },
       controlHint: '',
       trials: 12,
@@ -128,21 +131,21 @@ export class MemoryModule implements AssessmentModule {
       title: 'FOLYAMATOS',
       instruction: {
         vr:
-          'Egy gömb ugrál a helyek között. Húzd meg a ravaszt, valahányszor UGYANODA kerül, ahol KÉT lépéssel ' +
-          'korábban volt — nem az előző helyre, a kettővel korábbira. Ha nem egyezik, ne csinálj semmit. ' +
-          'Ehhez folyamatosan fejben kell tartanod az utolsó két helyet.',
+          'Egy gömb sorban különböző helyekre ugrik. Húzd meg a ravaszt, ha a gömb UGYANODA kerül, ahol ' +
+          'két lépéssel korábban volt. Ne az előző, hanem a kettővel korábbi hellyel hasonlítsd össze. Ha ' +
+          'a hely nem egyezik, ne nyomj gombot.',
         desktop:
-          'Egy gömb ugrál a helyek között. Nyomd meg a SZÓKÖZT, valahányszor UGYANODA kerül, ahol KÉT lépéssel ' +
-          'korábban volt — nem az előző helyre, a kettővel korábbira. Ha nem egyezik, ne csinálj semmit. ' +
-          'Ehhez folyamatosan fejben kell tartanod az utolsó két helyet.',
+          'Egy gömb sorban különböző helyekre ugrik. Nyomd meg a SZÓKÖZT, ha a gömb UGYANODA kerül, ahol ' +
+          'két lépéssel korábban volt. Ne az előző, hanem a kettővel korábbi hellyel hasonlítsd össze. Ha ' +
+          'a hely nem egyezik, ne nyomj gombot.',
         mobile:
-          'Egy gömb ugrál a helyek között. Nyomd meg a képernyő alján az UGYANOTT gombot, valahányszor ' +
-          'UGYANODA kerül, ahol KÉT lépéssel korábban volt — nem az előző helyre, a kettővel korábbira. Ha nem ' +
-          'egyezik, ne csinálj semmit. Ehhez folyamatosan fejben kell tartanod az utolsó két helyet.',
+          'Egy gömb sorban különböző helyekre ugrik. Nyomd meg a képernyő alján az UGYANOTT gombot, ha a ' +
+          'gömb UGYANODA kerül, ahol két lépéssel korábban volt. Ne az előző, hanem a kettővel korábbi ' +
+          'hellyel hasonlítsd össze. Ha a hely nem egyezik, ne nyomj gombot.',
       },
       controlHint: '',
       trials: 40,
-      practiceTrials: 3,
+      practiceTrials: 10,
     },
     {
       id: 'interfere',
@@ -348,8 +351,26 @@ export class MemoryModule implements AssessmentModule {
       }
     }
     this.relaxCells();
+    this.centreArray();
     // The cells are what the participant points at all through the module.
     this.picker.setHoverTargets(this.cells.map((c) => c.mesh));
+  }
+
+  /**
+   * On a flat screen the array pivots about its own centre, not about the
+   * participant. A body-centred 90 or 180 degree turn puts every cell behind
+   * a camera that cannot be turned, and the recall waited forever on an
+   * empty view. Rotating the array as an object keeps it in front, and is
+   * still the spatial-updating manipulation the block is about. In a headset
+   * the body-centred version stays: the participant turns to find it.
+   */
+  private centreArray(): void {
+    if (this.ctx.platform === 'vr') return;
+    const c = new THREE.Vector3();
+    for (const cell of this.cells) c.add(cell.local);
+    c.divideScalar(Math.max(1, this.cells.length));
+    this.array.position.copy(c);
+    for (const cell of this.cells) cell.mesh.position.copy(cell.local).sub(c);
   }
 
   private relaxCells(): void {
@@ -378,7 +399,7 @@ export class MemoryModule implements AssessmentModule {
         c.azDeg = clamp(c.azDeg, -this.geo.az, this.geo.az);
         c.elDeg = clamp(c.elDeg, this.geo.elMin, this.geo.elMax);
         c.local.copy(volumePosition(c.azDeg, c.elDeg, c.radius, 1.6));
-        c.mesh.position.copy(c.local);
+        c.mesh.position.copy(c.local).sub(this.array.position);
       }
       if (!moved) break;
     }
@@ -545,7 +566,21 @@ export class MemoryModule implements AssessmentModule {
       this.promptPanel.invalidate();
       this.ctx.recorder.event('recall_started', { block, expectedLength: seq.length });
 
+      // A recall never waits forever. Twenty-five seconds is generous for a
+      // four-item sequence; after it the picks so far are scored as they
+      // stand, and the block goes on instead of hanging on one trial.
+      const mine = { done: false };
+      const guard = setTimeout(() => {
+        if (mine.done || !this.recallResolve) return;
+        this.ctx.recorder.event('recall_timeout', { block, picked: this.recallPicks.length, expected: seq.length });
+        const r0 = this.recallResolve;
+        this.recallResolve = null;
+        r0();
+      }, 25_000);
+
       this.recallResolve = () => {
+        mine.done = true;
+        clearTimeout(guard);
         this.recallOpen = false;
         this.promptPanel.group.visible = false;
         const picks = this.recallPicks;
@@ -777,13 +812,26 @@ export class MemoryModule implements AssessmentModule {
     for (const c of this.cells) this.colorCell(c, IDLE);
     this.nbackMesh.visible = true;
     this.nbackResult = [];
+    // The marker travels INSIDE the cells: a 0.24 m sphere in a 0.26 m
+    // opaque cube was never visible, which is why the block "did nothing".
+    // The cells go translucent for the block so the sphere shows through.
+    this.setCellsOpacity(0.26);
+    // The info panel is hidden while a block runs, so the rule lives here.
+    this.promptTitle = 'FOLYAMATOS';
+    this.promptSub = this.ctx.platform === 'vr'
+      ? 'RAVASZ, ha a gömb ugyanott van, mint 2 lépéssel korábban'
+      : this.ctx.platform === 'mobile'
+        ? 'UGYANOTT gomb, ha a gömb ugyanott van, mint 2 lépéssel korábban'
+        : 'SZÓKÖZ, ha a gömb ugyanott van, mint 2 lépéssel korábban';
+    this.promptPanel.group.visible = true;
+    this.promptPanel.invalidate();
 
     for (let step = 0; step < positions.length && !this.aborted; step++) {
       this.ctx.recorder.trialNumber = step + 1;
       const p = positions[step]!;
       const cell = this.cells[p.pos]!;
-      this.nbackMesh.position.copy(cell.local);
-      this.nbackMesh.scale.setScalar(0.24 * (cell.radius / this.geo.layers[0]!));
+      this.nbackMesh.position.copy(cell.mesh.position);
+      this.nbackMesh.scale.setScalar(0.19 * (cell.radius / this.geo.layers[0]!));
       this.nbackOnsetT = this.ctx.engine.clock.frameTime;
       this.nbackResponded = false;
       this.nbackAcceptOpen = true;
@@ -792,8 +840,21 @@ export class MemoryModule implements AssessmentModule {
 
       await this.wait(2200);
       this.nbackAcceptOpen = false;
+      (this.nbackMesh.material as THREE.MeshBasicMaterial).color.set(this.ctx.theme.accent);
 
       const responded = this.nbackResponded;
+      // Practice says whether the press (or its absence on a target) was
+      // right; without any acknowledgement the block looked dead.
+      if (this.practice && (responded || p.isTarget)) {
+        const ok = responded === p.isTarget;
+        this.promptTitle = ok ? 'HELYES' : responded ? 'NEM VOLT UGYANOTT' : 'KIMARADT';
+        this.promptPanel.invalidate();
+        setTimeout(() => {
+          if (this.currentBlock !== 'nback') return;
+          this.promptTitle = 'FOLYAMATOS';
+          this.promptPanel.invalidate();
+        }, 700);
+      }
       const rt = responded ? this.nbackRt : null;
       this.nbackResult.push({ type: p.type, isTarget: p.isTarget, responded, rtMs: rt });
 
@@ -815,6 +876,18 @@ export class MemoryModule implements AssessmentModule {
       }
     }
     this.nbackMesh.visible = false;
+    this.promptPanel.group.visible = false;
+    this.setCellsOpacity(1);
+  }
+
+  private setCellsOpacity(opacity: number): void {
+    for (const c of this.cells) {
+      const m = c.mesh.material as THREE.MeshBasicMaterial;
+      m.transparent = opacity < 1;
+      m.opacity = opacity;
+      m.depthWrite = opacity >= 1;
+      m.needsUpdate = true;
+    }
   }
 
   private nbackRt: number | null = null;
@@ -827,7 +900,10 @@ export class MemoryModule implements AssessmentModule {
    */
   private buildNbackSequence(steps: number, rng: Rng): { pos: number; type: string; isTarget: boolean }[] {
     const n = 2;
-    const nTargets = Math.round(steps * 0.3);
+    // At least two targets even in a short practice run: with three steps
+    // the old arithmetic placed none, and practice showed three silent
+    // jumps with nothing to respond to.
+    const nTargets = Math.max(2, Math.round(steps * 0.3));
     // Five of each. Three apiece (the first sketch) gives six lure trials in
     // total, which cannot support a false-alarm rate estimate; this keeps the
     // target count and block length unchanged and only rebalances the fillers.
@@ -838,7 +914,7 @@ export class MemoryModule implements AssessmentModule {
     const roles: string[] = [];
     for (let i = 0; i < steps; i++) roles.push('filler');
     const slots = rng.shuffle(
-      Array.from({ length: steps }, (_, i) => i).filter((i) => i >= n + 1)
+      Array.from({ length: steps }, (_, i) => i).filter((i) => i >= n)
     );
     let si = 0;
     for (let i = 0; i < nTargets && si < slots.length; i++) roles[slots[si++]!] = 'target';
@@ -941,6 +1017,8 @@ export class MemoryModule implements AssessmentModule {
       this.nbackResponded = true;
       this.nbackRt = e.t - this.nbackOnsetT;
       this.ctx.audio.click();
+      // Visible acknowledgement of the press, on every platform.
+      (this.nbackMesh.material as THREE.MeshBasicMaterial).color.set(this.ctx.theme.accent2);
       this.ctx.recorder.event('nback_response', { rtMs: +this.nbackRt.toFixed(1) }, e.t);
       return;
     }

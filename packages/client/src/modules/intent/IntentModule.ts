@@ -83,14 +83,14 @@ export class IntentModule implements AssessmentModule {
       instruction: {
         vr:
           'Egy fénypontokból álló alak áll előtted. Elindul balra vagy jobbra, de menet közben eltűnik — ' +
-          'hol korábban, hol később. Mondd meg, merre indult: balra → BAL ravasz, jobbra → JOBB ravasz. ' +
+          'hol korábban, hol később. Mondd meg, merre indult: balra: BAL ravasz, jobbra: JOBB ravasz. ' +
           'Nincs időlimit, válaszolj nyugodtan. Utána megkérdezem, mennyire voltál biztos benne: a panelen ' +
           'válaszd a TIPP, TALÁN vagy BIZTOS gombot. Figyelem: az alak néha becsap — elindul az egyik ' +
           'irányba, aztán mégis a másikba megy. Ez a feladat része.',
         desktop:
           'Egy fénypontokból álló alak áll előtted. Elindul balra vagy jobbra, de menet közben eltűnik — ' +
-          'hol korábban, hol később. Mondd meg, merre indult: balra → F billentyű (vagy ←), jobbra → J ' +
-          'billentyű (vagy →). Nincs időlimit, válaszolj nyugodtan. Utána megkérdezem, mennyire voltál ' +
+          'hol korábban, hol később. Mondd meg, merre indult: balra: F billentyű (vagy a bal nyíl), jobbra: J ' +
+          'billentyű (vagy a jobb nyíl). Nincs időlimit, válaszolj nyugodtan. Utána megkérdezem, mennyire voltál ' +
           'biztos benne: kattints a TIPP, TALÁN vagy BIZTOS gombra. Figyelem: az alak néha becsap — elindul ' +
           'az egyik irányba, aztán mégis a másikba megy. Ez a feladat része.',
         mobile:
@@ -109,9 +109,9 @@ export class IntentModule implements AssessmentModule {
       id: 'depth',
       title: 'FELÉM VAGY EL',
       instruction:
-        'Az alak most nem oldalra indul, hanem FELÉD vagy TŐLED EL. Végig akkorának látszik, amekkora — a ' +
-        'távolságát nem a mérete árulja el. Ha feléd jött → BAL ravasz, ha tőled el → JOBB ravasz. Utána ' +
-        'ugyanúgy a magabiztosság.',
+        'Az alak most nem oldalra, hanem FELÉD vagy TŐLED EL indul. A látszó mérete nem változik. Ha ' +
+        'feléd indul, húzd meg a BAL ravaszt; ha tőled el, a JOBB ravaszt. Ezután a panelen válaszd ki, ' +
+        'mennyire voltál biztos a válaszban.',
       controlHint: '',
       trials: DEPTH_TRIALS,
       practiceTrials: 4,
@@ -121,8 +121,9 @@ export class IntentModule implements AssessmentModule {
       id: 'peripheral',
       title: 'OLDALRÓL',
       instruction:
-        'Ugyanaz a feladat, de az alak jóval oldalt jelenik meg, a látómeződ szélén. Fordulj felé, ha kell — ' +
-        'a mozdulat akkor is elindul. Balra → BAL ravasz, jobbra → JOBB ravasz, utána a magabiztosság.',
+        'Az alak most a látómeződ szélén jelenik meg. Fordulj felé, ha szükséges; a mozdulat közben ' +
+        'elindul. Ha balra indul, húzd meg a BAL ravaszt; ha jobbra, a JOBB ravaszt. Ezután a panelen ' +
+        'válaszd ki, mennyire voltál biztos a válaszban.',
       controlHint: '',
       trials: PERIPHERAL_TRIALS,
       practiceTrials: 4,
@@ -252,8 +253,8 @@ export class IntentModule implements AssessmentModule {
 
   private controlHint(): string {
     switch (this.ctx.platform) {
-      case 'vr': return 'Balra → BAL ravasz · jobbra → JOBB ravasz · utána TIPP / TALÁN / BIZTOS a panelen';
-      case 'desktop': return 'Balra → F vagy ← · jobbra → J vagy → · utána TIPP / TALÁN / BIZTOS kattintással';
+      case 'vr': return 'FELÉM: BAL ravasz · TŐLEM EL: JOBB ravasz · utána TIPP / TALÁN / BIZTOS';
+      case 'desktop': return 'Balra: F vagy bal nyíl · jobbra: J vagy jobb nyíl · utána TIPP / TALÁN / BIZTOS kattintással';
       default: return 'BAL / JOBB gomb · utána TIPP / TALÁN / BIZTOS gomb';
     }
   }
@@ -796,7 +797,7 @@ export class IntentModule implements AssessmentModule {
             : 'a leghosszabb takarásnál sem állt össze a kép',
       },
       {
-        label: 'Megtévesztésre', value: signed(-deception),
+        label: 'Megtévesztés hatása', value: signed(-deception),
         hint: Number.isFinite(deception)
           ? `a cseleken ${Math.round(Math.abs(deception) * 100)} százalékponttal ${deception > 0 ? 'rosszabb' : 'jobb'}`
           : undefined,
@@ -812,11 +813,11 @@ export class IntentModule implements AssessmentModule {
       isVr
         ? {
             label: 'Mélységi szándék', value: pct(depthAcc),
-            hint: 'feléd vagy tőled el, állandó látszó méret mellett',
+            hint: 'Mélységi irányfelismerés',
           }
         : {
             label: 'Mélységi szándék', value: '—',
-            hint: 'ehhez VR kell: állandó szögméret mellett a mélységet csak a diszparitás hordozza',
+            hint: 'ehhez VR kell: a mélységet itt csak a két szem eltérő képe jelzi',
           }
     );
 

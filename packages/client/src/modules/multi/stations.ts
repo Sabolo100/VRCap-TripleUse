@@ -610,6 +610,8 @@ const FORCING_AMPS = [1.9, 1.4, 0.9, 0.55];
 /** Degrees per second at full stick deflection. */
 const STICK_GAIN = 9.0;
 export const TRACK_CLAMP_DEG = 12;
+/** Error radius that counts as "on target" - the inner ring, degrees. */
+export const ON_TARGET_DEG = 3.0;
 
 export class TrackStation implements Station {
   readonly id: StationId = 'track';
@@ -633,6 +635,7 @@ export class TrackStation implements Station {
 
   private sumSq = 0;
   private samples = 0;
+  private onTargetSamples = 0;
   private binSumSq = 0;
   private binCount = 0;
   private binMax = 0;
@@ -662,8 +665,19 @@ export class TrackStation implements Station {
     this.centre.copy(pos);
     this.radius = Math.max(0.5, pos.distanceTo(lookAt));
     const fwd = this.centre.clone().sub(lookAt).normalize();
+    // `right` comes out of this cross product mirrored (world-up x forward is
+    // minus the true right); the error terms below are subtracted from the
+    // stick, so the two signs cancel and stick-right moves the disc right.
+    // `up` has to carry the same mirror - built as forward x right it did
+    // not, and the vertical axis ran inverted against the horizontal one.
     this.right.set(0, 1, 0).cross(fwd).normalize();
-    this.up.copy(fwd).cross(this.right).normalize();
+    this.up.copy(this.right).cross(fwd).normalize();
+    // Rings are defined in degrees of tracking error, so what the participant
+    // sees is what the score measures: inner = ON_TARGET_DEG, outer = the
+    // "poor" anchor.
+    const ringScale = (deg: number) => 2 * this.radius * Math.tan((deg * Math.PI) / 180);
+    this.ring.scale.setScalar(ringScale(ON_TARGET_DEG));
+    this.outer.scale.setScalar(ringScale(7.0));
     for (const o of [this.ring, this.outer]) {
       o.position.copy(this.centre);
       o.lookAt(lookAt);
@@ -685,7 +699,7 @@ export class TrackStation implements Station {
 
   beginCondition(_condition: string): void {
     this.errX = 0; this.errY = 0;
-    this.sumSq = 0; this.samples = 0;
+    this.sumSq = 0; this.samples = 0; this.onTargetSamples = 0;
     this.binSumSq = 0; this.binCount = 0; this.binMax = 0; this.binStickSum = 0;
     this.idleMs = 0; this.idleSince = null;
     this.t0 = this.host.now();
@@ -696,6 +710,12 @@ export class TrackStation implements Station {
 
   get rmsDeg(): number {
     return this.samples ? Math.sqrt(this.sumSq / this.samples) : NaN;
+  }
+
+  /** Share of scored samples inside the inner ring - the number a participant
+   *  can actually perceive ("I was inside most of the time"). */
+  get onTargetFraction(): number {
+    return this.samples ? this.onTargetSamples / this.samples : NaN;
   }
 
   update(dt: number, t: number): void {
@@ -735,6 +755,7 @@ export class TrackStation implements Station {
       const e2 = mag * mag;
       this.sumSq += e2;
       this.samples++;
+      if (mag <= ON_TARGET_DEG) this.onTargetSamples++;
       this.binSumSq += e2;
       this.binCount++;
       this.binMax = Math.max(this.binMax, mag);

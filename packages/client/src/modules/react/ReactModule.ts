@@ -66,17 +66,17 @@ export class ReactModule implements AssessmentModule {
       title: 'EGYSZERŰ REAKCIÓ',
       instruction: {
         vr:
-          'Előtted egyetlen gömb lebeg. Amint felvillan, húzd meg a ravaszt — bármelyik kézzel — a lehető ' +
-          'leggyorsabban. Ne találgass: ha a villanás előtt húzod meg, az hibának számít. A várakozás ' +
-          'szándékosan kiszámíthatatlan, hol rövid, hol hosszú.',
+          'Egy gömb lebeg előtted. Amint felvillan, húzd meg bármelyik ravaszt a lehető leggyorsabban. Ne ' +
+          'találgass: a villanás előtti gombnyomás hibának számít. A várakozás hossza kiszámíthatatlan ' +
+          'lesz.',
         desktop:
-          'Előtted egyetlen gömb lebeg. Amint felvillan, nyomd meg a SZÓKÖZT (vagy kattints) a lehető ' +
-          'leggyorsabban. Ne találgass: ha a villanás előtt nyomsz, az hibának számít. A várakozás ' +
-          'szándékosan kiszámíthatatlan, hol rövid, hol hosszú.',
+          'Egy gömb lebeg előtted. Amint felvillan, nyomd meg a SZÓKÖZT, vagy kattints a lehető ' +
+          'leggyorsabban. Ne találgass: a villanás előtti válasz hibának számít. A várakozás hossza ' +
+          'kiszámíthatatlan lesz.',
         mobile:
-          'Előtted egyetlen gömb lebeg. Amint felvillan, koppints bárhol a képernyőn a lehető ' +
-          'leggyorsabban. Ne találgass: ha a villanás előtt koppintasz, az hibának számít. A várakozás ' +
-          'szándékosan kiszámíthatatlan, hol rövid, hol hosszú.',
+          'Egy gömb lebeg előtted. Amint felvillan, koppints bárhol a képernyőn a lehető leggyorsabban. Ne ' +
+          'találgass: a villanás előtti koppintás hibának számít. A várakozás hossza kiszámíthatatlan ' +
+          'lesz.',
       },
       controlHint: '',
       trials: 24,
@@ -87,15 +87,15 @@ export class ReactModule implements AssessmentModule {
       title: 'VÁLASZTÁSOS REAKCIÓ',
       instruction: {
         vr:
-          'A gömb PIROS vagy KÉK színben villan fel. Ha PIROS, húzd meg a BAL ravaszt; ha KÉK, a JOBB ' +
-          'ravaszt. A jó válasz fontosabb, mint a gyors — de mindkettőt mérjük.',
+          'A gömb PIROSAN vagy KÉKEN villan fel. PIROS esetén húzd meg a BAL ravaszt, KÉK esetén a JOBB ' +
+          'ravaszt. A pontosság fontosabb a sebességnél, de mindkettőt mérjük.',
         desktop:
-          'A gömb PIROS vagy KÉK színben villan fel. Ha PIROS, nyomd meg az F billentyűt (vagy a balra ' +
-          'nyilat); ha KÉK, a J billentyűt (vagy a jobbra nyilat). Tartsd a két mutatóujjad az F-en és a ' +
-          'J-n. A jó válasz fontosabb, mint a gyors — de mindkettőt mérjük.',
+          'A gömb PIROSAN vagy KÉKEN villan fel. PIROS esetén nyomd meg az F billentyűt vagy a balra ' +
+          'nyilat; KÉK esetén a J billentyűt vagy a jobbra nyilat. Tartsd a mutatóujjaidat az F és a J ' +
+          'billentyűn. A pontosság fontosabb a sebességnél, de mindkettőt mérjük.',
         mobile:
-          'A gömb PIROS vagy KÉK színben villan fel. Ha PIROS, nyomd meg a képernyő alján a BAL gombot; ' +
-          'ha KÉK, a JOBB gombot. A jó válasz fontosabb, mint a gyors — de mindkettőt mérjük.',
+          'A gömb PIROSAN vagy KÉKEN villan fel. PIROS esetén nyomd meg a képernyő alján a BAL gombot, KÉK ' +
+          'esetén a JOBB gombot. A pontosság fontosabb a sebességnél, de mindkettőt mérjük.',
       },
       controlHint: '',
       trials: 28,
@@ -106,15 +106,15 @@ export class ReactModule implements AssessmentModule {
       title: 'CÉLRA MUTATÁS',
       instruction: {
         vr:
-          'Egy célgyűrű jelenik meg, minden alkalommal máshol. Irányítsd rá a kontroller sugarát, és a ' +
-          'gyűrű közepén húzd meg a ravaszt. Külön mérjük, milyen gyorsan indul a mozdulatod, meddig tart, ' +
-          'és milyen pontosan ér célba.',
+          'Minden próbában máshol jelenik meg egy célgyűrű. Irányítsd a kontroller sugarát a gyűrű ' +
+          'közepére, és húzd meg a ravaszt. A mozdulat indulási idejét, időtartamát és pontosságát külön ' +
+          'mérjük.',
         desktop:
-          'Egy célgyűrű jelenik meg, minden alkalommal máshol. Vidd rá az egérkurzort, és a gyűrű közepén ' +
-          'kattints. Külön mérjük, milyen gyorsan indul a mozdulatod, meddig tart, és milyen pontosan ér célba.',
+          'Minden próbában máshol jelenik meg egy célgyűrű. Vidd az egérkurzort a gyűrű közepére, és ' +
+          'kattints. A mozdulat indulási idejét, időtartamát és pontosságát külön mérjük.',
         mobile:
-          'Egy célgyűrű jelenik meg, minden alkalommal máshol. Koppints a gyűrű közepére — egy koppintás, ' +
-          'egy próba. Azt mérjük, milyen gyorsan és milyen pontosan találod el.',
+          'Minden próbában máshol jelenik meg egy célgyűrű. Koppints egyszer a gyűrű közepére. A válasz ' +
+          'gyorsaságát és pontosságát mérjük.',
       },
       controlHint: '',
       trials: 20,
@@ -125,15 +125,14 @@ export class ReactModule implements AssessmentModule {
       title: 'FOLYAMATOS KÖVETÉS',
       instruction: {
         vr:
-          'A gömb folyamatosan mozog. Tartsd rajta a kontroller sugarát, amíg csak tudod — gombot nem kell ' +
-          'nyomnod. Azt mérjük, az idő mekkora részében vagy a célon, és mennyire térsz el tőle.',
+          'A gömb folyamatosan mozog. Tartsd rajta a kontroller sugarát a rész végéig; gombot nem kell ' +
+          'nyomnod. Azt mérjük, mennyi ideig marad a sugár a célon, és mekkora az eltérés.',
         desktop:
-          'A gömb folyamatosan mozog. Kövesd az egérkurzorral, amíg csak tudod — kattintani nem kell. ' +
-          'Azt mérjük, az idő mekkora részében vagy a célon, és mennyire térsz el tőle.',
+          'A gömb folyamatosan mozog. Kövesd az egérkurzorral a rész végéig; kattintani nem kell. Azt ' +
+          'mérjük, mennyi ideig marad a kurzor a célon, és mekkora az eltérés.',
         mobile:
-          'A gömb folyamatosan mozog. Tedd rá az ujjad, és kövesd vele, amíg csak tudod. Ha felemeled az ' +
-          'ujjad, a mérés addig szünetel. Azt mérjük, az idő mekkora részében vagy a célon, és mennyire ' +
-          'térsz el tőle.',
+          'A gömb folyamatosan mozog. Tedd rá az ujjad, és kövesd a rész végéig. Ha felemeled az ujjad, a ' +
+          'mérés addig szünetel. Azt mérjük, mennyi ideig marad az ujjad a célon, és mekkora az eltérés.',
       },
       controlHint: '',
       trials: 3,
@@ -144,16 +143,17 @@ export class ReactModule implements AssessmentModule {
       title: 'KÉT KÉZ',
       instruction: {
         vr:
-          'Két gömb: egy bal és egy jobb. Amelyik felvillan, azon az oldalon húzd meg a ravaszt — a bal ' +
-          'gömbre a bal kézzel, a jobbra a jobbal. Néha mindkettő egyszerre villan: akkor mindkét ravaszt ' +
-          'húzd meg egyszerre.',
+          'Két gömb jelenik meg: egy bal és egy jobb oldalon. Ha a bal gömb villan fel, húzd meg a BAL ' +
+          'ravaszt; ha a jobb, a JOBB ravaszt. Ha mindkettő egyszerre villan fel, húzd meg egyszerre ' +
+          'mindkét ravaszt.',
         desktop:
-          'Két gömb: egy bal és egy jobb. Amelyik felvillan, annak az oldalán nyomj: a bal gömbre az ' +
-          'F billentyűt, a jobbra a J-t. Néha mindkettő egyszerre villan: akkor mindkettőt nyomd meg egyszerre.',
+          'Két gömb jelenik meg: egy bal és egy jobb oldalon. Ha a bal gömb villan fel, nyomd meg az F ' +
+          'billentyűt; ha a jobb, a J billentyűt. Ha mindkettő egyszerre villan fel, nyomd meg egyszerre ' +
+          'az F és a J billentyűt.',
         mobile:
-          'Két gömb: egy bal és egy jobb. Amelyik felvillan, annak az oldalán nyomd meg a képernyő alján a ' +
-          'gombot: a bal gömbre a BAL, a jobbra a JOBB gombot. Néha mindkettő egyszerre villan: akkor ' +
-          'mindkettőt nyomd meg egyszerre.',
+          'Két gömb jelenik meg: egy bal és egy jobb oldalon. Ha a bal gömb villan fel, nyomd meg a ' +
+          'képernyő alján a BAL gombot; ha a jobb, a JOBB gombot. Ha mindkettő egyszerre villan fel, nyomd ' +
+          'meg egyszerre mindkét gombot.',
       },
       controlHint: '',
       trials: 26,
@@ -500,7 +500,9 @@ export class ReactModule implements AssessmentModule {
         this.pointTarget.position.copy(pos);
         this.pointTarget.lookAt(0, 1.6, 0);
         this.pointTarget.scale.setScalar(1);
-        this.pointRing.scale.setScalar(scale / 0.3);
+        // Ring geometry is 1 m across at scale 1; `scale / 0.3` made every
+        // target 3.3x its specified width.
+        this.pointRing.scale.setScalar(scale);
         this.pointTarget.visible = true;
         ctx.signals.appear(this.pointTarget, t, 1, 120);
 
@@ -698,6 +700,29 @@ export class ReactModule implements AssessmentModule {
 
   /* --------------------------------------------------- tracking block */
 
+  private trackArmed = false;
+  private aborted = false;
+
+  /** Resolve when the pointer ray is within `deg` of `target`, or after
+   *  `maxMs`; returns how long it took. The ball shows green once aimed. */
+  private waitForAim(target: THREE.Vector3, deg: number, maxMs: number): Promise<number> {
+    const ctx = this.ctx;
+    const start = ctx.engine.clock.frameTime;
+    const m = this.trackTarget.material as THREE.MeshBasicMaterial;
+    return new Promise((resolve) => {
+      const step = () => {
+        if (this.aborted) { resolve(0); return; }
+        const now = ctx.engine.clock.frameTime;
+        const ray = ctx.engine.input.primaryRay();
+        const on = !!ray && this.angularErrorTo(ray.direction, target) <= deg;
+        m.color.set(on ? ctx.theme.ok : ctx.theme.accent);
+        if (on || now - start > maxMs) { resolve(now - start); return; }
+        setTimeout(step, 30);
+      };
+      step();
+    });
+  }
+
   private async runTrackingBlock(count: number): Promise<void> {
     const ctx = this.ctx;
     this.trackTarget.visible = true;
@@ -718,6 +743,15 @@ export class ReactModule implements AssessmentModule {
         : ctx.platform === 'mobile'
           ? new THREE.Vector3(0.5, 0.3, 0.1)
           : new THREE.Vector3(0.72, 0.34, 0.12);
+      this.trackTarget.position.copy(centre);
+      ctx.signals.appear(this.trackTarget, ctx.engine.clock.frameTime, 0.2, 200);
+      // The ball waits, still, until the pointer is on it - then it moves and
+      // scoring starts. Starting the motion on the START click meant the first
+      // seconds measured how far the mouse had to travel from the button.
+      this.trackArmed = false;
+      const aimedMs = await this.waitForAim(this.trackTarget.position, 3.2, 8000);
+      if (this.aborted) return;
+      this.trackArmed = true;
       ctx.motion.attach(this.trackTarget, {
         kind: 'lissajous',
         speed,
@@ -726,9 +760,7 @@ export class ReactModule implements AssessmentModule {
         freq: [1, 1.61 + ctx.rng.range(-0.12, 0.12)],
         phase: ctx.rng.range(0, Math.PI * 2),
       });
-      this.trackTarget.position.copy(centre);
-      ctx.signals.appear(this.trackTarget, ctx.engine.clock.frameTime, 0.2, 200);
-      ctx.recorder.event('track_start', { trial: i + 1, speed, durationMs });
+      ctx.recorder.event('track_start', { trial: i + 1, speed, durationMs, aimedAfterMs: Math.round(aimedMs) });
 
       await this.wait(durationMs);
 
@@ -805,7 +837,7 @@ export class ReactModule implements AssessmentModule {
       this.lastRayDir.copy(ray.direction);
     }
 
-    if (this.currentBlock === 'track' && this.trackTarget.visible && ray) {
+    if (this.currentBlock === 'track' && this.trackTarget.visible && ray && this.trackArmed) {
       const err = this.angularErrorTo(ray.direction, this.trackTarget.position);
       this.trackErrors.push(err);
       this.trackSamples.push({ t: now, err });
@@ -1021,7 +1053,7 @@ export class ReactModule implements AssessmentModule {
         { label: 'Egyszerű reakció (medián)', value: fmt(simpleMedian, 0, ' ms'), hint: `szórás ${fmt(simpleMad, 0, ' ms')}` },
         { label: 'Választásos reakció', value: fmt(choiceMedian, 0, ' ms'), hint: `${Math.round(choiceAccuracy * 100)}% pontos` },
         { label: 'Döntési többletidő', value: fmt(decisionCost, 0, ' ms') },
-        { label: 'Lapszusok (>500 ms)', value: `${lapses} / ${simpleRts.length}` },
+        { label: 'Lassú válaszok (>500 ms)', value: `${lapses} / ${simpleRts.length}` },
         { label: 'Célon töltött idő', value: Number.isFinite(trackOnTarget) ? `${Math.round(trackOnTarget * 100)}%` : '—' },
         { label: 'Kétkezes eltérés', value: fmt(bimanualAsync, 0, ' ms') },
       ],
@@ -1052,6 +1084,7 @@ export class ReactModule implements AssessmentModule {
   }
 
   abort(): void {
+    this.aborted = true;
     this.machine?.abort();
     this.blockResolve?.();
   }

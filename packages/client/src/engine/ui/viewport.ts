@@ -179,3 +179,110 @@ export function eyeFrame(ctx: ModuleContext): { eye: THREE.Vector3; yawRad: numb
   const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
   return { eye, yawRad: Math.atan2(fwd.x, -fwd.z) };
 }
+
+/* ------------------------------------------------------------ lazy follow */
+
+/**
+ * Lazy follow for panels that must stay reachable while the participant turns.
+ *
+ * A panel locked rigidly to the head is the strongest nausea trigger a headset
+ * has - the world moves with you, so the vestibular system and the eyes
+ * disagree on every micro-movement - and it also makes its own text shimmer,
+ * because the texture is resampled at a fractionally different phase every
+ * frame. So panels never track the head frame by frame. They keep their world
+ * bearing until the head has turned past a dead zone, then ease to the new
+ * bearing with a short time constant and settle again. The eye anchor moves
+ * the same way, so leaning in to read does not drag the panel away.
+ *
+ * On a flat screen the camera is turned by a drag, the viewport is narrow and
+ * the panel has to stay inside it, so there is no dead zone: the panel is
+ * simply re-centred, as it always was.
+ */
+export interface FollowFrame {
+  eye: THREE.Vector3;
+  yawRad: number;
+}
+
+export class LazyFollow {
+  private yaw: number | null = null;
+  private readonly eye = new THREE.Vector3();
+  private turning = false;
+  private shifting = false;
+
+  constructor(
+    private readonly opts: { deadZoneDeg?: number; tauS?: number; positionDeadZoneM?: number } = {}
+  ) {}
+
+  /** Forget the settled bearing; the next update snaps to the head. Call after
+   *  a teleport or any other programmatic turn of the rig. */
+  reset(): void {
+    this.yaw = null;
+    this.turning = false;
+    this.shifting = false;
+  }
+
+  /**
+   * Advance the follower and return the frame to place panels in. `dt` is the
+   * frame delta in seconds; `undefined` means "snap now" (first placement,
+   * a panel that was just shown, or a test harness with no frame loop).
+   */
+  track(ctx: ModuleContext, dt: number | undefined): FollowFrame {
+    const cam = ctx.engine.camera;
+    const eye = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+    cam.getWorldPosition(eye);
+    cam.getWorldQuaternion(q);
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+    fwd.y = 0;
+    const headYaw = fwd.lengthSq() < 1e-6 ? (this.yaw ?? 0) : Math.atan2(fwd.x, -fwd.z);
+
+    const snap = dt === undefined || this.yaw === null || ctx.platform !== 'vr';
+    if (snap) {
+      this.yaw = headYaw;
+      this.eye.copy(eye);
+      this.turning = false;
+      this.shifting = false;
+      return { eye: this.eye.clone(), yawRad: this.yaw };
+    }
+
+    const deadZone = ((this.opts.deadZoneDeg ?? 26) * Math.PI) / 180;
+    const tau = this.opts.tauS ?? 0.4;
+    const k = 1 - Math.exp(-dt / tau);
+
+    let delta = headYaw - this.yaw!;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    if (!this.turning && Math.abs(delta) > deadZone) this.turning = true;
+    if (this.turning) {
+      this.yaw! += delta * k;
+      if (Math.abs(delta) < 0.02) this.turning = false;
+    }
+
+    const posDead = this.opts.positionDeadZoneM ?? 0.18;
+    const drift = eye.distanceTo(this.eye);
+    if (!this.shifting && drift > posDead) this.shifting = true;
+    if (this.shifting) {
+      this.eye.lerp(eye, k);
+      if (drift < 0.01) this.shifting = false;
+    }
+    return { eye: this.eye.clone(), yawRad: this.yaw! };
+  }
+}
+
+/** Place a panel at an elevation and distance along a follow frame's bearing,
+ *  pushed back or clamped by fitAngles so it stays inside the view. */
+export function placeAtBearing(
+  ctx: ModuleContext,
+  group: THREE.Object3D,
+  frame: FollowFrame,
+  req: FitRequest
+): Fitted {
+  const fit = fitAngles(ctx, req);
+  const rad = (fit.elDeg * Math.PI) / 180;
+  const dir = new THREE.Vector3(Math.sin(frame.yawRad), 0, -Math.cos(frame.yawRad));
+  group.position.copy(frame.eye)
+    .addScaledVector(dir, fit.distanceM * Math.cos(rad))
+    .setY(frame.eye.y + fit.distanceM * Math.sin(rad));
+  group.lookAt(frame.eye);
+  return fit;
+}

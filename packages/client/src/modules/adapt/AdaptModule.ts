@@ -55,8 +55,11 @@ const HOME_FORWARD = 0.25;
  * paradigm's original form - a centre-out reach on a plane, with the rotation
  * applied about the viewing axis rather than about the body's vertical.
  */
-const FLAT_HOME_FORWARD = 1.15;
-const FLAT_HOME_UP = -0.05;
+const FLAT_HOME_FORWARD = 1.25;
+// +0.08 m / 1.25 m: the 0.55 m ring then spans -20.6..+26.7 degrees on a
+// 65 degree screen, clear of the HUD strip at the bottom. At -0.05 / 1.15
+// the two lowest target directions were behind the strip.
+const FLAT_HOME_UP = 0.08;
 const REACH_RADIUS = 0.55;
 const FAR_RADIUS = 0.75;
 /** Direction is read here: far enough to be a real movement, early enough to
@@ -113,7 +116,7 @@ export class AdaptModule implements AssessmentModule {
       // learning process with a strategy.
       id: 'adaptation',
       title: 'FOLYTASD',
-      instruction: 'Folytasd ugyanígy. Ugyanaz a feladat.',
+      instruction: 'Folytasd ugyanígy.',
       controlHint: '',
       trials: 64,
       practiceTrials: 0,
@@ -138,7 +141,7 @@ export class AdaptModule implements AssessmentModule {
     {
       id: 'relearn',
       title: 'MÉG EGYSZER',
-      instruction: 'Még egy sorozat. Ugyanaz a feladat.',
+      instruction: 'Folytasd ugyanígy.',
       controlHint: '',
       trials: 32,
       practiceTrials: 0,
@@ -150,6 +153,7 @@ export class AdaptModule implements AssessmentModule {
   private ctx!: ModuleContext;
   private root!: THREE.Group;
   private home!: THREE.Mesh;
+  private homeBase = new THREE.Vector3(1, 1, 1);
   private target!: THREE.Mesh;
   private cursor!: THREE.Mesh;
   private radiusRing!: THREE.Mesh;
@@ -200,6 +204,8 @@ export class AdaptModule implements AssessmentModule {
     ctx.recorder.setMotionHz(30);
 
     this.home = makePrimitive({ kind: 'sphere', color: t.textMuted, unlit: true, size: 0.04 });
+
+    this.homeBase.copy(this.home.scale);
     this.home.position.copy(this.homePos);
     this.target = makePrimitive({ kind: 'sphere', color: t.accent, unlit: true, size: 0.05 });
     this.target.visible = false;
@@ -251,7 +257,7 @@ export class AdaptModule implements AssessmentModule {
   private controlHint(): string {
     switch (this.ctx.platform) {
       case 'vr': return 'Nyúlj a célgömbhöz a kontrollerrel — a kezedet nem látod, csak a pontot.';
-      case 'desktop': return 'Vidd az egeret a kiindulópontból a célgömbhöz — a pont nem pontosan ott lesz, ahol az egér.';
+      case 'desktop': return 'Vidd a pontot az egérrel a kiindulópontból a célgömbhöz, egy gyors és egyenes mozdulattal.';
       default: return 'Húzd az ujjad a kiindulópontból a célgömbhöz — egy határozott mozdulattal.';
     }
   }
@@ -379,18 +385,22 @@ export class AdaptModule implements AssessmentModule {
       outcome: AdaptTrial['outcome']; endpointErrorDeg: number;
       movementTimeMs: number; reactionTimeMs: number;
     }>((resolve) => {
-      this.live = {
+      // The timeout belongs to THIS trial. It used to test whatever `live`
+      // was current when it fired - after a quick reach that was the next
+      // trial, which it then killed without resolving, and the block hung.
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const mine = {
         targetPos, azDeg: spec.azDeg, elDeg: spec.elDeg, radius: spec.radius,
         onsetT, startedAt: null, sampled: false, directionErrorDeg: NaN,
-        planeDeviations: [], resolve,
+        planeDeviations: [],
+        resolve: (r: Parameters<typeof resolve>[0]) => { if (timer) clearTimeout(timer); resolve(r); },
       };
-      setTimeout(() => {
-        if (this.live) {
-          const l = this.live;
-          this.live = null;
-          resolve({ outcome: 'timeout', endpointErrorDeg: NaN, movementTimeMs: NaN,
-                    reactionTimeMs: l.startedAt === null ? NaN : l.startedAt - onsetT });
-        }
+      this.live = mine;
+      timer = setTimeout(() => {
+        if (this.live !== mine) return;
+        this.live = null;
+        resolve({ outcome: 'timeout', endpointErrorDeg: NaN, movementTimeMs: NaN,
+                  reactionTimeMs: mine.startedAt === null ? NaN : mine.startedAt - onsetT });
       }, REACH_TIMEOUT_MS);
     });
 
@@ -453,11 +463,29 @@ export class AdaptModule implements AssessmentModule {
 
   private waitForHome(): Promise<void> {
     return new Promise((resolve) => {
+      const started = this.ctx.engine.clock.frameTime;
+      const mat = this.home.material as THREE.MeshBasicMaterial;
       const step = () => {
         if (this.aborted) { resolve(); return; }
         const h = this.handPos();
+        const now = this.ctx.engine.clock.frameTime;
         if (h && h.distanceTo(this.homePos) < 0.07) {
-          (this.home.material as THREE.MeshBasicMaterial).color.setHex(0x8fa6bf);
+          mat.color.setHex(0x8fa6bf);
+          this.home.scale.copy(this.homeBase);
+          resolve();
+          return;
+        }
+        // Waiting is shown, not silent: the home dot pulses in the accent
+        // colour until the cursor is on it. And it does not wait forever - a
+        // mouse parked outside the canvas has no position at all, and the
+        // block used to sit there with nothing on screen explaining why.
+        const pulse = 1 + 0.35 * (0.5 + 0.5 * Math.sin(now / 160));
+        mat.color.set(this.ctx.theme.accent);
+        this.home.scale.copy(this.homeBase).multiplyScalar(pulse);
+        if (now - started > 8000) {
+          mat.color.setHex(0x8fa6bf);
+          this.home.scale.copy(this.homeBase);
+          this.ctx.recorder.event('home_wait_timeout', { waitedMs: Math.round(now - started) });
           resolve();
           return;
         }
@@ -783,13 +811,12 @@ export class AdaptModule implements AssessmentModule {
     const headline: { label: string; value: string; hint?: string }[] = [];
     headline.push(!fitUsable
       ? { label: 'Tanulási ráta', value: 'nem értelmezhető',
-          hint: 'a görbe nem illeszthető — valószínűleg nem adaptáltál' }
+          hint: 'a görbe nem illeszthető; a tanulási ráta nem értelmezhető' }
       : rateReliable
       ? { label: 'Tanulási ráta', value: `${Math.round(adaptFit.rateTrials)} próba`,
           hint: 'ennyi alatt tetted meg a javulás 63%-át' }
       : { label: 'Tanulási ráta', value: `≥ ${Math.round(adaptFit.rateTrials)} próba`,
-          hint: 'lassan tanultál — a blokk véget ért, mielőtt a görbe beállt volna, ' +
-                'ezért ez alsó becslés' });
+          hint: 'a szakasz a görbe beállása előtt véget ért; az érték alsó becslés' });
     headline.push({ label: 'Végső pontosság', value: deg(adaptFit.asymptote), hint: 'ennyi hiba maradt' });
     headline.push({ label: 'Utóhatás', value: deg(aftereffect), hint: 'ennyi épült be tudattalanul' });
     headline.push({ label: 'Beépült arány', value: Number.isFinite(implicitFraction) ? `~${pct(implicitFraction)}` : '—',

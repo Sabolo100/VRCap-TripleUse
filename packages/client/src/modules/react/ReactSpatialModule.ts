@@ -194,14 +194,36 @@ export class ReactSpatialModule implements AssessmentModule {
     }
   }
 
-  /** The dominant hand's controller tip in world space. */
-  private handPos(hand: 'left' | 'right' | 'any' = 'any'): THREE.Vector3 | null {
-    const pointers = this.ctx.engine.input.pointers.filter((p) => p.active && (p.id === 'left' || p.id === 'right'));
-    const chosen = hand === 'any'
-      ? pointers[0]
-      : pointers.find((p) => p.hand === hand);
-    if (!chosen?.object3D) return null;
-    return chosen.object3D.getWorldPosition(new THREE.Vector3());
+  /**
+   * A controller's position in world space - the grip (the hand itself) when
+   * the runtime reports one, else the pointer origin.
+   *
+   * `'any'` means whichever hand is nearer to `near`. It used to mean "the
+   * first pointer in the list", and the list is ordered by controller index,
+   * not by handedness: on a Quest that is the left controller, always - so
+   * a right-handed participant could not touch, catch or track anything.
+   */
+  private handPos(hand: 'left' | 'right' | 'any' = 'any', near?: THREE.Vector3): THREE.Vector3 | null {
+    const input = this.ctx.engine.input;
+    const pointers = input.pointers.filter((p) => p.active && (p.id === 'left' || p.id === 'right'));
+    const posOf = (p: (typeof pointers)[number]): THREE.Vector3 | null => {
+      const grip = p.hand === 'left' || p.hand === 'right' ? input.gripSpace(p.hand) : null;
+      const o = grip ?? p.object3D;
+      return o ? o.getWorldPosition(new THREE.Vector3()) : null;
+    };
+    if (hand !== 'any') {
+      const p = pointers.find((q) => q.hand === hand);
+      return p ? posOf(p) : null;
+    }
+    let best: THREE.Vector3 | null = null;
+    let bestD = Infinity;
+    for (const p of pointers) {
+      const v = posOf(p);
+      if (!v) continue;
+      const d = near ? v.distanceTo(near) : 0;
+      if (d < bestD) { bestD = d; best = v; }
+    }
+    return best;
   }
 
   /* ------------------------------------------------------- block driver */
@@ -237,7 +259,9 @@ export class ReactSpatialModule implements AssessmentModule {
     // Three amplitudes x three widths: the classic Fitts grid, extended into
     // depth so the index of difficulty is computed over a real 3D distance.
     const specs: ReachSpec[] = [];
-    const radii = [0.42, 0.62, 0.82];
+    // Distances are from the eyes (the anchor); the far one is about 0.6 m
+    // from the shoulder, inside a standing adult's reach without a step.
+    const radii = [0.36, 0.50, 0.64];
     const widths = [0.055, 0.085, 0.12];
     for (let i = 0; i < count; i++) {
       specs.push({
@@ -260,9 +284,13 @@ export class ReactSpatialModule implements AssessmentModule {
       await this.wait(rng.range(400, 900));
       if (this.aborted) return;
 
-      const pos = this.anchor.place(spec.azDeg, spec.elDeg - 14, spec.radius);
+      const pos = this.anchor.place(spec.azDeg, spec.elDeg - 8, spec.radius);
       this.target.position.copy(pos);
-      this.target.scale.setScalar(spec.width / 0.045);
+      // The shared sphere geometry has radius 0.5, so scale = 2 x radius.
+      // `setScalar(width / 0.045)` replaced the creation-time scale instead
+      // of multiplying it, and made a 1.2-2.7 m sphere with the participant
+      // inside it - back-face culled, so "the sphere never appeared".
+      this.target.scale.setScalar(spec.width * 2);
       this.target.visible = true;
       this.tumbler.clear();
       this.tumbler.add(this.target, rng, 0.2, 0.5);
@@ -330,7 +358,7 @@ export class ReactSpatialModule implements AssessmentModule {
     const deadline = this.ctx.engine.clock.frameTime + 4000;
     for (;;) {
       if (this.aborted) return;
-      const h = this.handPos();
+      const h = this.handPos('any', home);
       if (!h || h.distanceTo(home) < 0.14) return;
       if (this.ctx.engine.clock.frameTime > deadline) return;
       await this.wait(60);
@@ -353,7 +381,7 @@ export class ReactSpatialModule implements AssessmentModule {
       const tick = () => {
         if (this.aborted) { resolve(null); return; }
         const now = this.ctx.engine.clock.frameTime;
-        const h = this.handPos();
+        const h = this.handPos('any', mesh.position);
         if (h) {
           if (last) path += h.distanceTo(last);
           last = h.clone();
@@ -387,8 +415,10 @@ export class ReactSpatialModule implements AssessmentModule {
 
       const az = rng.range(-40, 40);
       const el = rng.range(-14, 20);
-      const from = volumePosition(az, el, rng.range(5.5, 8.5), EYE);
-      const to = new THREE.Vector3(0, EYE, 0);
+      // Launched from, and aimed at, where the participant actually is - not
+      // the world origin, which they left the moment they took a step.
+      const from = this.anchor.place(az, el, rng.range(5.5, 8.5));
+      const to = this.anchor.offset(0, -0.22, 0.12, new THREE.Vector3());
       const travelMs = rng.range(1100, 1900);
       this.flyer.position.copy(from);
       this.flyer.visible = true;
@@ -442,7 +472,7 @@ export class ReactSpatialModule implements AssessmentModule {
         const now = this.ctx.engine.clock.frameTime;
         const t = clamp((now - startT) / travelMs, 0, 1);
         this.flyer.position.lerpVectors(from, to, t);
-        const h = this.handPos();
+        const h = this.handPos('any', this.flyer.position);
         if (h) {
           const d = h.distanceTo(this.flyer.position);
           if (d < best) { best = d; bestT = now; }
@@ -512,12 +542,16 @@ export class ReactSpatialModule implements AssessmentModule {
       // One hand reaches near, the other far. The asymmetry is the point:
       // the two arms must run different movement plans simultaneously.
       const nearHand: 'left' | 'right' = rng.bool() ? 'left' : 'right';
-      const nearR = 0.42;
-      const farR = 0.82;
+      // The depth gap is the measurement; the absolute distances only have to
+      // be reachable by both arms at once, standing still.
+      const nearR = 0.34;
+      const farR = 0.60;
       const lRadius = nearHand === 'left' ? nearR : farR;
       const rRadius = nearHand === 'right' ? nearR : farR;
-      const lPos = volumePosition(rng.range(-46, -18), rng.range(-16, 18), lRadius, EYE - 0.25);
-      const rPos = volumePosition(rng.range(18, 46), rng.range(-16, 18), rRadius, EYE - 0.25);
+      const lPos = this.anchor.place(rng.range(-46, -18), rng.range(-16, 18), lRadius);
+      const rPos = this.anchor.place(rng.range(18, 46), rng.range(-16, 18), rRadius);
+      lPos.y -= 0.22;
+      rPos.y -= 0.22;
       this.targetL.position.copy(lPos);
       this.targetR.position.copy(rPos);
       this.targetL.visible = true;
@@ -604,11 +638,12 @@ export class ReactSpatialModule implements AssessmentModule {
     this.trackPhase += dt * this.trackSpeed;
     const az = Math.sin(this.trackPhase) * 34;
     const el = Math.sin(this.trackPhase * 1.43) * 16;
-    const radius = 0.62 + Math.sin(this.trackPhase * 0.87) * 0.24;
-    const pos = volumePosition(az, el, radius, EYE - 0.2);
+    const radius = 0.46 + Math.sin(this.trackPhase * 0.87) * 0.14;
+    const pos = this.anchor.place(az, el, radius);
+    pos.y -= 0.2;
     this.tracker.position.copy(pos);
 
-    const h = this.handPos();
+    const h = this.handPos('any', pos);
     if (!h) return;
     const eye = new THREE.Vector3();
     ctx.engine.camera.getWorldPosition(eye);

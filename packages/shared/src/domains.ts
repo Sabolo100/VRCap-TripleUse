@@ -130,13 +130,13 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
     },
     room: { floor: 'grid', motes: 260, horizon: 26, signature: 'radar' },
     copy: {
-      productName: 'VR COGNITIVE ASSESSMENT',
+      productName: 'VR KOGNITÍV MÉRÉS',
       tagline: 'Védelmi kognitív és pszichomotoros vizsgálati platform',
       intro:
-        'Objektív, ismételhető kognitív, figyelmi, döntési és pszichomotoros mérés absztrakt VR környezetben. ' +
-        'Nem kiképzési szimulátor: a cél a vizsgált emberi képesség lehető legtisztább, zajmentes mérése. ' +
-        'Minden futás ugyanahhoz az azonosítóhoz kapcsolódik, így a teljesítmény időben követhető.',
-      idLabel: 'Operator ID',
+        'Objektív, ismételhető kognitív, figyelmi, döntési és pszichomotoros mérés absztrakt ' +
+        'VR-környezetben. Nem kiképzési szimulátor: konkrét feladatokban megfigyelt teljesítményt ' +
+        'rögzít. Az azonosítóhoz kapcsolt futásokkal a teljesítmény időbeli változása is követhető.',
+      idLabel: 'Operátori azonosító',
       idPlaceholder: 'HU-001572',
       idHint: 'Pszeudonim azonosító. Nevet nem tárolunk.',
       scoreName: 'OPS SCORE',
@@ -147,7 +147,7 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
       moduleNounPlural: 'modulok',
       startCta: 'MISSZIÓ INDÍTÁSA',
       subjectNoun: 'operátor',
-      profileTitle: 'Operational Performance Profile',
+      profileTitle: 'Műveleti teljesítményprofil',
       disclaimer:
         'Teljesítménymutató, nem pszichológiai diagnózis. Kiválasztási döntés önmagában nem alapozható rá.',
     },
@@ -156,7 +156,7 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
   B: {
     code: 'B',
     slug: 'work',
-    label: 'Munkaalkalmasság & pályaválasztás',
+    label: 'Munka és pályaorientáció',
     shortLabel: 'WORK',
     fontDisplay: '"Inter Tight", "Inter", system-ui, sans-serif',
     fontBody: '"Inter", system-ui, -apple-system, sans-serif',
@@ -182,16 +182,16 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
     },
     room: { floor: 'panels', motes: 140, horizon: 30, signature: 'blueprint' },
     copy: {
-      productName: 'VR ALKALMASSÁG & PÁLYAORIENTÁCIÓ',
-      tagline: 'Munkaköri kognitív alkalmasság és pályaválasztási tanácsadás',
+      productName: 'VR MUNKA ÉS PÁLYAORIENTÁCIÓ',
+      tagline: 'Munkaköri feladatteljesítmény és pályaorientáció',
       intro:
-        'Objektív képességmérés olyan munkakörökhöz, ahol a figyelem, a reakció, a többfeladatos terhelés ' +
-        'és a döntési stabilitás közvetlen biztonsági tényező: gépjárművezető, légiirányító, sebész, ' +
-        'műszakos operátor, mentő. Pályaorientációnál a mért profil erősség-térképet ad, nem minősítést.',
+        'Olyan feladatokban rögzíti a figyelmet, a reakciót, a többfeladatos terhelést és a döntési ' +
+        'stabilitást, amelyek több munkakörben is relevánsak. A mért profil tájékoztató erősség- és ' +
+        'eltéréstérkép, nem munkaköri minősítés.',
       idLabel: 'Vizsgálati azonosító',
       idPlaceholder: 'PRO-2026-0184',
       idHint: 'Pszeudonim azonosító. A rendszer nevet nem igényel.',
-      scoreName: 'READINESS SCORE',
+      scoreName: 'PERFORMANCE INDEX',
       scoreShort: 'RDY',
       runNoun: 'mérés',
       runNounPlural: 'mérések',
@@ -199,7 +199,7 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
       moduleNounPlural: 'vizsgálatok',
       startCta: 'VIZSGÁLAT INDÍTÁSA',
       subjectNoun: 'vizsgált személy',
-      profileTitle: 'Occupational Capability Profile',
+      profileTitle: 'Munkaköri teljesítményprofil',
       disclaimer:
         'Teljesítménymutató, nem munkaköri alkalmassági szakvélemény. Foglalkozás-egészségügyi döntés önmagában nem alapozható rá.',
     },
@@ -208,7 +208,7 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
   C: {
     code: 'C',
     slug: 'sport',
-    label: 'Sportági tehetségazonosítás',
+    label: 'Sportteljesítmény és pályaorientáció',
     shortLabel: 'SPORT',
     fontDisplay: '"Archivo Black", "Barlow Condensed", Impact, sans-serif',
     fontBody: '"Barlow", "Inter", system-ui, sans-serif',
@@ -235,12 +235,12 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
     room: { floor: 'track', motes: 320, horizon: 34, signature: 'stadium' },
     copy: {
       productName: 'VR SPORT TALENT LAB',
-      tagline: 'Sportági tehetségazonosítás és percepciós-kognitív profil',
+      tagline: 'Percepciós-kognitív sportprofil',
       intro:
-        'Melyik sportághoz van érzéked? A rendszer nem az izmot méri, hanem azt, amit a pálya szélén nem látni: ' +
-        'időzítést, előrejelzést, perifériás látást, döntési sebességet, mozgástanulási rátát. ' +
-        'A profilból sportágcsoport-ajánlás készül - irány, nem ítélet.',
-      idLabel: 'Sportoló ID',
+        'A rendszer konkrét feladatokban méri az időzítést, az előrejelzést, a perifériás észlelést, a ' +
+        'döntési sebességet és a mozgástanulási rátát. Az eredmény tájékoztató profil, nem sportági ' +
+        'alkalmassági vagy tehetségítélet.',
+      idLabel: 'Sportolói azonosító',
       idPlaceholder: 'ATH-2026-041',
       idHint: 'Pszeudonim azonosító. Fiatalkorúaknál külön adatkezelési szabály él.',
       scoreName: 'PERFORMANCE INDEX',
@@ -251,9 +251,10 @@ export const DOMAINS: Record<DomainCode, DomainDefinition> = {
       moduleNounPlural: 'tesztek',
       startCta: 'TESZT INDÍTÁSA',
       subjectNoun: 'sportoló',
-      profileTitle: 'Athlete Perceptual-Cognitive Profile',
+      profileTitle: 'Sportolói percepciós-kognitív profil',
       disclaimer:
-        'Teljesítménymutató, nem tehetségdiagnózis. Sportági javaslat tájékoztató, edzői és orvosi véleményt nem helyettesít.',
+        'Teljesítménymutató, nem tehetség- vagy alkalmassági diagnózis. A sportági javaslat tájékoztató ' +
+          'jellegű; edzői és orvosi véleményt nem helyettesít.',
     },
   },
 };

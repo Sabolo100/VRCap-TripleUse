@@ -69,11 +69,11 @@ export class CommandModule implements AssessmentModule {
     },
     {
       id: 'roundB',
-      title: '2. KÖR — KIJELÖLT PARANCSNOK',
+      title: '2. KÖR — KIJELÖLT VEZETŐ',
       instruction:
-        'Ebben a körben egy kijelölt parancsnok dönt. A többiek javaslatot tehetnek és információt ' +
-        'oszthatnak meg, de a tervet és a lezárást a parancsnok kezeli. A kör közben új információ érkezik — ' +
-        'figyeljétek. A kezelés ugyanaz, mint az előbb.',
+        'Ebben a körben egy kijelölt vezető dönt. A többiek javaslatot tehetnek és információt ' +
+        'oszthatnak meg, de a tervet és a lezárást a vezető kezeli. A kör közben új információ érkezik; ' +
+        'figyeljétek. A vezérlés ugyanaz, mint az előző körben.',
       controlHint: '',
       trials: 1,
       practiceTrials: 0,
@@ -105,6 +105,8 @@ export class CommandModule implements AssessmentModule {
   private resolveRound: Record<string, (() => void) | null> = { roundA: null, roundB: null };
   private myScores: PlayerScore[] = [];
   private statusMessage = '';
+  private builtScenarioSeed: number | null = null;
+  private lobbyError = '';
   private seatRoot = new THREE.Group();
 
   /* ----------------------------------------------------------- init */
@@ -148,6 +150,14 @@ export class CommandModule implements AssessmentModule {
         this.planPanel.invalidate();
         this.sidePanel.invalidate();
         this.lobbyPanel.invalidate();
+        // The board is built from the scenario the moment it arrives. It was
+        // never built at all - nothing to click, nothing to assign, and the
+        // round could only end on the server's timeout.
+        const sc = this.client.state.scenario;
+        if (sc && this.builtScenarioSeed !== sc.seed) {
+          this.builtScenarioSeed = sc.seed;
+          this.board.build(sc);
+        }
         this.board.setAssignment(this.client.state.assignment);
         this.syncAvatars();
         this.voice.syncPeers();
@@ -163,6 +173,10 @@ export class CommandModule implements AssessmentModule {
     );
 
     this.setBoardVisible(false);
+    // Only the lobby is on screen until the briefing; the plan and side
+    // panels overlapping the runner's intro panel rendered as coloured slabs.
+    this.planPanel.group.visible = false;
+    this.sidePanel.group.visible = false;
   }
 
   /**
@@ -256,7 +270,10 @@ export class CommandModule implements AssessmentModule {
     const radius = 1.15;
     const rig = this.ctx.engine.rig;
     rig.position.set(Math.sin(angle) * radius, 0, Math.cos(angle) * radius);
-    rig.rotation.y = angle + Math.PI;
+    // rotation.y = θ looks along (-sin θ, 0, -cos θ): from a seat at
+    // (sin a, cos a) the table centre is at θ = a. The old a + π faced the
+    // participant radially outward, with the board behind them.
+    rig.rotation.y = angle;
     // Panels are children of root (world space), so re-anchor them to the seat.
     this.root.position.copy(rig.position);
     this.root.rotation.y = rig.rotation.y;
@@ -559,13 +576,15 @@ export class CommandModule implements AssessmentModule {
         break;
       case 'lobby:confirm-create':
         this.lobbyMode = 'waiting';
-        void this.client.create(externalId, domain, { botCount: this.botCount });
+        this.lobbyError = '';
+        this.client.create(externalId, domain, { botCount: this.botCount }).catch((err) => this.lobbyFailed(err));
         this.lobbyPanel.invalidate();
         break;
       case 'lobby:confirm-join':
         if (this.joinCode.length >= 4) {
           this.lobbyMode = 'waiting';
-          void this.client.join(this.joinCode, externalId, domain);
+          this.lobbyError = '';
+          this.client.join(this.joinCode, externalId, domain).catch((err) => this.lobbyFailed(err));
           this.closeKeyboard();
           this.lobbyPanel.invalidate();
         }
@@ -621,6 +640,15 @@ export class CommandModule implements AssessmentModule {
 
   /* --------------------------------------------------------- drawing */
 
+  /** A refused or timed-out connection goes back to the choice screen with
+   *  a reason, instead of "Kapcsolódás…" with no way out but KILÉPÉS. */
+  private lobbyFailed(err: unknown): void {
+    this.lobbyMode = 'choose';
+    this.lobbyError = 'Nem sikerült kapcsolódni a szerverhez. Ellenőrizd a hálózatot, és próbáld újra.';
+    this.ctx.recorder.event('lobby_error', { message: String(err) });
+    this.lobbyPanel.invalidate();
+  }
+
   private drawLobby(ui: UI): void {
     const t = ui.t;
     const s = this.client.state;
@@ -637,6 +665,9 @@ export class CommandModule implements AssessmentModule {
     }
 
     if (this.lobbyMode === 'choose') {
+      if (this.lobbyError) {
+        ui.text(this.lobbyError, pad, ui.h - 130, { size: 17, color: t.bad, maxWidth: ui.w - pad * 2 });
+      }
       ui.paragraph(
         '2-5 fő egy közös táblát lát. A táblán szereplő adatok egy része hibás, és a javításokat ' +
           'a résztvevők külön-külön ismerik. Egyedül is kipróbálható: az AI csapattársak valódi ' +
@@ -708,7 +739,10 @@ export class CommandModule implements AssessmentModule {
     });
 
     const me = this.client.me();
-    ui.button('lobby:ready', pad, ui.h - 100, 280, 68, {
+    if (!s.connected) {
+      ui.button('lobby:back', pad, ui.h - 100, 180, 62, { label: 'VISSZA', variant: 'quiet' });
+    }
+    ui.button('lobby:ready', s.connected ? pad : pad + 200, ui.h - 100, 280, 68, {
       label: me?.ready ? 'MÉGSEM' : 'KÉSZ VAGYOK', variant: me?.ready ? 'ghost' : 'primary',
     });
     if (this.client.isHost()) {
@@ -743,7 +777,7 @@ export class CommandModule implements AssessmentModule {
 
     if (s.role === 'commander') {
       ui.roundRect(pad + 250, 16, 150, 28, 14, withAlpha(t.accent, 0.9));
-      ui.text('PARANCSNOK', pad + 325, 30, { size: 15, color: '#0a0d12', align: 'center', weight: '700' });
+      ui.text('KIJELÖLT VEZETŐ', pad + 325, 30, { size: 15, color: '#0a0d12', align: 'center', weight: '700' });
     }
 
     // Assignment row per unit
@@ -1006,7 +1040,7 @@ export class CommandModule implements AssessmentModule {
         { label: 'Saját megosztási arány', value: pct(shareRate) },
         { label: 'Javaslat-elfogadás', value: pct(adoption) },
         { label: 'Vezetői index', value: Number.isFinite(leadership) ? leadership.toFixed(2) : '—' },
-        { label: 'Lezárásig eltelt idő', value: sec(timeToCommit) },
+        { label: 'Vezetői viselkedés', value: sec(timeToCommit) },
       ],
       summary: {
         room: s.room,

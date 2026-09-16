@@ -337,3 +337,54 @@ Egy modulspecifikáció addig nincs kész, amíg ezekre nincs válasz:
 - [ ] A trial rekord tartalmazza a használt adaptációs paramétereket.
 - [ ] Megfogalmazott állítás arról, hogy az eredmények platformok között
       összehasonlíthatók-e — és ha nem, az miért van rendben.
+
+---
+
+## 7. MÉRNÖKI SZABÁLYOK, AMELYEK A TESZTELÉSBŐL SZÜLETTEK
+
+A 2026. szeptemberi tesztkör (PC Firefox, iPhone Safari, Meta Quest 3) hibáinak
+többsége négy visszatérő hibaosztályból jött. Ezek nem modulspecifikusak, ezért
+itt vannak, nem a modulspecifikációkban.
+
+### 7.1 A primitív mérete a skálája — sose `setScalar()`-ral írd felül
+
+`makePrimitive({ size })` a `mesh.scale`-be teszi a méretet (a geometriák
+egységnyiek: 1 m-es gömb, doboz, henger; a tórusz középvonal-sugara 0,5).
+`mesh.scale.setScalar(x)` tehát **nem szoroz, hanem lecserél**: egy 0,09 m-es
+gömbből `setScalar(width / 0.045)` 1,2–2,7 m-es gömböt csinált, amelyben a néző
+benne állt (REACT-B „a gömb nem jelenik meg”), a RISK célból 2,2 m-es dobozt,
+a PRESSURE-B ingerből 1–2,4 m-es gömböt. Szabály: vagy abszolút méretet írsz
+(`setScalar(diameterM)`), vagy az eredeti skálát tárolod és szorzod
+(`scale.copy(base).multiplyScalar(k)`). Feliratot (Sprite) ne tegyél skálázott
+mesh alá: a gyermek eltolása is skálázódik, a felirat a testbe kerül.
+
+### 7.2 A próbánkénti időzítő a próbáé, nem a modulé
+
+Minden `setTimeout`, amely egy próbát zár le, (a) a saját próbaobjektumát
+ragadja meg (`const mine = this.live`), (b) tüzeléskor ellenőrzi, hogy még az él
+(`if (this.live !== mine) return`), és (c) a próba normál lezárása törli
+(`clearTimeout`). Ami a „bármelyik éppen élő” próbát zárta le, az a következőt
+vágta el (FIELD „10%-ban működik”, PRESSURE-B „100 ms-os villanás”), vagy
+feloldatlanul hagyta (ADAPT és ANTICIPATE „véletlen lefagyás”).
+
+### 7.3 Semmi sem ül a fejen
+
+Egy panel, amely képkockánként a fejhez igazodik, a legerősebb VR-rosszullét-
+kiváltó, és a saját szövegét is vibráltatja. Panelkövetéshez a
+`LazyFollow` (`engine/ui/viewport.ts`) használandó: holtsáv, majd rövid
+időállandójú beállás; lapos képernyőn ugyanez azonnali. A futtató saját
+paneljei a rigen ülnek (`ModuleRunner.panelRoot`), így a rigót mozgató modul
+(NAV teleport, COMMAND ülés) nem hagyja hátra az instrukciós képernyőt.
+
+### 7.4 Raycast sprite-ra csak kamerával
+
+Minden `Raycaster`, amely feliratozott (Sprite-gyermekes) objektumot vizsgál,
+állítsa be `raycaster.camera`-t, különben a three.js kivételt dob és az
+input-réteg elnyeli — a kattintás nyomtalanul elvész (RISK „semmi sem történik”).
+
+### 7.5 Mérhető kényelem
+
+A `Clock.takeFrameStats()` blokkonként `frame_stats` eseményt ad (medián, p95,
+hosszú képkockák, cél-Hz); a `?fps` URL-paraméter a HUD-on mutatja. A panel-
+textúrák mipmappal futnak, a HUD csak változáskor rajzolódik újra, a headset
+90 Hz-et kér. Ha egy tesztelő szédül, először ezt a naplót kell megnézni.

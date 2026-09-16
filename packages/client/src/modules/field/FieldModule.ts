@@ -85,6 +85,11 @@ interface DvaTrial {
   distanceAtResponseM: number;
 }
 
+/** Metres across for an angular size at a distance. */
+function angSize(deg: number, dist: number): number {
+  return 2 * dist * Math.tan((deg * Math.PI) / 360);
+}
+
 export class FieldModule implements AssessmentModule {
   readonly manifest: ModuleManifest = MODULE_BY_CODE.FIELD!;
 
@@ -105,10 +110,10 @@ export class FieldModule implements AssessmentModule {
           'kattintás). Ugyanabban a pillanatban oldalt is felvillan valami: utána a tárcsán kattints arra az ' +
           'irányra, ahol volt. A lényeg épp az, mennyit veszel észre odanézés nélkül.',
         mobile:
-          'Középen egy gyűrű lesz — VÉGIG AZT NÉZD, ne vidd el a tekinteted. A közepén egy pillanatra egy KOCKA ' +
-          'vagy egy GÖMB jelenik meg: ezt mondd meg először a képernyő alján a KOCKA vagy a GÖMB gombbal. ' +
-          'Ugyanabban a pillanatban oldalt is felvillan valami: utána a képernyőn megjelenő körből koppintsd ' +
-          'ki, merre volt. A lényeg épp az, mennyit veszel észre odanézés nélkül.',
+          'VÉGIG a középső gyűrűt nézd; ne vidd el róla a tekinteted. A közepén egy pillanatra KOCKA vagy ' +
+          'GÖMB jelenik meg: először nyomd meg a képernyő alján a megfelelő KOCKA vagy GÖMB gombot. ' +
+          'Ugyanekkor oldalt is felvillan valami; ezután koppints a körön arra az irányra, ahol láttad. A ' +
+          'feladat lényege, mennyit veszel észre odanézés nélkül.',
       },
       controlHint: '',
       trials: 48,
@@ -189,6 +194,7 @@ export class FieldModule implements AssessmentModule {
   private restYawDeg = 0;
   private restPitchDeg = 0;
 
+  private peripheralDepthRatio = 1;
   private live: {
     phase: 'central' | 'peripheral' | 'gap';
     onsetT: number;
@@ -217,7 +223,6 @@ export class FieldModule implements AssessmentModule {
 
     // Angular sizes are held to the values in the spec by deriving physical
     // size from distance, so the same numbers hold on every platform.
-    const angSize = (deg: number, dist: number) => 2 * dist * Math.tan((deg * Math.PI) / 360);
 
     this.fixation = makePrimitive({
       kind: 'torus', color: t.accent, unlit: true, size: angSize(2.7, NEAR_DEPTH),
@@ -522,7 +527,10 @@ export class FieldModule implements AssessmentModule {
       // Angular size held constant across depth: the far target is physically
       // larger by exactly the distance ratio, so "far" cannot be read off as
       // "smaller".
-      this.peripheral.scale.setScalar(spec.depth / NEAR_DEPTH);
+      // The primitive's size IS its scale, so the depth ratio multiplies the
+      // near-depth size rather than replacing it (which made a 1.6-3 m ball).
+      this.peripheralDepthRatio = spec.depth / NEAR_DEPTH;
+      this.peripheral.scale.setScalar(angSize(TARGET_ANGULAR_DEG, NEAR_DEPTH) * this.peripheralDepthRatio);
 
       const shape = spec.shape;
       this.centralCube.visible = shape === 'cube';
@@ -615,13 +623,26 @@ export class FieldModule implements AssessmentModule {
   }> {
     return new Promise((resolve) => {
       const ctx = this.ctx;
-      this.live = {
-        phase: 'central', onsetT, centralShape: shape, centralOnly, centralAnswer: null, centralRt: null,
+      // Both timers are owned by this trial and cancelled when it ends. Left
+      // running, a fast answer's window timer fired inside the NEXT trial and
+      // closed it early; each truncated trial ended sooner still, and after a
+      // few the participant could no longer answer anything - "works about
+      // one time in ten".
+      let maskTimer: ReturnType<typeof setTimeout> | null = null;
+      let windowTimer: ReturnType<typeof setTimeout> | null = null;
+      const mine = {
+        phase: 'central' as const, onsetT, centralShape: shape, centralOnly, centralAnswer: null, centralRt: null,
         directionIndex: dir, gapDirection: -1, answer: null,
         headAtOnset: head, maxHeadMove: 0,
         resolve: () => {
           const l = this.live!;
           this.live = null;
+          if (maskTimer) clearTimeout(maskTimer);
+          if (windowTimer) clearTimeout(windowTimer);
+          this.peripheral.visible = false;
+          this.centralCube.visible = false;
+          this.centralSphere.visible = false;
+          this.mask.visible = false;
           this.dialPanel.group.visible = false;
           const answer = l.answer;
           const err = answer === null ? 4 : Math.min(
@@ -642,21 +663,24 @@ export class FieldModule implements AssessmentModule {
         },
       };
 
+      this.live = mine as typeof this.live;
+
       // Stimulus off after the staircase duration, then a mask so the estimate
       // is of perception rather than of how long the afterimage lasted.
-      setTimeout(() => {
+      maskTimer = setTimeout(() => {
+        if (this.live !== mine) return;
         this.peripheral.visible = false;
         this.centralCube.visible = false;
         this.centralSphere.visible = false;
         this.mask.position.copy(this.peripheral.position);
-        this.mask.scale.copy(this.peripheral.scale);
+        this.mask.scale.setScalar(angSize(5.7, NEAR_DEPTH) * this.peripheralDepthRatio);
         this.mask.visible = true;
         ctx.recorder.event('mask_onset', { tAfterStimulusMs: +durationMs.toFixed(1) });
-        setTimeout(() => { this.mask.visible = false; }, 100);
+        setTimeout(() => { if (this.live === mine) this.mask.visible = false; }, 100);
       }, durationMs);
 
-      setTimeout(() => {
-        if (this.live) { this.live.resolve(); }
+      windowTimer = setTimeout(() => {
+        if (this.live === mine) mine.resolve();
       }, durationMs + 4000);
     });
   }

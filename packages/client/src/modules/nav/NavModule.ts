@@ -7,7 +7,7 @@ import {
 import type { AssessmentModule, BlockDescriptor, ModuleContext, ModuleResult } from '../../engine/task/Module.js';
 import { makePrimitive, makeLabel, disposeTree } from '../../engine/world/Primitives.js';
 import { Panel, type UI } from '../../engine/ui/Panel.js';
-import { fitAngles } from '../../engine/ui/viewport.js';
+import { LazyFollow, placeAtBearing } from '../../engine/ui/viewport.js';
 import { withAlpha } from '../../engine/ui/UITheme.js';
 import type { ActionEvent } from '../../engine/core/types.js';
 import type { PanelClickEvent } from '../../engine/ui/PanelManager.js';
@@ -43,6 +43,17 @@ type BlockId = 'tour' | 'retrace' | 'jrd' | 'triangle' | 'map';
 
 const EYE = 1.6;
 const GLIDE_MS = 1600;
+/**
+ * Compass bearing (degrees, clockwise from -Z, as navWorld.bearingDeg gives
+ * it) to a three.js yaw. rotation.y = θ turns the forward axis to bearing -θ,
+ * so the sign flips. Every rig and arrow placement goes through this; setting
+ * rotation.y to the bearing directly faced the participant at the mirror
+ * image of the landmark, and the tour travelled sideways.
+ */
+const yawFromBearing = (deg: number): number => (-deg * Math.PI) / 180;
+/** How far the familiarisation view stands from a landmark: far enough that
+ *  a 6 m object fits under a flat screen's 32 degree half-height. */
+const FAMILIARISE_STANDOFF_M = 12;
 /**
  * How long the tour pauses at each node.
  *
@@ -80,20 +91,17 @@ export class NavModule implements AssessmentModule {
       title: 'BEJÁRÁS',
       instruction: {
         vr:
-          'A rendszer végigvisz egy útvonalon, több megállóval. Nem kell irányítanod semmit és gombot sem ' +
-          'kell nyomnod: a dolgod az, hogy MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE, és jegyezd meg, melyik tereptárgy ' +
-          'merre van — a nevüket ki is írom. Ezt az útvonalat kell majd egyedül végigjárnod, utána pedig ' +
-          'irányokat becsülnöd, ezért most a körülnézés a feladat.',
+          'A rendszer automatikusan végigvisz egy útvonalon, több megállóval. Nem kell gombot nyomnod. ' +
+          'MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE, és jegyezd meg, melyik névvel jelölt tereptárgy merre van. Később ' +
+          'önállóan kell végigjárnod az útvonalat, majd irányokat becsülnöd.',
         desktop:
-          'A rendszer végigvisz egy útvonalon, több megállóval. A haladás automatikus; a dolgod az, hogy ' +
-          'MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE — az egér húzásával fordulhatsz —, és jegyezd meg, melyik tereptárgy ' +
-          'merre van. A nevüket ki is írom. Ezt az útvonalat kell majd egyedül végigjárnod, utána pedig ' +
-          'irányokat becsülnöd, ezért most a körülnézés a feladat.',
+          'A rendszer automatikusan végigvisz egy útvonalon, több megállóval. MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE ' +
+          'az egér húzásával, és jegyezd meg, melyik névvel jelölt tereptárgy merre van. Később önállóan ' +
+          'kell végigjárnod az útvonalat, majd irányokat becsülnöd.',
         mobile:
-          'A rendszer végigvisz egy útvonalon, több megállóval. A haladás automatikus; a dolgod az, hogy ' +
-          'MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE — az ujjad húzásával fordulhatsz —, és jegyezd meg, melyik tereptárgy ' +
-          'merre van. A nevüket ki is írom. Ezt az útvonalat kell majd egyedül végigjárnod, utána pedig ' +
-          'irányokat becsülnöd, ezért most a körülnézés a feladat.',
+          'A rendszer automatikusan végigvisz egy útvonalon, több megállóval. MINDEN MEGÁLLÓNÁL NÉZZ KÖRBE ' +
+          'az ujjad húzásával, és jegyezd meg, melyik névvel jelölt tereptárgy merre van. Később önállóan ' +
+          'kell végigjárnod az útvonalat, majd irányokat becsülnöd.',
       },
       controlHint: '',
       trials: 1,
@@ -104,17 +112,17 @@ export class NavModule implements AssessmentModule {
       title: 'ÚJRAJÁRÁS',
       instruction: {
         vr:
-          'Most neked kell végigmenned ugyanazon az útvonalon. Minden megállónál nyilak mutatják, merre lehet ' +
-          'továbbmenni: mutass a sugárral arra, amerre az útvonal vezetett, és húzd meg a ravaszt. Másodszor ' +
-          'visszafelé is meg kell tenned.',
+          'Most neked kell végigjárnod ugyanazt az útvonalat. Minden megállónál több nyíl jelenik meg. ' +
+          'Mutass a kontroller sugarával arra a nyílra, amerre az útvonal folytatódott, majd húzd meg a ' +
+          'ravaszt. Ezután ugyanezt az útvonalat visszafelé is végig kell járnod.',
         desktop:
-          'Most neked kell végigmenned ugyanazon az útvonalon. Minden megállónál nyilak mutatják, merre lehet ' +
-          'továbbmenni: nézz körül az egér húzásával, és kattints arra a nyílra, amerre az útvonal vezetett. ' +
-          'Másodszor visszafelé is meg kell tenned.',
+          'Most neked kell végigjárnod ugyanazt az útvonalat. Minden megállónál több nyíl jelenik meg. ' +
+          'Nézz körül az egér húzásával, majd kattints arra a nyílra, amerre az útvonal folytatódott. ' +
+          'Ezután ugyanezt az útvonalat visszafelé is végig kell járnod.',
         mobile:
-          'Most neked kell végigmenned ugyanazon az útvonalon. Minden megállónál nyilak mutatják, merre lehet ' +
-          'továbbmenni: nézz körül az ujjad húzásával, és koppints arra a nyílra, amerre az útvonal vezetett. ' +
-          'Másodszor visszafelé is meg kell tenned.',
+          'Most neked kell végigjárnod ugyanazt az útvonalat. Minden megállónál több nyíl jelenik meg. ' +
+          'Nézz körül az ujjad húzásával, majd koppints arra a nyílra, amerre az útvonal folytatódott. ' +
+          'Ezután ugyanezt az útvonalat visszafelé is végig kell járnod.',
       },
       controlHint: '',
       trials: 2,
@@ -147,17 +155,20 @@ export class NavModule implements AssessmentModule {
       title: 'ÚTVONAL-INTEGRÁCIÓ',
       instruction: {
         vr:
-          'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, egy kanyarral. ' +
-          'A végén mutasd meg, merre van a KIINDULÓPONT — fordulj arra, sugár és ravasz —, majd a csúszkán ' +
-          'állítsd be, milyen messze lehet, és erősítsd meg.',
+          'A rendszer egy tereptárgyak nélküli területen végigvisz két egyenes szakaszon, köztük egy ' +
+          'kanyarral. A végén fordulj a KIINDULÓPONT becsült irányába, mutass arra a kontroller sugarával, ' +
+          'és húzd meg a ravaszt. Ezután állítsd be a csúszkán a becsült távolságot, majd válaszd a MEHET ' +
+          'gombot.',
         desktop:
-          'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, egy kanyarral. ' +
-          'A végén mutasd meg, merre van a KIINDULÓPONT — fordulj arra az egér húzásával, és kattints abba az ' +
-          'irányba —, majd a csúszkán állítsd be, milyen messze lehet, és kattints a MEHET gombra.',
+          'A rendszer egy tereptárgyak nélküli területen végigvisz két egyenes szakaszon, köztük egy ' +
+          'kanyarral. A végén fordulj a KIINDULÓPONT becsült irányába az egér húzásával, majd kattints ' +
+          'abba az irányba. Ezután állítsd be a csúszkán a becsült távolságot, majd kattints a MEHET ' +
+          'gombra.',
         mobile:
-          'Üres, jellegtelen terep, tereptárgyak nélkül. A rendszer végigvisz két szakaszon, egy kanyarral. ' +
-          'A végén mutasd meg, merre van a KIINDULÓPONT — fordulj arra az ujjad húzásával, és nyomd meg az ERRE ' +
-          'VAN gombot —, majd a csúszkán állítsd be, milyen messze lehet, és erősítsd meg.',
+          'A rendszer egy tereptárgyak nélküli területen végigvisz két egyenes szakaszon, köztük egy ' +
+          'kanyarral. A végén fordulj a KIINDULÓPONT becsült irányába az ujjad húzásával, majd nyomd meg ' +
+          'az ERRE VAN gombot. Ezután állítsd be a csúszkán a becsült távolságot, majd nyomd meg a MEHET ' +
+          'gombot.',
       },
       controlHint: '',
       trials: 8,
@@ -168,15 +179,17 @@ export class NavModule implements AssessmentModule {
       title: 'TÉRKÉP',
       instruction: {
         vr:
-          'Kapsz egy felülnézeti térképet, amelyen a megállók látszanak. A kérdés: hol vagy rajta, és merre ' +
-          'nézel? Mutass a sugárral a térkép helyes pontjára, és húzd meg a ravaszt. A térkép mindig északra ' +
-          'van tájolva — te nem feltétlenül.',
+          'Egy északra tájolt, felülnézeti térképet kapsz a megállókról. A próbától függően vagy a saját ' +
+          'helyedet, vagy azt kell megadnod, merre nézel. A helyedhez mutass a térkép megfelelő pontjára a ' +
+          'kontroller sugarával, és húzd meg a ravaszt; az irányhoz ugyanígy válassz az iránytárcsán.',
         desktop:
-          'Kapsz egy felülnézeti térképet, amelyen a megállók látszanak. A kérdés: hol vagy rajta, és merre ' +
-          'nézel? Kattints a térkép helyes pontjára. A térkép mindig északra van tájolva — te nem feltétlenül.',
+          'Egy északra tájolt, felülnézeti térképet kapsz a megállókról. A próbától függően vagy a saját ' +
+          'helyedet, vagy azt kell megadnod, merre nézel. A helyedhez kattints a térkép megfelelő ' +
+          'pontjára; az irányhoz kattints az iránytárcsán.',
         mobile:
-          'Kapsz egy felülnézeti térképet, amelyen a megállók látszanak. A kérdés: hol vagy rajta, és merre ' +
-          'nézel? Koppints a térkép helyes pontjára. A térkép mindig északra van tájolva — te nem feltétlenül.',
+          'Egy északra tájolt, felülnézeti térképet kapsz a megállókról. A próbától függően vagy a saját ' +
+          'helyedet, vagy azt kell megadnod, merre nézel. A helyedhez koppints a térkép megfelelő ' +
+          'pontjára; az irányhoz koppints az iránytárcsán.',
       },
       controlHint: '',
       trials: 8,
@@ -317,9 +330,9 @@ export class NavModule implements AssessmentModule {
           : p === 'mobile' ? 'Fordulj a kiindulópont felé, ERRE VAN gomb · majd csúszka és erősítsd meg.'
           : 'Fordulj a kiindulópont felé, kattints arra · majd csúszka és MEHET.';
       case 'map':
-        return p === 'vr' ? 'Sugár a térkép helyes pontjára + RAVASZ.'
-          : p === 'mobile' ? 'Koppints a térkép helyes pontjára.'
-          : 'Kattints a térkép helyes pontjára.';
+        return p === 'vr' ? 'Hely: térkép + RAVASZ · irány: tárcsa + RAVASZ'
+          : p === 'mobile' ? 'Térkép: hely · tárcsa: irány · koppintás'
+          : 'Térkép: hely · tárcsa: irány · kattintás';
     }
   }
 
@@ -344,20 +357,35 @@ export class NavModule implements AssessmentModule {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     this.dots = new THREE.Points(geo, new THREE.PointsMaterial({
-      color: 0x415569, size: 0.16, sizeAttenuation: true, transparent: true, opacity: 0.85, fog: true,
+      color: 0x5a7189, size: 0.22, sizeAttenuation: true, transparent: true, opacity: 0.9, fog: true,
     }));
     this.root.add(this.dots);
 
+    // The ground has to read as ground. The previous near-black disc merged
+    // with the sky and left "shapes floating in a void" (the tester's words),
+    // which removes the horizon a headset user needs to stay comfortable. A
+    // lighter disc plus a faint concentric ripple gives a floor and a horizon
+    // without adding a directional cue - rings look the same from every
+    // heading.
     this.ground = new THREE.Mesh(
       new THREE.CircleGeometry(70, 64),
-      new THREE.MeshBasicMaterial({ color: 0x0b1118, fog: true })
+      new THREE.MeshBasicMaterial({ color: 0x141d28, fog: true })
     );
     this.ground.rotation.x = -Math.PI / 2;
     this.root.add(this.ground);
+    for (let r = 6; r <= 66; r += 6) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(r - 0.05, r + 0.05, 96),
+        new THREE.MeshBasicMaterial({ color: 0x24313f, transparent: true, opacity: 0.55, fog: true, side: THREE.DoubleSide })
+      );
+      // Child of the (already tilted) ground disc: local z is world up.
+      ring.position.z = 0.006;
+      this.ground.add(ring);
+    }
 
     this.boundary = new THREE.Mesh(
       new THREE.CylinderGeometry(64, 64, 14, 64, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0x16202c, side: THREE.BackSide, fog: true })
+      new THREE.MeshBasicMaterial({ color: 0x1b2734, side: THREE.BackSide, fog: true })
     );
     this.boundary.position.y = 7;
     this.root.add(this.boundary);
@@ -466,6 +494,8 @@ export class NavModule implements AssessmentModule {
     rig.position.copy(this.nodePos(node));
     rig.rotation.y = yawRad;
     this.currentNode = node;
+    this.promptFollow.reset();
+    this.mapFollow.reset();
   }
 
   /** Constant-velocity glide with a vignette; no acceleration anywhere. */
@@ -494,14 +524,16 @@ export class NavModule implements AssessmentModule {
     await this.wait(120);
     this.ctx.engine.rig.position.copy(toPos);
     this.ctx.engine.rig.rotation.y = toYaw;
+    this.promptFollow.reset();
+    this.mapFollow.reset();
     await this.wait(60);
     mat.opacity = 0;
     this.vignette.visible = false;
   }
 
-  private async moveToNode(node: number, durationMs = GLIDE_MS): Promise<void> {
+  private async moveToNode(node: number, durationMs = GLIDE_MS, faceYaw?: number): Promise<void> {
     const target = this.nodePos(node);
-    const yaw = (bearingDeg(this.ctx.engine.rig.position, this.world.nodes[node]!) * Math.PI) / 180;
+    const yaw = faceYaw ?? yawFromBearing(bearingDeg(this.ctx.engine.rig.position, this.world.nodes[node]!));
     await this.glide(target, yaw, durationMs);
     this.currentNode = node;
     this.ctx.audio.tone({ freq: 660, durationMs: 60, gain: 0.12 });
@@ -532,6 +564,8 @@ export class NavModule implements AssessmentModule {
       mat.opacity = 0;
       this.vignette.visible = false;
       this.gliding = null;
+      this.promptFollow.reset();
+      this.mapFollow.reset();
       g.resolve();
     }
   }
@@ -546,7 +580,16 @@ export class NavModule implements AssessmentModule {
     this.promptMode = 'comfort';
     for (const lm of this.world.landmarks) {
       if (this.aborted) return;
-      this.placeAt(lm.node, (bearingDeg(this.world.nodes[lm.node]!, lm) * Math.PI) / 180);
+      // Stand back on the far side of the landmark's node and face it: from
+      // the node itself (5-8 m away) a 6 m gate towered out of the viewport.
+      const node = this.world.nodes[lm.node]!;
+      const bearing = bearingDeg(node, lm);
+      const b = (bearing * Math.PI) / 180;
+      const stand = new THREE.Vector3(
+        lm.x - Math.sin(b) * FAMILIARISE_STANDOFF_M, 0, lm.z + Math.cos(b) * FAMILIARISE_STANDOFF_M);
+      this.ctx.engine.rig.position.copy(stand);
+      this.ctx.engine.rig.rotation.y = yawFromBearing(bearing);
+      this.promptFollow.reset();
       this.promptText = lm.name;
       this.promptSub = 'Jegyezd meg. Ez lesz az egyik tájékozódási pontod.';
       this.positionPrompt();
@@ -590,9 +633,11 @@ export class NavModule implements AssessmentModule {
       const from = route[i - 1]!;
       const to = route[i]!;
       this.ctx.recorder.event('tour_leg', { from, to, legIndex: i - 1, durationMs: GLIDE_MS });
-      await this.moveToNode(to);
-      // Name any landmark standing at this node, once, during the tour only.
+      // Name any landmark standing at this node, once, during the tour only -
+      // and arrive facing it, so the name on the panel is the object in
+      // front of the participant, not the one 7 m behind their shoulder.
       const lm = this.world.landmarks.find((l) => l.node === to);
+      await this.moveToNode(to, GLIDE_MS, lm ? yawFromBearing(bearingDeg(this.world.nodes[to]!, lm)) : undefined);
       if (lm) {
         this.promptText = lm.name;
         this.promptSub = '';
@@ -666,6 +711,7 @@ export class NavModule implements AssessmentModule {
         this.promptText = route.dir === 'forward' ? 'MERRE TOVÁBB?' : 'VISSZAFELÉ — MERRE?';
         this.promptSub = `${step} / ${route.nodes.length - 1}`;
         this.promptMode = 'comfort';
+        this.promptAbove = true;
         this.positionPrompt();
         this.promptPanel.group.visible = true;
         this.promptPanel.invalidate();
@@ -674,6 +720,7 @@ export class NavModule implements AssessmentModule {
         const chosen = await new Promise<number>((resolve) => { this.edgeResolve = resolve; });
         this.edgeResolve = null;
         this.hideEdgeArrows();
+        this.promptAbove = false;
         this.promptPanel.group.visible = false;
         if (this.aborted) return;
 
@@ -743,11 +790,16 @@ export class NavModule implements AssessmentModule {
     for (const n of options) {
       const to = this.nodePos(n);
       const dir = to.clone().sub(here).normalize();
+      // Big, bright and at chest height: at 3 m the old 0.7 m cone sat at
+      // -16 degrees, exactly where the prompt panel is on a flat screen, so
+      // on a laptop no arrow was ever visible - "I can look around but it
+      // does not go on". The prompt now sits above the horizon during the
+      // choice (see positionPrompt) and the arrows below it.
       const arrow = makePrimitive({
-        kind: 'cone', color: this.ctx.theme.accent, unlit: true, size: [0.7, 1.3, 0.7], opacity: 0.85,
+        kind: 'cone', color: this.ctx.theme.accent, unlit: true, size: [0.8, 1.5, 0.8], opacity: 0.9,
       });
-      arrow.position.copy(here).addScaledVector(dir, 3.0);
-      arrow.position.y = 0.75;
+      arrow.position.copy(here).addScaledVector(dir, 3.4);
+      arrow.position.y = 1.05;
       arrow.rotation.x = Math.PI / 2;
       arrow.rotation.z = -Math.atan2(dir.x, -dir.z);
       arrow.userData.edgeTarget = n;
@@ -781,7 +833,7 @@ export class NavModule implements AssessmentModule {
       this.dots.visible = false;
       this.setFog(FOG_BLIND);
 
-      const facingYaw = (bearingDeg(node, facing) * Math.PI) / 180;
+      const facingYaw = yawFromBearing(bearingDeg(node, facing));
       this.placeAt(spec.standNode, facingYaw);
       this.facingArrow.position.set(node.x, 0.03, node.z);
       this.facingArrow.rotation.y = facingYaw;
@@ -879,25 +931,29 @@ export class NavModule implements AssessmentModule {
 
       // Start somewhere empty, away from the graph, so no remembered structure
       // can help. A fresh random heading each trial prevents carry-over.
-      const startYaw = rng.range(-Math.PI, Math.PI);
+      const startBearing = rng.range(-180, 180);
+      const startYaw = yawFromBearing(startBearing);
       const start = new THREE.Vector3(rng.range(-8, 8), 0, rng.range(-8, 8));
       this.ctx.engine.rig.position.copy(start);
       this.ctx.engine.rig.rotation.y = startYaw;
+      this.promptFollow.reset();
       await this.wait(900);
 
       this.ctx.recorder.event('triangle_start', {
         leg1: +spec.leg1.toFixed(2), turnDeg: spec.turnDeg, leg2: +spec.leg2.toFixed(2),
       });
 
-      const dir1 = new THREE.Vector3(Math.sin(startYaw), 0, -Math.cos(startYaw));
+      const b1 = (startBearing * Math.PI) / 180;
+      const dir1 = new THREE.Vector3(Math.sin(b1), 0, -Math.cos(b1));
       const corner = start.clone().addScaledVector(dir1, spec.leg1);
       await this.glide(corner, startYaw, Math.round(spec.leg1 * 190));
       await this.wait(500);
 
-      const yaw2 = startYaw + (spec.turnDeg * Math.PI) / 180;
-      const dir2 = new THREE.Vector3(Math.sin(yaw2), 0, -Math.cos(yaw2));
+      const bearing2 = startBearing + spec.turnDeg;
+      const b2 = (bearing2 * Math.PI) / 180;
+      const dir2 = new THREE.Vector3(Math.sin(b2), 0, -Math.cos(b2));
       const end = corner.clone().addScaledVector(dir2, spec.leg2);
-      await this.glide(end, yaw2, Math.round(spec.leg2 * 190));
+      await this.glide(end, yawFromBearing(bearing2), Math.round(spec.leg2 * 190));
       await this.wait(600);
       if (this.aborted) return;
 
@@ -1255,8 +1311,8 @@ export class NavModule implements AssessmentModule {
     // Panels follow the participant so they are always readable, but only when
     // they are not being pointed at - a panel that moves under the cursor is
     // impossible to click.
-    if (this.promptPanel.group.visible && this.promptMode !== 'point') this.positionPrompt();
-    if (this.mapPanel.group.visible) this.positionMap();
+    if (this.promptPanel.group.visible && this.promptMode !== 'point') this.positionPrompt(dt);
+    if (this.mapPanel.group.visible) this.positionMap(dt);
 
     this.sampleTimer += dt;
     if (this.sampleTimer >= 0.1) {
@@ -1273,55 +1329,40 @@ export class NavModule implements AssessmentModule {
     }
   }
 
-  private positionPrompt(): void {
-    const cam = this.ctx.engine.camera;
-    const p = new THREE.Vector3();
-    const q = new THREE.Quaternion();
-    cam.getWorldPosition(p);
-    cam.getWorldQuaternion(q);
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
-    fwd.y = 0;
-    fwd.normalize();
+  // The panels follow the participant lazily (see LazyFollow): a caption
+  // that is welded to the head is the classic VR nausea trigger, and the
+  // tester reported exactly that - "the banner turns with my head". Without
+  // a dt the placement snaps, which is what a freshly shown panel wants.
+  private promptFollow = new LazyFollow({ deadZoneDeg: 24 });
+  private promptAbove = false;
+  private mapFollow = new LazyFollow({ deadZoneDeg: 18 });
+
+  private positionPrompt(dt?: number): void {
     // A panel you only read can sit further away; a panel you have to press
     // has to be close enough that aiming at a button is not a marksmanship
     // task. 'comfort' is the read-only landmark caption.
     const interactive = this.promptMode !== 'comfort';
     const dist = this.ctx.platform === 'vr' ? (interactive ? 1.15 : 1.7) : 1.5;
     const drop = interactive ? 0.30 : 0.42;
-    const fit = fitAngles(this.ctx, {
-      elDeg: (Math.atan2(-drop, dist) * 180) / Math.PI, distanceM: dist,
+    // While the participant is choosing an arrow the caption moves above the
+    // horizon, leaving the lower field - where the arrows stand - clear.
+    const elDeg = this.promptAbove ? 13 : (Math.atan2(-drop, dist) * 180) / Math.PI;
+    placeAtBearing(this.ctx, this.promptPanel.group, this.promptFollow.track(this.ctx, dt), {
+      elDeg, distanceM: dist,
       widthM: this.promptPanel.width, heightM: this.promptPanel.height,
     });
-    const rad = (fit.elDeg * Math.PI) / 180;
-    this.promptPanel.group.position.copy(p)
-      .addScaledVector(fwd, fit.distanceM * Math.cos(rad));
-    this.promptPanel.group.position.y = p.y + fit.distanceM * Math.sin(rad);
-    this.promptPanel.group.lookAt(p);
   }
 
-  private positionMap(): void {
-    const cam = this.ctx.engine.camera;
-    const p = new THREE.Vector3();
-    const q = new THREE.Quaternion();
-    cam.getWorldPosition(p);
-    cam.getWorldQuaternion(q);
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
-    fwd.y = 0;
-    fwd.normalize();
+  private positionMap(dt?: number): void {
     // The map is the largest panel in the platform, and on a phone it is
     // wider and taller than the viewport at the reading distance the headset
     // uses. fitAngles pushes it back rather than shrinking the drawing, so the
     // layout is unchanged and the whole map is on screen.
-    const fit = fitAngles(this.ctx, {
+    placeAtBearing(this.ctx, this.mapPanel.group, this.mapFollow.track(this.ctx, dt), {
       elDeg: -6.6, distanceM: this.ctx.platform === 'vr' ? 1.5 : 1.3,
       widthM: this.mapPanel.width, heightM: this.mapPanel.height,
       maxDistanceFactor: 2.2,
     });
-    const rad = (fit.elDeg * Math.PI) / 180;
-    this.mapPanel.group.position.copy(p)
-      .addScaledVector(fwd, fit.distanceM * Math.cos(rad));
-    this.mapPanel.group.position.y = p.y + fit.distanceM * Math.sin(rad);
-    this.mapPanel.group.lookAt(p);
   }
 
   /* --------------------------------------------------------------- UI */

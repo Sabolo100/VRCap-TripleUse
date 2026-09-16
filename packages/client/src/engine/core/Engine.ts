@@ -207,9 +207,13 @@ export class Engine {
     return () => this.sessionListeners.delete(cb);
   }
 
+  /** Display refresh the headset agreed to, Hz; null outside XR or unknown. */
+  xrFrameRate: number | null = null;
+
   private onSessionStart = () => {
     const session = this.renderer.xr.getSession();
     const hands = !!session?.inputSources && Array.from(session.inputSources).some((s) => !!s.hand);
+    this.requestXrFrameRate(session);
     updateDeviceRuntime({
       platform: 'vr',
       inputMode: hands ? 'hands' : 'controller',
@@ -220,7 +224,38 @@ export class Engine {
     this.sessionListeners.forEach((cb) => cb(true));
   };
 
+  /**
+   * Quest headsets start WebXR at 72 Hz. The scenes here are a few hundred
+   * unlit primitives, well inside the budget for 90 Hz, and the higher rate is
+   * measurably more comfortable: lower motion-to-photon latency and less
+   * judder on head turns, which was the tester's chief complaint. Ask for the
+   * highest supported rate up to 90; anything above that is not worth the GPU
+   * headroom on a mobile chip.
+   */
+  private requestXrFrameRate(session: XRSession | null): void {
+    type RateSession = XRSession & {
+      supportedFrameRates?: Float32Array;
+      frameRate?: number;
+      updateTargetFrameRate?: (rate: number) => Promise<void>;
+    };
+    const s = session as RateSession | null;
+    if (!s) return;
+    const rates = s.supportedFrameRates ? Array.from(s.supportedFrameRates) : [];
+    const want = rates.filter((r) => r <= 90.5).sort((a, b) => b - a)[0];
+    const note = () => {
+      this.xrFrameRate = s.frameRate ?? want ?? null;
+      if (this.xrFrameRate) updateDeviceRuntime({ refreshRate: Math.round(this.xrFrameRate) });
+    };
+    if (want && s.updateTargetFrameRate) {
+      s.updateTargetFrameRate(want).then(note, note);
+    } else {
+      note();
+    }
+    s.addEventListener?.('frameratechange', note);
+  }
+
   private onSessionEnd = () => {
+    this.xrFrameRate = null;
     updateDeviceRuntime({
       platform: this.device?.deviceClass === 'mobile' ? 'mobile' : 'desktop',
       inputMode: this.device?.inputMode === 'touch' ? 'touch' : 'mouse',
